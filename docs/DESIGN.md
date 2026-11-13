@@ -51,6 +51,25 @@ Mockupen visar fyra färdiga kombinationer: Midsommarnatt, Sommardag, Höstskymn
 
 Att tänka på: Fjället ska skildras med respekt för samisk kultur. Förslaget håller sig till natur och väder.
 
+## Borås (förslag, D-010)
+
+Bakgrund: Borås är ett stående skämt på nätet. Trenden "Bara i Borås" (#BIB) på TikTok visade påhittade katastrofklipp (brinnande kyrktorn, slukhål, ruiner, råttor som tagit över) till dansbandsmusik, och staden blev en symbol för världens värsta plats. Till det kommer ryktet att det alltid regnar där, och Melodifestivalens skämt 2023 om Borås parkeringshus som semestermål. Staden svarade själv med humor. Tonen i spelet ska vara kärleksfull, inte elak.
+
+Tre delar som kan väljas var för sig:
+
+1. **Banan Borås.** Grå stad kring en å, med parkeringshus i flera våningar som terräng, tygrullar och postorderpaket. I bakgrunden brinner ett kyrktorn utan att någon bryr sig.
+   - Väderreglaget är låst på regn och går inte att ändra.
+   - Slukhål öppnar sig på slumpvisa platser mellan rundorna.
+   - Råttor springer i gångarna och flyttar på lådor.
+   - Lådorna är postorderpaket. Ibland innehåller de fel vara.
+   - En jättelik bronsfigur med lång näsa står mitt på banan. Egen figur, inte en avbildning av den verkliga statyn.
+2. **Enkel biljett till Borås** (verktyg, fungerar på alla banor). Skickar iväg en motståndares vätte. Den är borta en runda och kommer tillbaka blöt, med paraply och lite mindre liv.
+3. **Bara i Borås-stämpeln** (genomgående skämt). När något osannolikt händer, till exempel en kedjereaktion eller ett självmål, stämplas "BARA I BORÅS" över skärmen till en dansbandsslinga.
+
+Dessutom: **Knallen** som väsen på banan, en kringvandrande försäljare som byter ett vapen mot ett annat. Knallarna hör hemma i trakten.
+
+Att tänka på: den verkliga statyn i Borås och dansbandslåten från trenden är upphovsrättsskyddade. Spelet använder egen figur och egen musik i samma anda.
+
 ## Arsenal
 
 Princip: namnet ska gå att känna igen utan att vara någon annans namn eller varumärke.

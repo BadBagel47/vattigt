@@ -14,6 +14,7 @@ Prioritet: Hög, Medel, Låg.
 | D-007 | Medel | Förslag | Rita vättarna i större format: lagfärger, luvor, skägg, rörelser (gå, sikta, falla, fika). |
 | D-008 | Medel | Förslag | Skärmar utanför matchen: startmeny, eget spel med reglage för stämning, lagbyggare. |
 | D-009 | Låg | Förslag | Regelbeskrivning för grundspelet: turordning, skada, vind, lådor, vårflod. |
+| D-010 | Medel | Väntar på användaren | Borås i spelet: bana, verktyget Enkel biljett till Borås, stämpeln Bara i Borås och Knallen. Förslag i docs/DESIGN.md; användaren väljer vilka delar som ska med. |
 
 ## Proposed runs
 
