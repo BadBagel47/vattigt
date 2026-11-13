@@ -72,6 +72,7 @@ Bazookan: **Kalle Gurra** (Gurra är smeknamn på Gustaf). Andra förslag: Karl-
 | Brännbollsträt | Slagträt | Slår iväg en vätte långt. |
 | Dagsedeln | Närstridsslaget | Ett slag snett uppåt. |
 | Jasså 39 | Flyganfallet | Ett plan drar över banan och släpper fem laddningar på rad. |
+| Fallukorv | Flyganfall som studsar | Fem korvringar faller från himlen, studsar åt olika håll och sprängs efter tredje studsen. Svårare att förutse än Jasså 39, men täcker mer. Andra namnförslag: Operation Stroganoff, Korvregn, Falukroven. |
 | Skurhinken | Ur folktron | Någon ovan jord ropar "se upp där nere" och häller ut hett vatten. Det rinner längs marken och ner i gångarna. |
 | Halmbocken | Eldvapnet | Ställs ut och brinner upp. Elden sprider sig i gräs och trä. |
 | Kräftskivan | Studsbomben | Kräftor som studsar åt olika håll och nyper. |
