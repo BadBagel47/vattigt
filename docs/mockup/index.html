@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vettigt spelscen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;600&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: one wide game scene on top, design notes in a readable column below. Single dark theme by choice: the page is the game's night. */
+  color-scheme: dark;
+  --night:#12172b;      /* page ground, a blue-biased near-black */
+  --panel:#1b2240;      /* raised surfaces */
+  --line:#313b6b;       /* borders */
+  --ink:#ebe6d8;        /* body text, warm paper white */
+  --dim:#aab1cb;        /* secondary text */
+  --falu:#d9553c;       /* accent: Falu red, lifted for dark ground */
+  --sun:#ffd27a;        /* highlight: midsummer sun */
+  --display:"Pixelify Sans","Courier New",monospace;
+  --body:"Albert Sans","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55}
+.wrap{max-width:1480px;margin:0 auto;padding:28px 20px 72px;display:flex;flex-direction:column;gap:44px}
+header{display:flex;flex-direction:column;gap:6px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(40px,7vw,68px);line-height:1;margin:0;color:var(--sun);letter-spacing:.01em}
+h2{font-family:var(--display);font-weight:700;font-size:30px;line-height:1.15;margin:0;text-wrap:balance}
+h3{font-family:var(--display);font-weight:500;font-size:21px;line-height:1.2;margin:0;color:var(--sun)}
+p{margin:0}
+.lede{max-width:62ch;color:var(--dim);font-size:19px}
+section{display:flex;flex-direction:column;gap:18px}
+.prose{max-width:66ch;display:flex;flex-direction:column;gap:12px}
+.prose ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px}
+em.term{font-style:normal;color:var(--sun)}
+
+/* --- scene --- */
+.stagebox{overflow-x:auto;border:2px solid var(--line);background:#000;line-height:0}
+.stage{position:relative;margin:0 auto}
+.stage canvas{display:block;width:100%;height:100%}
+#scene{image-rendering:pixelated;image-rendering:crisp-edges;cursor:crosshair}
+#glow{position:absolute;inset:0;mix-blend-mode:screen;pointer-events:none}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.controls .label{font-family:var(--display);color:var(--dim);font-size:18px;margin-right:4px}
+button{font-family:var(--display);font-size:18px;font-weight:500;color:var(--ink);background:var(--panel);border:2px solid var(--line);padding:8px 14px;min-height:44px;cursor:pointer}
+button:hover{border-color:var(--dim)}
+button:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--falu);border-color:var(--falu);color:#fff}
+.spacer{flex:1 1 20px}
+.hint{color:var(--dim);font-size:15px;max-width:70ch}
+#bigger{display:none}
+@media (max-width:760px){#bigger{display:inline-block}}
+
+/* --- cards and tables --- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.card{background:var(--panel);border:2px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:10px}
+.card p{font-size:16px}
+.card .where{font-size:14px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.card .twist{color:var(--dim);font-size:15px;border-top:2px dotted var(--line);padding-top:10px;margin-top:auto}
+.swatch{display:flex;height:22px;border:2px solid var(--night)}
+.swatch i{flex:1}
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:16px}
+th,td{text-align:left;vertical-align:top;padding:9px 14px 9px 0;border-bottom:2px dotted var(--line)}
+th{font-family:var(--display);font-weight:500;color:var(--dim);font-size:17px}
+td:first-child{font-family:var(--display);color:var(--sun);font-size:19px;white-space:nowrap}
+td:nth-child(2){color:var(--dim)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px}
+.cols > div{display:flex;flex-direction:column;gap:10px}
+.cols ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:6px;font-size:16px}
+ol.ask{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:8px;max-width:66ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Vettigt</h1>
+  <p class="lede">Turbaserat artilleri med vättar ur svensk folktro. Två lag, en sprängbar bana, och ett bo under jorden att försvara.</p>
+</header>
+
+<section aria-labelledby="h-scene">
+  <h2 id="h-scene">Spelscen: Midsommarängen</h2>
+  <div class="stagebox" id="stagebox">
+    <div class="stage" id="stage">
+      <canvas id="scene" width="480" height="270" role="img" aria-label="Pixelgrafik: två lag vättar på en äng med röd stuga, midsommarstång och björkar. En raket är på väg genom luften. Under marken syns vättarnas bon."></canvas>
+      <canvas id="glow" aria-hidden="true"></canvas>
+    </div>
+  </div>
+  <div class="controls">
+    <span class="label">Stämning</span>
+    <button type="button" data-mood="midsommar" aria-pressed="true">Midsommarnatt</button>
+    <button type="button" data-mood="dag" aria-pressed="false">Sommardag</button>
+    <button type="button" data-mood="host" aria-pressed="false">Höstskymning</button>
+    <button type="button" data-mood="vinter" aria-pressed="false">Vinternatt</button>
+    <span class="spacer"></span>
+    <button type="button" id="bigger" aria-pressed="false">Visa större</button>
+    <button type="button" id="reset">Återställ banan</button>
+  </div>
+  <p class="hint">Klicka eller tryck i scenen för att spränga terrängen. Vättar som tappar fotfästet faller, och den som stupar lämnar en runsten efter sig. Scenen är ritad i 480×270 pixlar och skalas upp; ljuset ligger i ett eget mjukt lager ovanpå.</p>
+</section>
+
+<section aria-labelledby="h-look">
+  <h2 id="h-look">Retro med modern känsla</h2>
+  <div class="prose">
+    <ul>
+      <li><em class="term">Låg upplösning, hela pixlar.</em> 480×270 som skalas exakt 4 gånger till 1080p. Inga halva pixlar, inga roterade sprites.</li>
+      <li><em class="term">Mjukt ljus över hårda pixlar.</em> Fönster, lyktor, raketer och norrsken lyser i ett separat lager. Det är det som skiljer bilden från ett spel från 1995.</li>
+      <li><em class="term">Rastrerade övergångar.</em> Himlen och jordlagren byter färg i rutmönster i stället för mjuka toningar.</li>
+      <li><em class="term">En bana, många stämningar.</em> Samma bana målas om med ny palett, nytt ljus och nya partiklar. Stämningen blir ett reglage i eget spel.</li>
+    </ul>
+  </div>
+</section>
+
+<section aria-labelledby="h-maps">
+  <h2 id="h-maps">Banor</h2>
+  <div class="grid">
+    <article class="card"><span class="where">Dalarna</span><h3>Midsommarängen</h3><div class="swatch"><i style="background:#2f4a7a"></i><i style="background:#ffc27a"></i><i style="background:#a5342a"></i><i style="background:#5fae3a"></i><i style="background:#eeeae0"></i></div><p>Röda stugor med vita knutar, björkar, gärdsgård och Siljan i bakgrunden. Banan i scenen ovan.</p><p class="twist">Stången kan fällas och blir en bro. Midsommarregnet släcker all eld.</p></article>
+    <article class="card"><span class="where">Bohuslän</span><h3>Kobbarna</h3><div class="swatch"><i style="background:#7cc0f0"></i><i style="background:#d9a79a"></i><i style="background:#b3b8bd"></i><i style="background:#a5342a"></i><i style="background:#2a5fa0"></i></div><p>Släta granithällar i rosa och grått, sjöbodar på pålar, bryggor och en fyr. Små öar med mycket vatten emellan.</p><p class="twist">Granit tål mer än jord. Bryggor rasar. Färjan går förbi och kan åkas med.</p></article>
+    <article class="card"><span class="where">Småland</span><h3>Trollskogen</h3><div class="swatch"><i style="background:#16263f"></i><i style="background:#2f6b4a"></i><i style="background:#7fb069"></i><i style="background:#8b8f98"></i><i style="background:#c8382e"></i></div><p>Mossiga flyttblock, höga granar, stenmurar, flugsvamp och dimma mellan stammarna.</p><p class="twist">Flyttblocken kan vältas och rulla. Ett av dem är ett troll som sover till natten.</p></article>
+    <article class="card"><span class="where">Lappland</span><h3>Fjället</h3><div class="swatch"><i style="background:#0b1026"></i><i style="background:#58f0a8"></i><i style="background:#eef4fb"></i><i style="background:#c4d3ea"></i><i style="background:#646874"></i></div><p>Kalfjäll, fjällbjörk och djup snö under norrsken. På sommaren midnattssol som aldrig går ner.</p><p class="twist">Snön lägger sig i lager och rasar som laviner efter en smäll.</p></article>
+    <article class="card"><span class="where">Skåne</span><h3>Slätten</h3><div class="swatch"><i style="background:#58a8e8"></i><i style="background:#f2d43a"></i><i style="background:#f2efe6"></i><i style="background:#3a2c28"></i><i style="background:#5fae3a"></i></div><p>Gula rapsfält, pilevallar, korsvirkeshus och en väderkvarn. Platt och öppet åt alla håll.</p><p class="twist">Här finns inget lä, så vinden avgör. Kvarnvingarna slår tillbaka det som träffar dem.</p></article>
+    <article class="card"><span class="where">Gotland</span><h3>Raukarna</h3><div class="swatch"><i style="background:#a6d8f6"></i><i style="background:#e6dcc4"></i><i style="background:#b9ad92"></i><i style="background:#d9553c"></i><i style="background:#3f8fd0"></i></div><p>Höga kalkstenspelare i havet, en bit ringmur och vallmo i strandkanten.</p><p class="twist">Raukarna är smala. Kapa foten så välter hela pelaren med den som står på den.</p></article>
+    <article class="card"><span class="where">Stockholm</span><h3>Takåsarna</h3><div class="swatch"><i style="background:#4a2c50"></i><i style="background:#f08c3a"></i><i style="background:#6fb5a0"></i><i style="background:#d9b26a"></i><i style="background:#3a2c28"></i></div><p>Ärgade koppartak, skorstenar och kyrktorn med vatten mellan kvarteren. En bana på höjden.</p><p class="twist">Tunnelbanan under husen är en genväg: gå ner på en station, kom upp på nästa.</p></article>
+    <article class="card"><span class="where">Bergslagen</span><h3>Gruvan</h3><div class="swatch"><i style="background:#0e0c14"></i><i style="background:#4e2f28"></i><i style="background:#a5342a"></i><i style="background:#ffd66b"></i><i style="background:#8b8f98"></i></div><p>En sluten bana under jord med gångar, stegar, rälsvagnar och en gruvlave högst upp.</p><p class="twist">Det är mörkt. Man ser bara det som lyktorna når, och lyktor går att skjuta sönder.</p></article>
+    <article class="card"><span class="where">Norrland</span><h3>Älven</h3><div class="swatch"><i style="background:#7cc0f0"></i><i style="background:#2f6b4a"></i><i style="background:#8a5a3a"></i><i style="background:#9aa0aa"></i><i style="background:#2a5fa0"></i></div><p>Timmerflottning mellan granklädda stränder, med en kraftverksdamm i ena änden.</p><p class="twist">Stockarna är plattformar som flyter förbi. Spräng dammen så stiger vattnet.</p></article>
+    <article class="card"><span class="where">Var som helst</span><h3>Villaområdet</h3><div class="swatch"><i style="background:#a6d8f6"></i><i style="background:#a5342a"></i><i style="background:#5fae3a"></i><i style="background:#b07a4a"></i><i style="background:#2a3020"></i></div><p>Vättar bor under hus. Här är banan en tomt: altan, kompost, studsmatta och flaggstång.</p><p class="twist">Studsmattan studsar allt. Robotgräsklipparen kör sin runda oavsett vem som står i vägen.</p></article>
+  </div>
+</section>
+
+<section aria-labelledby="h-arsenal">
+  <h2 id="h-arsenal">Arsenal</h2>
+  <p class="prose">Namnen ska gå att känna igen utan att vara någon annans. Bazookan heter <em class="term">Kalle Gurra</em>, eftersom Gurra är smeknamn på Gustaf. Andra förslag: Karl-Gösta, Calle Gusten.</p>
+  <div class="tablebox">
+  <table>
+    <thead><tr><th scope="col">Namn</th><th scope="col">Känns igen som</th><th scope="col">Vad den gör</th></tr></thead>
+    <tbody>
+      <tr><td>Kalle Gurra</td><td>Bazookan</td><td>Rak raket som tar vind. Standardvapnet.</td></tr>
+      <tr><td>Surströmming</td><td>Granat med gift</td><td>Burken studsar, öppnas efter tre sekunder och släpper ett stinkmoln som driver med vinden.</td></tr>
+      <tr><td>Köttbullar</td><td>Klusterbomb</td><td>En stor som delar sig i fem små vid nedslaget.</td></tr>
+      <tr><td>Dynamit-Alfred</td><td>Dynamit</td><td>Läggs vid fötterna. Kort stubin, stor smäll. Nobel hade förstått.</td></tr>
+      <tr><td>Dalahästen</td><td>Det vandrande djuret</td><td>Travar framåt, hoppar över hinder och sprängs när du trycker.</td></tr>
+      <tr><td>Älgstudsaren</td><td>Hagelgeväret</td><td>Två raka skott per tur.</td></tr>
+      <tr><td>Torsdagskanonen</td><td>Kulsprutan</td><td>En lång skur ärtor. Liten skada, mycket knuff.</td></tr>
+      <tr><td>Brännbollsträt</td><td>Slagträt</td><td>Slår iväg en vätte långt, helst ut i vattnet.</td></tr>
+      <tr><td>Jasså 39</td><td>Flyganfallet</td><td>Ett plan drar över banan och släpper fem laddningar på rad.</td></tr>
+      <tr><td>Skurhinken</td><td>Ur folktron</td><td>Någon ovan jord ropar ”se upp där nere” och häller ut hett vatten. Det rinner längs marken och ner i gångarna.</td></tr>
+      <tr><td>Halmbocken</td><td>Eldvapnet</td><td>Ställs ut och brinner upp, som alla visste att den skulle. Elden sprider sig i gräs och trä.</td></tr>
+      <tr><td>Flyttblocket</td><td>Det tunga från himlen</td><td>Ett stenblock från istiden faller rakt ner genom allt.</td></tr>
+      <tr><td>Prinsesstårtan</td><td>Supervapnet</td><td>Sällsynt. Enorm smäll och marsipan över halva banan.</td></tr>
+      <tr><td>Metspöt</td><td>Repet</td><td>Kasta, haka fast och svinga dig vidare.</td></tr>
+      <tr><td>Plattpaketet</td><td>Balken</td><td>En bro som tar en tur att skruva ihop. En skruv blir över, så den hamnar lite snett.</td></tr>
+      <tr><td>Insexnyckeln</td><td>Borren</td><td>Gräver en gång rakt ner eller snett.</td></tr>
+      <tr><td>Osynlighetsluvan</td><td>Ur folktron</td><td>Motståndarna ser inte vätten förrän den skjuter.</td></tr>
+      <tr><td>Fika</td><td>Stå över</td><td>Hoppa över turen och få liv tillbaka. Fikar man bredvid en lagkamrat får båda.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section aria-labelledby="h-creatures">
+  <h2 id="h-creatures">Väsen på banan</h2>
+  <div class="grid">
+    <article class="card"><h3>Näcken</h3><p>Sitter i vattnet och spelar fiol. Den som står nära vattenbrynet dras ett steg närmare varje runda.</p></article>
+    <article class="card"><h3>Trollet</h3><p>Ett stenblock på dagen. På natten vaknar det om det blir träffat, och kastar något tillbaka.</p></article>
+    <article class="card"><h3>Skogsrået</h3><p>Förvrider synen. Siktet svajar för den som står nära henne.</p></article>
+    <article class="card"><h3>Lyktgubbar</h3><p>Vandrande ljus som lyser upp mörka banor. Målsökande vapen följer dem hellre än målet.</p></article>
+    <article class="card"><h3>Gårdstomten</h3><p>Vaktar stugan. Skada hans hus och han hämnas. Ställ ut gröt och han hjälper ditt lag.</p></article>
+    <article class="card"><h3>Älgen</h3><p>Går över banan i skymningen och knuffar undan det som står i vägen. Blir skrämd av smällar.</p></article>
+  </div>
+</section>
+
+<section aria-labelledby="h-ideas">
+  <h2 id="h-ideas">Spelidéer</h2>
+  <div class="cols">
+    <div>
+      <h3>Det som är vättarnas eget</h3>
+      <ul>
+        <li>Vättar bor under jorden. Varje lag har ett bo, och striden pågår lika mycket i gångarna som ovanpå.</li>
+        <li>En stupad vätte blir en runsten som står kvar och är i vägen.</li>
+        <li>Årstid, tid på dygnet och väder är tre reglage som ändrar spelet, inte bara bilden: is bär men brister, regn släcker eld, troll vaknar på natten.</li>
+        <li>Vårfloden avgör oavgjorda matcher: vattnet stiger för varje runda.</li>
+        <li>Jantelagen som valbar regel: laget som leder får sämre lådor.</li>
+        <li>Lagen kan prata dialekt i pratbubblor: skånska, göteborgska med ordvitsar, norrländska med bara ”jo”.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Spellägen</h3>
+      <ul>
+        <li><em class="term">Klassiskt.</em> Sista laget som står kvar vinner.</li>
+        <li><em class="term">Boet.</em> Skydda ditt bo och förstör motståndarens.</li>
+        <li><em class="term">Kubb.</em> Fäll motståndarens fem kubbar och sedan kungen. Fäller du kungen för tidigt förlorar du.</li>
+        <li><em class="term">Stången.</em> Håll platsen vid midsommarstången flest rundor.</li>
+        <li><em class="term">Brevspel.</em> Ta din tur när du har tid och få besked när det är dags igen.</li>
+        <li><em class="term">Fredagsmys.</em> Två vättar per lag, tjugo sekunder per tur.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Flera spelare först</h3>
+      <ul>
+        <li>Börja med flera spelare på samma skärm. Det kräver varken server eller datormotståndare.</li>
+        <li>Sedan spel över nätet med rumskod. Turbaserat är tacksamt: bara dragen behöver skickas.</li>
+        <li>Om spelet räknar likadant hos alla får man repriser och åskådare nästan gratis. Värt att veta redan nu för den gemensamma grunden.</li>
+        <li>Ensamspel utan datormotståndare kan komma tidigt: övningsfält med måltavlor, gåtor som ska lösas med ett enda skott, och en daglig bana med topplista.</li>
+        <li>Vandringen från Skåne till Lappland blir kampanjen när datormotståndaren finns.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-ask">
+  <h2 id="h-ask">Frågor till dig</h2>
+  <ol class="ask">
+    <li>Ska spelet vara på svenska, eller på både svenska och engelska? Ordvitsarna går inte att översätta rakt av.</li>
+    <li>Mobil först med tryck och drag, eller dator först? Det styr hur stora knappar och texter blir i spelet.</li>
+    <li>Ska tonen vara mysig och skämtsam som här, eller mörkare och mer sagoskog?</li>
+    <li>Vilken bana vill du se härnäst?</li>
+  </ol>
+</section>
+
+</div>
+
+<script>
+(() => {
+'use strict';
+const W = 480, H = 270, WL = 246;           // internal resolution and water level
+const cv = document.getElementById('scene'), ctx = cv.getContext('2d');
+const gl = document.getElementById('glow'), gctx = gl.getContext('2d');
+const img = ctx.createImageData(W, H), buf = new Uint32Array(img.data.buffer);
+const base = new Uint32Array(W * H);
+let T = buf;                                 // current draw target
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- helpers ---------- */
+const abgr = c => (0xff000000 | ((c & 255) << 16) | (c & 0xff00) | (c >> 16 & 255)) >>> 0;
+const set = (x, y, c) => { x |= 0; y |= 0; if (x >= 0 && x < W && y >= 0 && y < H) T[y * W + x] = abgr(c); };
+const get = (x, y) => { const v = T[(y | 0) * W + (x | 0)]; return ((v & 255) << 16) | (v & 0xff00) | (v >> 16 & 255); };
+const mix = (a, b, t) => {
+  const r = (a >> 16 & 255) + ((b >> 16 & 255) - (a >> 16 & 255)) * t,
+        g = (a >> 8 & 255) + ((b >> 8 & 255) - (a >> 8 & 255)) * t,
+        l = (a & 255) + ((b & 255) - (a & 255)) * t;
+  return (r << 16) | (g << 8) | l;
+};
+const blend = (x, y, c, t) => { x |= 0; y |= 0; if (x >= 0 && x < W && y >= 0 && y < H) set(x, y, mix(get(x, y), c, t)); };
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+const bay = (x, y) => (BAYER[(x & 3) + (y & 3) * 4] + .5) / 16;
+const hash = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
+const vnoise = (x, y, s) => {
+  const gx = Math.floor(x / s), gy = Math.floor(y / s);
+  let fx = x / s - gx, fy = y / s - gy; fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+  const a = hash(gx, gy), b = hash(gx + 1, gy), c = hash(gx, gy + 1), d = hash(gx + 1, gy + 1);
+  return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+};
+const rect = (x, y, w, h, c) => { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) set(x + i, y + j, c); };
+const disc = (cx, cy, r, c) => { for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + r * .6) set(cx + i, cy + j, c); };
+
+/* ---------- moods: palette, light and particles per setting ---------- */
+const MOODS = {
+  midsommar: { sky: [0x1d2b53, 0x2f4a7a, 0x5a6fa0, 0x9a86ad, 0xe39a8c, 0xffc27a, 0xffe3a1], amb: [.80, .82, 1], hill: [0x56699a, 0x33466e], forest: 0x18294a,
+    water: [0x4a6aa0, 0x1f3358], sun: { x: 322, y: 172, r: 9, c: 0xfff1b8 }, stars: .25, glow: 1, part: 'fly',
+    grass: [0x9bd45a, 0x5fae3a, 0x3b7d34], leaf: [0xb6e06a, 0x6fba45, 0x3f8a3c] },
+  dag: { sky: [0x3f8fd8, 0x58a8e8, 0x7cc0f0, 0xa6d8f6, 0xd0ecfa], amb: [1, 1, 1], hill: [0x8fb6d6, 0x5f9f86], forest: 0x2f6b4a,
+    water: [0x4f9fe0, 0x2a5fa0], sun: { x: 412, y: 36, r: 10, c: 0xfffbe0 }, stars: 0, glow: .3, part: 'pollen', clouds: 1,
+    grass: [0xa8e060, 0x62b53c, 0x3b7d34], leaf: [0xc2ea70, 0x76c24a, 0x3f8a3c] },
+  host: { sky: [0x2a1f3d, 0x4a2c50, 0x8a3f55, 0xc85a4a, 0xf08c3a, 0xffc14d], amb: [.98, .80, .74], hill: [0x6a3a58, 0x43253f], forest: 0x26152c,
+    water: [0x8a4a5a, 0x2f1c3a], sun: { x: 118, y: 174, r: 11, c: 0xffd27a }, stars: .1, glow: 1, part: 'leaf',
+    grass: [0xd9c25a, 0xa89a3c, 0x6f6a30], leaf: [0xffc94d, 0xe8892f, 0xb8502a] },
+  vinter: { sky: [0x0b1026, 0x0f1836, 0x14244a, 0x1b335e, 0x27496f], amb: [.60, .72, 1], hill: [0x22365f, 0x182746], forest: 0x0d1833,
+    water: [0x1c3058, 0x0b1530], moon: { x: 132, y: 62, r: 9, c: 0xf4f6ff }, stars: 1, glow: 1.2, part: 'snow', snow: 1, aurora: 1,
+    grass: [0xffffff, 0xeef4fb, 0xc4d3ea], leaf: null }
+};
+let mood = MOODS.midsommar, tintCache = new Map();
+const tn = c => {                             // ambient tint for world colours
+  let v = tintCache.get(c);
+  if (v === undefined) {
+    const a = mood.amb;
+    v = (Math.min(255, (c >> 16 & 255) * a[0]) << 16) | (Math.min(255, (c >> 8 & 255) * a[1]) << 8) | Math.min(255, (c & 255) * a[2]);
+    tintCache.set(c, v);
+  }
+  return v;
+};
+const wp = (x, y, c) => set(x, y, tn(c));
+const lit = () => mood.glow >= 1;
+
+/* ---------- terrain ---------- */
+const PTS = [[0, 266], [22, 262], [44, 228], [68, 184], [92, 152], [150, 152], [178, 170], [212, 196], [252, 206], [288, 190], [322, 150], [352, 124], [388, 120], [418, 140], [440, 186], [456, 236], [468, 262], [480, 266]];
+const h0 = new Int16Array(W);
+for (let x = 0; x < W; x++) {
+  let i = 0; while (i < PTS.length - 2 && x >= PTS[i + 1][0]) i++;
+  const [x1, y1] = PTS[i], [x2, y2] = PTS[i + 1], t = (x - x1) / (x2 - x1);
+  let y = y1 + (y2 - y1) * (1 - Math.cos(Math.PI * t)) / 2;
+  if (x < 90 || x > 152) y += (vnoise(x, 0, 9) - .5) * 5;
+  h0[x] = Math.round(y);
+}
+let solid, cave, burnt, vattar, stones, booms;
+const isSolid = (x, y) => x >= 0 && x < W && y >= 0 && (y >= H || solid[y * W + x] === 1);
+function carve(cx, cy, rx, ry, asCave) {
+  for (let y = Math.floor(cy - ry - 3); y <= cy + ry + 3; y++) for (let x = Math.floor(cx - rx - 3); x <= cx + rx + 3; x++) {
+    if (x < 0 || x >= W || y < 0 || y >= H) continue;
+    const d = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2, i = y * W + x;
+    if (d <= 1) { if (solid[i]) { solid[i] = 0; if (asCave) cave[i] = 1; } }
+    else if (!asCave && d <= ((rx + 3) / rx) ** 2) burnt[i] = 1;
+  }
+}
+function tunnel(x1, y1, x2, y2, r) {
+  const n = Math.hypot(x2 - x1, y2 - y1);
+  for (let i = 0; i <= n; i++) carve(x1 + (x2 - x1) * i / n, y1 + (y2 - y1) * i / n, r, r, true);
+}
+function resetWorld() {
+  solid = new Uint8Array(W * H); cave = new Uint8Array(W * H); burnt = new Uint8Array(W * H);
+  for (let x = 0; x < W; x++) for (let y = h0[x]; y < H; y++) solid[y * W + x] = 1;
+  carve(118, 201, 24, 9, true); tunnel(140, 201, 188, 177, 4);      // left burrow and its tunnel
+  carve(372, 161, 20, 8, true); tunnel(390, 161, 431, 157, 4);      // right burrow
+  carve(262, 205, 13, 12, false);                                    // a fresh crater
+  const V = (name, team, x, hp, face, beard, y) => ({ name, team, x, hp, face, beard, y: y ?? h0[x] - 14, dead: false });
+  vattar = [
+    V('MÄRTA', 0, 62, 64, 1, 0), V('STINA', 0, 82, 100, 1, 0), V('GÖSTA', 0, 165, 85, 1, 1), V('EBBE', 0, 108, 100, 1, 1, 200),
+    V('ALVA', 1, 303, 38, -1, 0), V('VERA', 1, 342, 100, -1, 0), V('SIXTEN', 1, 407, 72, -1, 1), V('TAGE', 1, 366, 100, -1, 1, 160)
+  ];
+  stones = [{ x: 236, y: 0 }]; booms = [];
+  vattar.forEach(settle); stones.forEach(settle);
+}
+function settle(o) { while (o.y < H + 20 && !isSolid(o.x, o.y + 1)) o.y++; }
+
+const TEAM = [{ name: 'VETTVILLINGARNA', c: 0xe5533d, d: 0xa5342a }, { name: 'VÄTTERNRUNDAN', c: 0x4fa3ff, d: 0x2a6fd0 }];
+const SOIL = [0x8a5a3a, 0x6d4330, 0x4e2f28], RIM = 0xb07a4a, ROCK = [0xb3b8bd, 0x8b8f98, 0x646874];
+function terrainColor(x, y) {
+  const d = y - h0[x], i = y * W + x;
+  let c;
+  const up = !isSolid(x, y - 1), down = !isSolid(x, y + 1);
+  const r = vnoise(x, y, 15) * .65 + vnoise(x + 40, y, 6) * .35;
+  if (d <= 1) c = mood.grass[d === 0 ? 0 : 1];
+  else if (d <= 3 || (d === 4 && hash(x, 7) > .5)) c = mood.grass[d === 2 ? 1 : 2];
+  else if (r > .67 && d > 7) c = up || (!isSolid(x - 1, y) && d > 4) ? ROCK[0] : (vnoise(x, y, 3) > .55 ? ROCK[1] : ROCK[2]);
+  else {
+    const k = d < 14 ? 0 : d < 36 ? (d - 14) / 22 : 1 + Math.min(1, (d - 36) / 30);
+    c = SOIL[Math.min(2, Math.floor(k + bay(x, y) * .999))];
+    if (hash(x, y) < .025) c = RIM;
+    if (up) c = RIM; else if (down) c = SOIL[2];
+  }
+  if (burnt[i]) c = mix(c, 0x241816, .62);
+  c = tn(c);
+  if (y >= WL) c = mix(c, mood.water[1], .6);
+  return c;
+}
+
+/* ---------- sprites ---------- */
+function sprite(rows, pal, x, y, flip, raw) {
+  for (let j = 0; j < rows.length; j++) for (let i = 0; i < rows[j].length; i++) {
+    const ch = rows[j][flip ? rows[j].length - 1 - i : i];
+    if (ch !== '.') (raw ? set : wp)(x + i, y + j, pal[ch]);
+  }
+}
+const VATTE = ['....L....', '....LL...', '...LLLl..', '..LLLLLl.', '.LLLLLLLl', '..SSSSS..', '..SSeSe..', '..SSSNN..', '..WWWWW..', '.gGWWWGG.', '.gGGGGGG.', '..B...B..'];
+const HORSE = ['......rr.', '.....rrrr', '.....rr..', 'rrrrrrr..', 'rwbrrgr..', 'rrrrrrr..', 'rr...rr..', 'rr...rr..'];
+const ICONS = [
+  { name: 'KALLE GURRA', r: ['.......ooO', '......ooO.', '.....ooo..', '....ooo...', '...ooo....', '..ooow....', '.ooo.w....', 'ooo.......', 'oo........'], p: { o: 0x8a9d55, O: 0x2a3020, w: 0xb07a4a } },
+  { name: 'SURSTRÖMMING', r: ['..g...g...', '...g...g..', '..yyyyyy..', '.yYYYYYYy.', '.rrrrrrrr.', '.rwwrrwwr.', '.rrrrrrrr.', '.yyyyyyyy.', '..yyyyyy..'], p: { y: 0xd8c060, Y: 0xf4e8a0, r: 0xc8382e, w: 0xffffff, g: 0x9bd45a } },
+  { name: 'DALAHÄSTEN', r: ['.......rr.', '......rrrr', '......rr..', '.rrrrrrr..', '.rwbrrgr..', '.rrrrrrr..', '.rr...rr..', '.rr...rr..', '.rr...rr..'], p: { r: 0xe5533d, w: 0xffffff, b: 0x4fa3ff, g: 0x9bd45a } },
+  { name: 'KÖTTBULLAR', r: ['..........', '...bb.....', '..bBbb....', '..bbbb.bb.', '...bb.bBbb', '.bb...bbbb', 'bBbb...bb.', 'bbbb......', '.bb.......'], p: { b: 0x9a6038, B: 0xd09a68 } },
+  { name: 'DYNAMIT-ALFRED', r: ['.......s..', '......f...', '.....f....', '...rrrr...', '...rrrr...', '...wwww...', '...rrrr...', '...rrrr...', '...rrrr...'], p: { r: 0xd8442a, w: 0xf4e8c0, f: 0xb0a080, s: 0xffe38a } },
+  { name: 'ÄLGSTUDSAREN', r: ['..........', '.........m', '.......mm.', '.....mmw..', '...mmww...', '.wwwww....', 'www.......', 'ww........', '..........'], p: { m: 0xb3b8bd, w: 0xb07a4a } },
+  { name: 'METSPÖT', r: ['........w.', '.......w.l', '......w..l', '.....w...l', '....w....l', '...w.....l', '..w.....hl', '.w......hh', 'w.........'], p: { w: 0xd09a68, l: 0xd8dde8, h: 0xe5533d } },
+  { name: 'FIKA', r: ['...s..s...', '....s..s..', '...s..s...', '.wwwwwww..', '.wcccccwww', '.wwwwwww.w', '.wwwwwwwww', '..wwwww...', 'wwwwwwwww.'], p: { w: 0xf0f0f0, c: 0x6a4630, s: 0xaab4cc } }
+];
+
+/* ---------- 3x5 pixel font (accents sit two rows above) ---------- */
+const F = { A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', F: '111100110100100', G: '011100101101011', H: '101101111101101', I: '111010010010111', J: '001001001101010', K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', Q: '010101101110011', R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111', V: '101101101101010', W: '101101111111101', X: '101101010101101', Y: '101101010010010', Z: '111001010100111',
+  0: '111101101101111', 1: '010110010010111', 2: '110001010100111', 3: '110001010001110', 4: '101101111001001', 5: '111100110001110', 6: '011100111101111', 7: '111001010010010', 8: '111101111101111', 9: '111101111001110',
+  ' ': '000000000000000', ':': '000010000010000', '-': '000000111000000', '.': '000000000000010', '!': '010010010000010', '>': '100010001010100', '+': '000010111010000' };
+const ACC = { 'Å': ['A', '010'], 'Ä': ['A', '101'], 'Ö': ['O', '101'] };
+function glyphs(str, x, y, c, s) {
+  for (const ch0 of str) {
+    let ch = ch0, acc = null;
+    if (ACC[ch]) { acc = ACC[ch][1]; ch = ACC[ch][0]; }
+    const g = F[ch] || F[' '];
+    for (let i = 0; i < 15; i++) if (g[i] === '1') rect(x + (i % 3) * s, y + Math.floor(i / 3) * s, s, s, c);
+    if (acc) for (let i = 0; i < 3; i++) if (acc[i] === '1') rect(x + i * s, y - 2 * s, s, s, c);
+    x += 4 * s;
+  }
+}
+const textW = (str, s = 1) => str.length * 4 * s - s;
+function text(str, x, y, c, s = 1, align = 0) {       // align: 0 left, 1 centre, 2 right
+  x = Math.round(x - (align === 1 ? textW(str, s) / 2 : align === 2 ? textW(str, s) : 0));
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1], [-1, 1]]) glyphs(str, x + dx * s, y + dy * s, 0x0c1022, s);
+  glyphs(str, x, y, c, s);
+}
+
+/* ---------- static layer: sky, hills, terrain, props ---------- */
+function tree(x, kind) {
+  const gy = h0[x];
+  if (kind === 'gran') {
+    const c = mood.snow ? [0x2f5a4a, 0x1f4038] : [0x2f6b4a, 0x1f4a38];
+    rect(x, gy - 4, 2, 5, tn(0x5a3a2a));
+    for (let k = 0; k < 4; k++) for (let j = 0; j < 7; j++) { const w = 1 + j + k; for (let i = -w; i <= w + 1; i++) wp(x + i, gy - 30 + k * 6 + j, i < 0 ? c[1] : c[0]); }
+    if (mood.snow) for (let k = 0; k < 4; k++) for (let i = -2 - k; i <= 1 + k; i++) wp(x + i, gy - 30 + k * 6 + (Math.abs(i) > 1 ? 3 : 1), 0xeef4fb);
+    return;
+  }
+  const hgt = 30 + (x % 7);
+  for (let j = 0; j < hgt; j++) { wp(x, gy - j, 0xeeeae0); wp(x + 1, gy - j, hash(x, j) < .22 ? 0x2a2630 : 0xc9c4b8); }
+  if (!mood.leaf) {                                   // bare winter branches with a little snow
+    for (const [dx, dy, n] of [[-1, -1, 9], [1, -1, 10], [-1, -2, 6], [1, -2, 7]]) for (let k = 1; k <= n; k++) { wp(x + dx * k, gy - hgt + 8 + dy * k * .6, 0xc9c4b8); if (k % 3 === 0) wp(x + dx * k, gy - hgt + 7 + dy * k * .6, 0xffffff); }
+    return;
+  }
+  const L = mood.leaf;
+  for (const [dx, dy, r] of [[0, -2, 7], [-7, 3, 5], [7, 2, 6], [-3, 8, 5], [5, 9, 4], [-9, 9, 3]]) {
+    const cx = x + dx, cy = gy - hgt + dy;
+    for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r) {
+      const sh = (i + j) / (2 * r) + (bay(cx + i, cy + j) - .5) * .7;
+      wp(cx + i, cy + j, sh < -.25 ? L[0] : sh < .3 ? L[1] : L[2]);
+    }
+  }
+  for (let k = 0; k < 5; k++) { const bx = x - 9 + k * 5; for (let j = 0; j < 4 + (k * 3) % 4; j++) if (j % 2 === 0) wp(bx, gy - hgt + 13 + j, L[1]); }   // hanging twigs
+}
+function house() {
+  const x = 100, gy = 152, top = gy - 18;
+  for (let j = 0; j < 18; j++) for (let i = 0; i < 40; i++) wp(x + i, top + j, i % 4 === 3 ? 0x8a2a24 : 0xa5342a);
+  rect(x, top, 2, 18, tn(0xf2efe6)); rect(x + 38, top, 2, 18, tn(0xf2efe6)); rect(x, gy - 2, 40, 2, tn(0x6a6470));
+  for (let j = 0; j < 9; j++) for (let i = -3 + j; i < 43 - j; i++) wp(x + i, top - 1 - j, j === 0 ? 0x2a2630 : (i + j) % 3 === 0 ? 0x4a3f48 : 0x5a4d55);
+  if (mood.snow) for (let j = 0; j < 9; j++) for (let i = -3 + j; i < 43 - j; i++) if (j === 8 || i < -1 + j || i > 40 - j) wp(x + i, top - 2 - j, 0xf4f8ff);
+  rect(x + 28, top - 14, 5, 8, tn(0x8a4a3a)); rect(x + 27, top - 15, 7, 2, tn(0x5a3028));
+  rect(x + 5, gy - 14, 8, 12, tn(0xf2efe6)); rect(x + 6, gy - 13, 6, 11, tn(0x2f5a3a)); wp(x + 10, gy - 8, 0xffd66b);
+  rect(x + 19, gy - 14, 11, 10, tn(0xf2efe6));
+  for (let j = 0; j < 8; j++) for (let i = 0; i < 9; i++) if (i !== 4 && j !== 3) set(x + 20 + i, gy - 13 + j, lit() ? (j < 3 ? 0xffe9a0 : 0xffc85a) : tn(0x9fc8e0));
+  for (let j = 0; j < 34; j++) wp(92, gy - j, 0xf2efe6);                 // pole for the pennant
+  wp(92, gy - 34, 0xffd66b);
+}
+function maypole() {
+  const x = 372, gy = h0[x], top = gy - 46, bare = !!mood.snow;
+  const g = bare ? [0x8a6a4a, 0x6a4e38] : [0x6fba45, 0x3f8a3c], fl = [0xffe38a, 0xffffff, 0x8ab8ff, 0xffa0b8];
+  const leafy = (px, py) => { wp(px, py, g[(px + py) & 1]); if (!bare && hash(px, py) < .16) wp(px, py, fl[Math.floor(hash(py, px) * 4)]); };
+  for (let j = 0; j < 46; j++) { leafy(x, top + j); leafy(x + 1, top + j); }
+  for (let i = -12; i <= 13; i++) { leafy(x + i, top + 9); leafy(x + i, top + 10); }
+  for (let j = 0; j < 5; j++) for (let i = -2 + (j >> 1); i <= 3 - (j >> 1); i++) leafy(x + i, top - j + 4);
+  if (!bare) for (const cx of [x - 10, x + 11]) for (let a = 0; a < 28; a++) leafy(Math.round(cx + Math.cos(a / 28 * 6.283) * 4.4), Math.round(top + 16 + Math.sin(a / 28 * 6.283) * 4.4));
+}
+function fence(x1, x2) {
+  for (let x = x1; x <= x2; x++) { const gy = h0[x]; if ((x - x1) % 8 < 2) for (let j = 1; j <= 8; j++) wp(x, gy - j, 0x9a8f80); }
+  for (let x = x1 - 3; x <= x2 + 3; x++) { const k = ((x - x1) % 8 + 8) % 8; wp(x, h0[Math.max(0, x)] - 2 - k * .6, 0xb5aa98); wp(x, h0[Math.max(0, x)] - 5 - k * .6, 0x85796a); }
+}
+function mushroom(x) { const gy = h0[x]; rect(x + 1, gy - 2, 2, 2, tn(0xf2efe6)); rect(x, gy - 4, 4, 2, tn(0xd8442a)); rect(x + 1, gy - 5, 2, 1, tn(0xd8442a)); wp(x + 1, gy - 4, 0xffffff); wp(x + 3, gy - 3, 0xffffff); }
+function burrowInside(cx, fy, bedDir) {
+  rect(cx + bedDir * 14 - 4, fy - 3, 9, 3, tn(0xc8382e)); rect(cx + bedDir * 14 + (bedDir > 0 ? 3 : -4), fy - 4, 2, 2, tn(0xf2efe6));
+  rect(cx - bedDir * 13 - 2, fy - 5, 5, 1, tn(0xb07a4a)); rect(cx - bedDir * 13 - 1, fy - 4, 1, 4, tn(0x8a5a3a)); rect(cx - bedDir * 13 + 1, fy - 4, 1, 4, tn(0x8a5a3a));
+}
+const LAMPS = [[118, 196], [372, 157]];
+function aurora() {
+  for (let k = 0; k < 3; k++) for (let x = 0; x < W; x++) {
+    const env = Math.max(0, Math.sin(x / 95 + k * 1.9) * .6 + .5) * (.45 + .55 * vnoise(x + k * 50, 3, 5));
+    const y0 = 26 + k * 16 + Math.sin(x / 38 + k * 2.1) * 12, hgt = 20 + 12 * Math.sin(x / 21 + k);
+    for (let j = 0; j < hgt; j++) { const a = (1 - j / hgt) * env; if (a > bay(x, Math.round(y0 + j)) * .95) blend(x, y0 + j, j < hgt * .55 ? 0x58f0a8 : 0x8a7cf0, .32 + a * .3); }
+  }
+}
+function cloud(cx, cy, s) {
+  for (const [dx, dy, r] of [[0, 0, 6], [8, 2, 5], [-8, 3, 4], [15, 4, 3], [3, -4, 4]]) disc(cx + dx * s, cy + dy * s, Math.round(r * s), 0xffffff);
+  for (let i = -12 * s; i < 18 * s; i++) for (let j = 4 * s; j < 8 * s; j++) if (get(cx + i, cy + j) === 0xffffff && get(cx + i, cy + j + 2) !== 0xffffff) set(cx + i, cy + j, 0xcfe4f6);
+}
+function buildBase() {
+  T = base; tintCache = new Map();
+  const S = mood.sky, n = S.length - 1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) set(x, y, S[Math.min(n, Math.floor(Math.min(1, y / 205) * n + bay(x, y) * .999))]);
+  for (let i = 0; i < 110; i++) if (hash(i, 3) < mood.stars) { const sx = hash(i, 1) * W, sy = hash(i, 2) * 130; set(sx, sy, hash(i, 5) < .3 ? 0xffffff : 0xb8c4e8); }
+  if (mood.aurora) aurora();
+  if (mood.clouds) { cloud(90, 44, 1.4); cloud(250, 28, 1); cloud(350, 70, 1.2); cloud(30, 96, .8); }
+  if (mood.sun) { const s = mood.sun; disc(s.x, s.y, s.r, s.c); }
+  if (mood.moon) { const m = mood.moon; disc(m.x, m.y, m.r, m.c); disc(m.x + 4, m.y - 3, m.r - 1, S[1]); }
+  for (let x = 0; x < W; x++) {
+    const y1 = Math.round(156 + 10 * Math.sin(x / 50) + 7 * Math.sin(x / 23 + 2) + 3 * Math.sin(x / 11));
+    const y2 = Math.round(176 + 8 * Math.sin(x / 37 + 1) + 5 * Math.sin(x / 17));
+    const k = Math.floor(x / 7), y3 = Math.round(192 + 6 * Math.sin(x / 29 + 4) - (3.5 - Math.abs(x % 7 - 3)) * (1.5 + hash(k, 9) * 2.5));
+    for (let y = y1; y < H; y++) set(x, y, y < y1 + 2 && mood.snow ? 0x9fb4d8 : mood.hill[0]);
+    for (let y = y2; y < H; y++) set(x, y, mix(mood.hill[1], mood.hill[0], Math.max(0, .5 - (y - y2) / 16) * (bay(x, y) > .5 ? 1 : 0)));
+    for (let y = y3; y < H; y++) set(x, y, mood.forest);
+  }
+  for (let i = 0; i < W * H; i++) if (cave[i]) { const x = i % W, y = (i / W) | 0; set(x, y, tn((x + y * 2) % 7 === 0 ? 0x4a302a : 0x3a2520)); }
+  tree(49, 'bjork'); tree(205, 'bjork'); tree(318, 'gran'); tree(434, 'bjork');
+  house(); maypole(); fence(218, 246); mushroom(158); mushroom(412); mushroom(330);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (solid[y * W + x]) set(x, y, terrainColor(x, y));
+  burrowInside(118, 209, -1); burrowInside(372, 168, 1);
+  for (const [lx, ly] of LAMPS) { wp(lx, ly - 4, 0x8a8f9a); wp(lx, ly - 3, 0x8a8f9a); rect(lx - 1, ly - 2, 3, 3, 0xffd66b); set(lx, ly - 1, 0xfff6c8); }
+  T = buf;
+}
+
+/* ---------- dynamic layer ---------- */
+const SHOT = { x0: 172, y0: 150, vx: 1.45, vy: -3, g: .05, at: 78 };
+const shotPos = s => [SHOT.x0 + SHOT.vx * s, SHOT.y0 + SHOT.vy * s + .5 * SHOT.g * s * s];
+let lights = [];
+function drawVatte(v, t, active) {
+  const tm = TEAM[v.team], x = v.x - 4, y = v.y - 11;
+  const pal = { L: tm.c, l: tm.d, S: 0xf2c9a2, N: 0xe89a80, e: 0x2a2030, W: v.beard ? 0xf4f4f0 : 0x9aa0aa, G: 0x9aa0aa, g: 0x6a707c, B: 0x3a2c28 };
+  const rows = VATTE.slice();
+  if (!v.beard) rows[8] = '..SSSSS..';
+  if (!still && (t + v.x * 7) % 41 < 2) rows[6] = '..SSSSS..';      // blink
+  sprite(rows, pal, x, y, v.face < 0);
+  if (active) { for (let k = 0; k < 8; k++) { wp(v.x + 1 + k * .75, v.y - 4 - k * .7, k > 5 ? 0x4a5530 : 0x8a9d55); wp(v.x + 1 + k * .75, v.y - 3 - k * .7, 0x5a6b3a); } }
+  if (v.y < H - 2) {
+    text(v.name, v.x, y - 15, tm.c, 1, 1); text(String(v.hp), v.x, y - 8, 0xffffff, 1, 1);
+    if (active) { const b = still ? 0 : [0, 1, 2, 1][(t >> 1) & 3]; for (let j = 0; j < 4; j++) for (let i = -3 + j; i <= 3 - j; i++) set(v.x + i, y - 28 + j - b, 0xffd66b); rect(v.x - 1, y - 32 - b, 3, 4, 0xffd66b); }
+  }
+}
+function water(t) {
+  const A = mood.water, ice = !!mood.snow;
+  for (let y = WL; y < H; y++) for (let x = 0; x < W; x++) {
+    if (solid[y * W + x]) continue;
+    const d = y - WL; let c;
+    if (ice) c = d < 2 ? (hash(x >> 1, 4) < .08 ? 0x9fb4d8 : 0xe4eefa) : d < 4 ? 0x7f9cc8 : mix(A[0], A[1], Math.min(1, d / 14));
+    else {
+      const wave = Math.sin((x + t * 1.5) / 9) + Math.sin((x - t) / 4.3) * .5;
+      if (d === 0) { if (wave < .1) continue; c = mix(A[0], 0xffffff, .55); }
+      else {
+        c = d / 22 + bay(x, y) * .5 > .62 ? A[1] : A[0];
+        if (d > 1 && d % 4 === 2 && ((x * 3 + d * 11 + (t >> 1)) % 37) < 5) c = mix(c, 0xffffff, .28);
+        const s = mood.sun; if (s && Math.abs(x - s.x) < 10 - d / 2 && (x + d + (t >> 1)) % 3 === 0) c = mix(c, s.c, .6);
+      }
+    }
+    set(x, y, c);
+  }
+}
+function particles(t) {
+  const p = mood.part;
+  if (p === 'fly') for (let i = 0; i < 16; i++) {
+    const x = hash(i, 11) * W + Math.sin(t * .11 + i) * 7, y = 96 + hash(i, 12) * 110 + Math.cos(t * .08 + i * 2) * 5;
+    if ((t + i * 5) % 23 < 15) { set(x, y, 0xf2ff9a); lights.push([x, y, 7, '242,255,140', .55]); }
+  } else if (p === 'snow') for (let i = 0; i < 90; i++) {
+    const y = (hash(i, 21) * H + t * (.6 + hash(i, 22) * .8)) % H, x = (hash(i, 23) * W + Math.sin(t * .07 + i) * 4 - t * .25 + W * 9) % W;
+    set(x, y, i % 3 ? 0xffffff : 0xb8c8e8);
+  } else if (p === 'leaf') for (let i = 0; i < 26; i++) {
+    const y = (hash(i, 31) * 230 + t * (.5 + hash(i, 32) * .5)) % 230, x = (hash(i, 33) * W + t * .6 + Math.sin(t * .15 + i) * 5) % W;
+    set(x, y, [0xffc94d, 0xe8892f, 0xb8502a][i % 3]); if (i % 2) set(x + 1, y, 0xe8892f);
+  } else for (let i = 0; i < 18; i++) {
+    const x = (hash(i, 41) * W + t * .35) % W, y = 60 + hash(i, 42) * 150 + Math.sin(t * .06 + i) * 6;
+    set(x, y, 0xffffff);
+  }
+}
+function hud() {
+  const hp = [0, 0]; vattar.forEach(v => { if (!v.dead) hp[v.team] += v.hp; });
+  TEAM.forEach((tm, i) => {
+    const y = 8 + i * 17;
+    text(tm.name, 6, y, tm.c); rect(5, y + 7, 66, 5, 0x0c1022); rect(6, y + 8, Math.round(64 * hp[i] / 400), 3, tm.c); rect(6, y + 8, Math.round(64 * hp[i] / 400), 1, mix(tm.c, 0xffffff, .45));
+    text(String(hp[i]), 75, y + 7, 0xffffff);
+  });
+  text('32', W / 2, 7, 0xffffff, 2, 1); text('GÖSTAS TUR', W / 2, 25, TEAM[0].c, 1, 1);
+  text('VIND', W - 6, 8, 0xd8dde8, 1, 2); rect(W - 52, 15, 47, 7, 0x0c1022);
+  for (let k = 0; k < 5; k++) { const c = k < 3 ? 0x8ad0ff : 0x2e3763, x = W - 50 + k * 9; for (let j = 0; j < 5; j++) rect(x + (j < 3 ? j : 4 - j), 16 + j, 3, 1, c); }
+  text('RUNDA 4', W - 6, 28, 0xaab1cb, 1, 2);
+  const x0 = (W - (ICONS.length * 18 - 2)) >> 1, y0 = 250;
+  ICONS.forEach((ic, i) => {
+    const x = x0 + i * 18, sel = i === 0;
+    for (let j = 0; j < 16; j++) for (let k = 0; k < 16; k++) {
+      const edge = j === 0 || k === 0 || j === 15 || k === 15;
+      if (edge) set(x + k, y0 + j, sel ? 0xffd66b : 0x4a5588); else blend(x + k, y0 + j, 0x0c1022, .78);
+    }
+    sprite(ic.r, ic.p, x + 3, y0 + 3, false, true);
+  });
+  text(ICONS[0].name, x0 + 8, y0 - 8, 0xffd66b, 1, 1);
+}
+function frame(t) {
+  buf.set(base); T = buf; lights = [];
+  const g = mood.glow;
+  if (mood.sun) lights.push([mood.sun.x, mood.sun.y, 70, mood.sun.c === 0xfffbe0 ? '255,250,220' : '255,200,120', .5]);
+  if (mood.moon) lights.push([mood.moon.x, mood.moon.y, 44, '200,215,255', .35]);
+  if (mood.aurora) { lights.push([150, 50, 120, '70,240,160', .16]); lights.push([360, 40, 110, '120,110,240', .14]); }
+  if (lit()) lights.push([124, 142, 30, '255,200,95', .7]);
+  for (const [lx, ly] of LAMPS) lights.push([lx, ly, 26, '255,205,100', .75 + (still ? 0 : Math.sin(t * .7 + lx) * .06)]);
+
+  // pennant on the pole by the house
+  for (let i = 0; i < 16; i++) { const wy = 120 + Math.round(Math.sin((i + (still ? 0 : t)) / 2.6) * (i / 7)), hh = Math.max(1, 4 - (i >> 2)); for (let j = 0; j < hh; j++) wp(93 + i, wy + j, j === (hh >> 1) && hh > 1 ? 0xffd23a : 0x2a6fd0); }
+  // chimney smoke
+  for (let k = 0; k < 5; k++) { const a = ((still ? 3 : t) * .35 + k * 4.2) % 21, x = 130 + a * .9 + Math.sin(a * .6 + k) * 2, y = 118 - a * 1.5, r = 1 + (a > 6) + (a > 14); for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r && bay(x + i | 0, y + j | 0) > a / 26) blend(x + i, y + j, tn(0xd8dde8), .7); }
+  // the wandering wooden horse, with a lit fuse
+  { const hx = 280, hy = h0[284] - 8; sprite(HORSE, { r: 0xe5533d, w: 0xffffff, b: 0x4fa3ff, g: 0x9bd45a }, hx, hy, false);
+    if (still || t % 4 < 3) { set(hx + 1, hy + 1, 0xffe38a); set(hx, hy, 0xffffff); lights.push([hx + 1, hy + 1, 9, '255,220,120', .7]); } }
+  // rune stones for the fallen
+  for (const s of stones) { const x = s.x, y = s.y; rect(x - 2, y - 6, 5, 7, tn(0x8b8f98)); rect(x - 1, y - 7, 3, 1, tn(0x8b8f98)); rect(x - 2, y - 6, 1, 7, tn(0xb3b8bd)); wp(x, y - 5, 0xc8382e); wp(x - 1, y - 3, 0xc8382e); wp(x + 1, y - 4, 0xc8382e); wp(x, y - 2, 0xc8382e); }
+
+  vattar.forEach(v => { if (!v.dead) drawVatte(v, t, v.name === 'GÖSTA'); });
+
+  // rocket in flight with a smoke trail
+  if (!vattar[2].dead) {
+    for (let s = 14; s < SHOT.at - 3; s += 4) { const [x, y] = shotPos(s), age = (SHOT.at - s) / SHOT.at, r = age > .55 ? 2 : 1, drift = age * 7;
+      for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + 1 && bay(x + i | 0, y + j | 0) > age * .8 - .1) blend(x + i - drift, y + j - age * 3, 0xe8ecf4, .75 - age * .4); }
+    const [rx, ry] = shotPos(SHOT.at), vy = SHOT.vy + SHOT.g * SHOT.at, n = Math.hypot(SHOT.vx, vy), ux = SHOT.vx / n, uy = vy / n;
+    for (let k = -3; k <= 3; k++) { set(rx + ux * k, ry + uy * k, k > 1 ? 0x4a5530 : 0x8a9d55); set(rx + ux * k, ry + uy * k + 1, 0x5a6b3a); }
+    const fl = still ? 0 : t % 3;
+    for (let k = 4; k <= 6 + fl; k++) set(rx - ux * k, ry - uy * k + (k & 1), k < 6 ? 0xfff6c8 : 0xffa040);
+    lights.push([rx - ux * 5, ry - uy * 5, 18, '255,170,70', .9]);
+  }
+
+  water(t); particles(t);
+  for (const b of booms) {
+    const a = b.age, r = 6 + a * 2.4;
+    for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) { const d = Math.hypot(i, j); if (d <= r && (a < 2 || d > r - 4 - a * .3 || bay(b.x + i | 0, b.y + j | 0) > a / 7)) set(b.x + i, b.y + j, a < 2 ? 0xffffff : a < 4 ? 0xffe38a : a < 6 ? 0xffa040 : 0x6a707c); }
+    lights.push([b.x, b.y, 60 - a * 5, '255,200,120', 1 - a / 8]);
+  }
+  hud();
+  ctx.putImageData(img, 0, 0);
+
+  // soft light layer, drawn at display resolution and screened over the pixels
+  const sc = gl.width / W;
+  gctx.clearRect(0, 0, gl.width, gl.height);
+  for (const [x, y, r, rgb, al] of lights) {
+    const gr = gctx.createRadialGradient(x * sc, y * sc, 0, x * sc, y * sc, r * sc), a = Math.min(1, al * g);
+    gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(.4, `rgba(${rgb},${a * .35})`); gr.addColorStop(1, `rgba(${rgb},0)`);
+    gctx.fillStyle = gr; gctx.fillRect((x - r) * sc, (y - r) * sc, r * 2 * sc, r * 2 * sc);
+  }
+}
+
+/* ---------- interaction ---------- */
+function blast(x, y) {
+  carve(x, y, 13, 12, false);
+  for (const v of vattar) {
+    if (v.dead) continue;
+    const d = Math.hypot(v.x - x, v.y - 6 - y);
+    if (d < 24) v.hp -= Math.round(55 * (1 - d / 24));
+    settle(v);
+    if (v.hp <= 0 || v.y >= WL + 3) { v.hp = 0; v.dead = true; if (v.y < WL) stones.push({ x: v.x, y: v.y }); }
+  }
+  stones.forEach(settle);
+  booms.push({ x, y, age: 0 });
+  buildBase();
+}
+cv.addEventListener('click', e => {
+  const r = cv.getBoundingClientRect();
+  blast(Math.round((e.clientX - r.left) / r.width * W), Math.round((e.clientY - r.top) / r.height * H));
+  if (still) frame(0);
+});
+document.querySelectorAll('[data-mood]').forEach(b => b.addEventListener('click', () => {
+  mood = MOODS[b.dataset.mood];
+  document.querySelectorAll('[data-mood]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+  buildBase(); if (still) frame(0);
+}));
+document.getElementById('reset').addEventListener('click', () => { resetWorld(); buildBase(); if (still) frame(0); });
+const stage = document.getElementById('stage'), box = document.getElementById('stagebox'), bigger = document.getElementById('bigger');
+let big = false;
+function layout() {
+  const avail = box.clientWidth, k = Math.floor(avail / W);
+  const w = big ? W * 2 : k >= 1 ? k * W : avail;      // whole-number scale when it fits
+  stage.style.width = w + 'px'; stage.style.height = Math.round(w * H / W) + 'px';
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  gl.width = Math.round(w * dpr); gl.height = Math.round(w * H / W * dpr);
+  if (still) frame(0);
+}
+bigger.addEventListener('click', () => { big = !big; bigger.setAttribute('aria-pressed', String(big)); layout(); });
+addEventListener('resize', layout);
+
+resetWorld(); buildBase(); layout();
+if (still) frame(0);
+else {
+  let last = -1;
+  const loop = ms => {
+    const t = Math.floor(ms / 100);
+    if (t !== last) { last = t; for (const b of booms) b.age++; booms = booms.filter(b => b.age < 8); frame(t); }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+}
+})();
+</script>
+</body>
+</html>
