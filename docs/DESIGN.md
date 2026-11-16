@@ -118,6 +118,76 @@ Bazookan: **Kalle Gurra** (Gurra är smeknamn på Gustaf). Andra förslag: Karl-
 - Fikakorg: liv.
 - Blåbärssoppa: extra rörelse under turen.
 
+### Så fungerar vapnen (förslag)
+
+Grundregler: en vätte har 100 liv. En tur är att röra sig och sedan använda ett vapen. Verktyg avslutar inte turen. Siffrorna är startvärden att provspela, inte låsta.
+
+**Skjutvapen** – sikta med vinkel, håll in för kraft.
+
+| Vapen | Så används det | Skada |
+|---|---|---|
+| Kalle Gurra | Raket i båge som tar vind och smäller vid träff. Obegränsad. | Upp till 50, medelstor krater |
+| Älgstudsaren | Två raka skott utan vind. Man får flytta sig mellan skotten. | 25 per skott, liten grop |
+| Torsdagskanonen | Tjugo ärtor i rak skur. Knuffar mer än den skadar. | 2 per ärta |
+
+**Kastvapen** – sikta, välj kraft och stubin (1–5 sekunder).
+
+| Vapen | Så används det | Skada |
+|---|---|---|
+| Surströmming | Studsar, öppnas och släpper ett moln som ligger kvar tre rundor och driver med vinden. Obegränsad. | 15 vid smäll, 5 per runda i molnet |
+| Köttbullar | Smäller och delar sig i fem småbullar som flyger åt olika håll. | 30 + 20 per småbulle |
+| Prillan | Fastnar på det den träffar, även en vätte. | 40 |
+| Snöbollen | Rullar nedför backar och växer. Smäller inte, utan knuffar och lämnar en snöhög som blir ny terräng. | 10–30 beroende på storlek |
+| Prinsesstårtan | Kastas som en granat. Högst en per match. | Upp till 100, mycket stor krater |
+
+**Läggs ut** – placeras där vätten står.
+
+| Vapen | Så används det | Skada |
+|---|---|---|
+| Dynamit-Alfred | Läggs vid fötterna. Fem sekunder att springa. | Upp till 75, stor krater |
+| Dalahästen | Travar framåt och hoppar över hinder. Tryck för att spränga. | 60 |
+| Robotklipparen | Följer marken, vänder vid kanter, klipper en ränna. Smäller vid första vätte eller efter tio sekunder. | 30 |
+| Halmbocken | Brinner i två rundor. Elden sprider sig i gräs och trä. Regn släcker. | 10 per runda i elden |
+
+**Från himlen** – peka ut en plats på banan.
+
+| Vapen | Så används det | Skada |
+|---|---|---|
+| Jasså 39 | Välj plats och riktning. Fem laddningar på rad som smäller vid nedslag. Tar vind. | 30 per laddning |
+| Fallukorv | Fem korvringar som studsar och smäller efter tredje studsen. | 30 per korv |
+| Skurhinken | Vattnet rinner nedåt längs marken och in i gångar. Spolar med sig vättar, förstör ingen terräng, släcker eld. | 20 |
+| Flyttblocket | Faller rakt ner och slår ett schakt genom allt. Blocket ligger kvar. | 80 vid träff |
+
+**Närstrid** – stå intill motståndaren.
+
+| Vapen | Så används det | Skada |
+|---|---|---|
+| Brännbollsträt | Välj riktning. Slår iväg vätten långt. | 30 |
+| Dagsedeln | Slag snett uppåt. Går genom tunn mark. | 30 |
+
+Överlapp att lösa: Kräftskivan liknar Köttbullar. Förslag: kräftorna smäller inte utan ligger kvar och nyper den som går förbi (10 skada), som minor.
+
+### Fler vapenförslag
+
+| Namn | Typ | Vad den gör |
+|---|---|---|
+| Älgtestet | Läggs ut | En skenande älg rusar rakt fram, välter allt i vägen och sprängs mot första branta vägg. Går inte att styra, och studsar den på något kan den vända tillbaka. |
+| Små grodorna | Läggs ut | Tre grodor hoppar framåt i takt och smäller en efter en. |
+| Kasta macka | Kastvapen | En macka som studsar över vatten och når den som står på andra sidan. |
+| Slagskottet | Skjutvapen | En puck som går rakt och studsar mot väggar upp till tre gånger. Bra i gångar. |
+| Epatraktorn | Fordon | Rullar mycket sakta över banan med hög bas och knuffar allt framför sig. En vätte kan åka med. |
+| Myggsvärmen | Kastvapen | Följer en vätte i tre rundor och sticker varje runda. Försvinner i regn, rök eller vatten. |
+| Dammsugaren | Läggs ut | En grön marsipanrulle som suger till sig vättar och lådor i närheten. Samlar ihop dem inför nästa skott. |
+| Lussekatten | Kastvapen (vinter) | Bumerang. Kommer tillbaka om den missar. |
+
+### Fler verktyg
+
+| Namn | Vad det gör |
+|---|---|
+| Arga lappen | Sätts på en motståndare. Den vätten står över sin nästa tur för att skriva ett svar. |
+| Nummerlappen | Tränger sig i kön: en vald vätte får sin tur direkt efter nästa. |
+| Allsången | Alla vättar inom hörhåll, från båda lagen, går mot sångaren och samlas på en plats. |
+
 ## Väsen på banan
 
 Figurer som inte tillhör något lag och som gör banorna levande.
