@@ -1,4 +1,4 @@
-# Vettigt – designförslag
+# Vättigt – designförslag
 
 Status: förslag (D-001). Inget här är låst förrän det står under Decisions i [HANDOFF.md](../HANDOFF.md).
 

@@ -1,10 +1,10 @@
-# Vettigt och network-kit (förslag, D-011)
+# Vättigt och network-kit (förslag, D-011)
 
 Status: förslag. Bygger på network-kit v0.2.3 (`BadBagel47/network-kit`, se dess `docs/INTEGRATION.md`). Inget här är beslutat förrän det står under Decisions i [HANDOFF.md](../HANDOFF.md).
 
 ## Kort
 
-Vettigt passar network-kits **värdstyrda rum** (`mode: 'host'`), samma sort som Critical ST8 använder. Ingen ändring i network-kit behövs för att börja.
+Vättigt passar network-kits **värdstyrda rum** (`mode: 'host'`), samma sort som Critical ST8 använder. Ingen ändring i network-kit behövs för att börja.
 
 ## Varför värdstyrt och inte serverstyrt
 
@@ -27,9 +27,9 @@ Det ger ett mycket billigt spel. En tur blir några tiotal meddelanden, inte en 
 
 **Reserv om det blir för svårt:** värden räknar ensam och skickar ut skeendet (projektilens bana, kratrar, skada). Kostar mer men kräver ingen exakt likadan fysik.
 
-## Hur Vettigts begrepp blir network-kits
+## Hur Vättigts begrepp blir network-kits
 
-| Vettigt | network-kit |
+| Vättigt | network-kit |
 |---|---|
 | Lag (2–4) | `places`: ett ställe per lag, till exempel `{ lag1: 2, lag2: 2, lag3: 2, lag4: 2 }` så att två spelare kan dela lag |
 | Spelare | rollen `player` |
@@ -57,8 +57,8 @@ export default {
 
 ## Det som inte passar än
 
-- **Brevspel** (ta din tur när du har tid): network-kit raderar ett rum 24 timmar efter att sista spelaren lämnat, och rum är inte byggda för matcher över flera dagar. Brevspel behöver antingen en ny funktion i network-kit eller egen lagring i Vettigt. Turbaserade spel som memory eller schack skulle ha samma behov, så det kan vara en allmän funktion. Frågan tas till network-kit när Vettigt kommer dit.
-- **Repriser och åskådare i efterhand:** fungerar av sig självt om alla räknar likadant, eftersom en match då bara är seed plus indata. Lagras i Vettigt, inte i network-kit.
+- **Brevspel** (ta din tur när du har tid): network-kit raderar ett rum 24 timmar efter att sista spelaren lämnat, och rum är inte byggda för matcher över flera dagar. Brevspel behöver antingen en ny funktion i network-kit eller egen lagring i Vättigt. Turbaserade spel som memory eller schack skulle ha samma behov, så det kan vara en allmän funktion. Frågan tas till network-kit när Vättigt kommer dit.
+- **Repriser och åskådare i efterhand:** fungerar av sig självt om alla räknar likadant, eftersom en match då bara är seed plus indata. Lagras i Vättigt, inte i network-kit.
 
 ## Ordning
 

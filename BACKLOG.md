@@ -1,4 +1,4 @@
-# BACKLOG – Vettigt
+# BACKLOG – Vättigt
 
 ID-serie: en gemensam löpande nummerserie. B = bugg, F = funktion, D = planering/design.
 Prioritet: Hög, Medel, Låg.
@@ -15,7 +15,7 @@ Prioritet: Hög, Medel, Låg.
 | D-008 | Medel | Förslag | Skärmar utanför matchen: startmeny, eget spel med reglage för stämning, lagbyggare. |
 | D-009 | Låg | Förslag | Regelbeskrivning för grundspelet: turordning, skada, vind, lådor, vårflod. |
 | D-010 | Medel | Väntar på användaren | Borås i spelet: bana, verktyget Enkel biljett till Borås, stämpeln Bara i Borås och Knallen. Förslag i docs/DESIGN.md; användaren väljer vilka delar som ska med. |
-| D-011 | Hög | Väntar på användaren | Hur Vettigt använder network-kit: värdstyrda rum, alla räknar samma fysik, lag som places. Förslag i docs/NETWORK.md. Användaren godkänner riktningen. |
+| D-011 | Hög | Väntar på användaren | Hur Vättigt använder network-kit: värdstyrda rum, alla räknar samma fysik, lag som places. Förslag i docs/NETWORK.md. Användaren godkänner riktningen. |
 
 ## Proposed runs
 

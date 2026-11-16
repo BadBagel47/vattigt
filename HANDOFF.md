@@ -1,4 +1,4 @@
-# HANDOFF – Vettigt
+# HANDOFF – Vättigt
 
 Rules version: 1.9 (uppdaterad 2026-11-16, inga ändringar behövdes)
 Inventory: 2026-11-13
@@ -7,7 +7,7 @@ Publishing method: ingen ännu. Repot är publikt och saknar GitHub Pages. Mocku
 
 ## Mål
 
-Vettigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med egen identitet: spelfigurerna är vättar ur svensk folktro, banorna bygger på svenska miljöer och vapnen har svenskklingande namn. Grafiken är pixelgrafik med modern känsla.
+Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med egen identitet: spelfigurerna är vättar ur svensk folktro, banorna bygger på svenska miljöer och vapnen har svenskklingande namn. Grafiken är pixelgrafik med modern känsla.
 
 ## Nuläge
 
@@ -32,17 +32,18 @@ Vettigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med 
 
 - Design först. Kod påbörjas inte förrän användaren säger till.
 - Multiplayer byggs före singleplayer, så att datormotståndare inte behövs från start.
-- Multiplayer byggs på network-kit (`BadBagel47/network-kit`), användarens gemensamma rumsserver på Cloudflare. Vettigt tar en egen kopia av en fast version. Allmänna behov löses i network-kit, inte här. Förslag på hur Vettigt passar in: [docs/NETWORK.md](docs/NETWORK.md).
+- Multiplayer byggs på network-kit (`BadBagel47/network-kit`), användarens gemensamma rumsserver på Cloudflare. Vättigt tar en egen kopia av en fast version. Allmänna behov löses i network-kit, inte här. Förslag på hur Vättigt passar in: [docs/NETWORK.md](docs/NETWORK.md).
 
 ## Decisions
 
-- 2026-11-13: Projektet heter Vettigt. Spelfigurerna är vättar ur svensk folktro.
+- 2026-11-13: Projektet heter Vettigt. Spelfigurerna är vättar ur svensk folktro. (Namnet ersatt 2026-11-16, se nedan.)
 - 2026-11-13: Banor bygger på svenska miljöer. Vapen och bifigurer har svensk inspiration.
 - 2026-11-13: Namn ska gå att känna igen men inte vara samma som verkliga produkter eller varumärken (exempel: bazookan heter inte Carl Gustaf, förslaget är Kalle Gurra).
 - 2026-11-13: Stilen är retro med modern känsla: låg upplösning med hela pixlar, mjukt ljus i eget lager, rastrerade övergångar, begränsad palett.
 - 2026-11-13: Stämning (tid på dygnet, årstid, väder) ska gå att ställa in i eget spel.
 - 2026-11-13: Spelet ska finnas som både singleplayer och multiplayer. Multiplayer först.
 - 2026-11-16: Nätverkskoden kommer från network-kit.
+- 2026-11-16: Spelet heter **Vättigt** (efter vättarna). Repot heter `vattigt`, utan svenska tecken.
 
 ## Lagar och regler (kort genomgång 2026-11-13)
 
@@ -58,10 +59,12 @@ Vettigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med 
 
 ## Engångsåtgärder
 
+- Väntar (2026-11-16): ägaren döper om repot på GitHub från `vettigt` till `vattigt` (Settings → General → Repository name). Gamla länkar leds vidare av GitHub. Agenten byter därefter repots adress i sin lokala kopia.
+
 - GitHub Pages: föreslagen, väntar på svar (öppen fråga 5).
 
 ## Dokumentationskarta
 
 - [docs/DESIGN.md](docs/DESIGN.md) – designförslaget: stil, banor, arsenal, väsen, spelidéer.
 - [docs/mockup/index.html](docs/mockup/index.html) – mockup av spelscen.
-- [docs/NETWORK.md](docs/NETWORK.md) – hur Vettigt använder network-kit.
+- [docs/NETWORK.md](docs/NETWORK.md) – hur Vättigt använder network-kit.
