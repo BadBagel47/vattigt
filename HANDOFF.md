@@ -1,6 +1,6 @@
 # HANDOFF – Vettigt
 
-Rules version: 1.6
+Rules version: 1.9 (uppdaterad 2026-11-16, inga ändringar behövdes)
 Inventory: 2026-11-13
 Project language: inte bestämt (se Öppna frågor). Designunderlaget skrivs på svenska eftersom namn och ordvitsar är svenska.
 Publishing method: ingen ännu. Repot är publikt och saknar GitHub Pages. Mockupen är en fristående HTML-fil.
