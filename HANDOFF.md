@@ -59,7 +59,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 
 ## Engångsåtgärder
 
-- Väntar (2026-11-16): ägaren döper om repot på GitHub från `vettigt` till `vattigt` (Settings → General → Repository name). Gamla länkar leds vidare av GitHub. Agenten byter därefter repots adress i sin lokala kopia.
+- Klar (2026-11-16): repot heter `vattigt` på GitHub (tidigare `vettigt`; gamla länkar leds vidare av GitHub).
 
 - GitHub Pages: föreslagen, väntar på svar (öppen fråga 5).
 
