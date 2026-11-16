@@ -173,10 +173,10 @@ Grundregler: en vätte har 100 liv. En tur är att röra sig och sedan använda 
 |---|---|---|
 | Älgtestet | Läggs ut | En skenande älg rusar rakt fram, välter allt i vägen och sprängs mot första branta vägg. Går inte att styra, och studsar den på något kan den vända tillbaka. |
 | Små grodorna | Läggs ut | Tre grodor hoppar framåt i takt och smäller en efter en. |
-| Kasta macka | Kastvapen | En macka som studsar över vatten och når den som står på andra sidan. |
+| Kasta macka | Kastvapen | En platt sten som kastas lågt och studsar på allt som är plant och hårt: vatten, is, granithällar, tak, vägar. Lämnar en liten grop vid varje studs och smäller på sista. Studsar längst på vatten och is, kortast på gräs och jord. Fungerar därför på alla banor men är bäst på Kobbarna, Älven och vinterbanor. |
 | Slagskottet | Skjutvapen | En puck som går rakt och studsar mot väggar upp till tre gånger. Bra i gångar. |
 | Epatraktorn | Fordon | Rullar mycket sakta över banan med hög bas och knuffar allt framför sig. En vätte kan åka med. |
-| Myggsvärmen | Kastvapen | Följer en vätte i tre rundor och sticker varje runda. Försvinner i regn, rök eller vatten. |
+| Myggburken | Kastvapen | En syltburk med lock, full med mygg. Kastas som en granat och spricker vid nedslaget. Svärmen tar närmaste vätte, även en egen, och följer den i tre rundor: 5 skada per runda och lite darrigt sikte. Svärmen flyr från surströmmingsmoln, rök och eld, och försvinner om vätten hoppar i vattnet eller det regnar. |
 | Dammsugaren | Läggs ut | En grön marsipanrulle som suger till sig vättar och lådor i närheten. Samlar ihop dem inför nästa skott. |
 | Lussekatten | Kastvapen (vinter) | Bumerang. Kommer tillbaka om den missar. |
 
