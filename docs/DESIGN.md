@@ -12,7 +12,10 @@ Turbaserat artilleri med vättar ur svensk folktro: två eller flera lag, en spr
 - De bor under jorden och under hus. Det gör grävande och gångar till en naturlig del av spelet, inte bara en följd av explosioner.
 - Varje lag har ett bo under marken med lykta, säng och bord.
 - En stupad vätte blir en runsten som står kvar på banan.
-- Förslag på lagnamn: Vettvillingarna, Vätternrundan, Vettskrämda, Från vettet, Vett och etikett.
+- Ordvitsar görs på både vett och vätt.
+- Förslag på lagnamn:
+  - På vett: Vettvillingarna, Vettskrämda, Från vettet, Vett och etikett, Vettgiriga.
+  - På vätt: Vätternrundan, Vättarna på Vättern, Vättkampen, Vättar på väg, Vättbollslaget, Vättlöparna.
 - Förslag på vättenamn: Gösta, Stina, Märta, Ebbe, Alva, Vera, Sixten, Tage.
 
 ## Stil: retro med modern känsla
