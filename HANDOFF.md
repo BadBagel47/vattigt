@@ -32,7 +32,7 @@ Vettigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med 
 
 - Design först. Kod påbörjas inte förrän användaren säger till.
 - Multiplayer byggs före singleplayer, så att datormotståndare inte behövs från start.
-- Multiplayergrunden (Cloudflare) tas fram av användaren i ett annat sammanhang och ska delas mellan flera projekt. Den designas inte här förrän användaren säger till.
+- Multiplayer byggs på network-kit (`BadBagel47/network-kit`), användarens gemensamma rumsserver på Cloudflare. Vettigt tar en egen kopia av en fast version. Allmänna behov löses i network-kit, inte här. Förslag på hur Vettigt passar in: [docs/NETWORK.md](docs/NETWORK.md).
 
 ## Decisions
 
@@ -42,6 +42,7 @@ Vettigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med 
 - 2026-11-13: Stilen är retro med modern känsla: låg upplösning med hela pixlar, mjukt ljus i eget lager, rastrerade övergångar, begränsad palett.
 - 2026-11-13: Stämning (tid på dygnet, årstid, väder) ska gå att ställa in i eget spel.
 - 2026-11-13: Spelet ska finnas som både singleplayer och multiplayer. Multiplayer först.
+- 2026-11-16: Nätverkskoden kommer från network-kit.
 
 ## Lagar och regler (kort genomgång 2026-11-13)
 
@@ -63,3 +64,4 @@ Vettigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med 
 
 - [docs/DESIGN.md](docs/DESIGN.md) – designförslaget: stil, banor, arsenal, väsen, spelidéer.
 - [docs/mockup/index.html](docs/mockup/index.html) – mockup av spelscen.
+- [docs/NETWORK.md](docs/NETWORK.md) – hur Vettigt använder network-kit.
