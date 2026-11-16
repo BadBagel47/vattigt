@@ -222,14 +222,15 @@ Figurer som inte tillhör något lag och som gör banorna levande.
 - **Boet.** Skydda ditt bo och förstör motståndarens.
 - **Kubb.** Fäll motståndarens fem kubbar och sedan kungen. Fälls kungen för tidigt förlorar man.
 - **Stången.** Håll platsen vid midsommarstången flest rundor.
-- **Brevspel.** Ta din tur när du har tid och få besked när det är dags igen.
 - **Fredagsmys.** Två vättar per lag, tjugo sekunder per tur.
 
 ### Multiplayer först
 
 1. Flera spelare på samma skärm. Kräver varken server eller datormotståndare.
 2. Spel över nätet med rumskod.
-3. Brevspel, åskådare och repriser.
+3. Åskådare och repriser.
+
+Brevspel (ta sin tur när man har tid) görs inte: spelet är bara lokalt och online.
 
 Att ta med till den gemensamma multiplayergrunden: spelet är turbaserat, så bara dragen behöver skickas. Om spelet räknar exakt likadant hos alla spelare får man repriser och åskådare nästan gratis. Det kravet behöver finnas med från början i spelets fysik.
 

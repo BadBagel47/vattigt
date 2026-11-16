@@ -55,13 +55,12 @@ export default {
 };
 ```
 
-## Det som inte passar än
+## Utanför planen
 
-- **Brevspel** (ta din tur när du har tid): network-kit raderar ett rum 24 timmar efter att sista spelaren lämnat, och rum är inte byggda för matcher över flera dagar. Brevspel behöver antingen en ny funktion i network-kit eller egen lagring i Vättigt. Turbaserade spel som memory eller schack skulle ha samma behov, så det kan vara en allmän funktion. Frågan tas till network-kit när Vättigt kommer dit.
+- **Brevspel** görs inte (beslut 2026-11-16). Spelet är bara lokalt och online, så network-kits rum som raderas 24 timmar efter sista spelaren räcker.
 - **Repriser och åskådare i efterhand:** fungerar av sig självt om alla räknar likadant, eftersom en match då bara är seed plus indata. Lagras i Vättigt, inte i network-kit.
 
 ## Ordning
 
 1. Flera spelare på samma skärm: kräver inget nätverk. Byggs först.
 2. Spel över nätet med rumskod via network-kit.
-3. Brevspel: efter beslut om var lagringen ska ligga.

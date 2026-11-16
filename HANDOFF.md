@@ -43,6 +43,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - 2026-11-13: Stämning (tid på dygnet, årstid, väder) ska gå att ställa in i eget spel.
 - 2026-11-13: Spelet ska finnas som både singleplayer och multiplayer. Multiplayer först.
 - 2026-11-16: Nätverkskoden kommer från network-kit.
+- 2026-11-16: Inget brevspel. Spelet spelas bara lokalt (samma skärm) och online.
 - 2026-11-16: Spelet heter **Vättigt** (efter vättarna). Repot heter `vattigt`, utan svenska tecken.
 
 ## Lagar och regler (kort genomgång 2026-11-13)
