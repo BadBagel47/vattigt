@@ -45,7 +45,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - 2026-11-16: Nätverkskoden kommer från network-kit.
 - 2026-11-16: Inget brevspel. Spelet spelas bara lokalt (samma skärm) och online.
 - 2026-11-16: Ordvitsar görs på både vett och vätt.
-- 2026-11-16: Musiken är chiptune som möter svensk folkmusik. Användaren och agenten gör den tillsammans.
+- 2026-11-16: Musiken är chiptune som möter svensk folkmusik. Agenten komponerar och producerar allt (ljudet skapas i webbläsaren, inga riktiga instrument); användaren lyssnar och styr.
 - 2026-11-16: Spelet heter **Vättigt** (efter vättarna). Repot heter `vattigt`, utan svenska tecken.
 
 ## Lagar och regler (kort genomgång 2026-11-13)
@@ -71,3 +71,4 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - [docs/DESIGN.md](docs/DESIGN.md) – designförslaget: stil, banor, arsenal, väsen, spelidéer.
 - [docs/mockup/index.html](docs/mockup/index.html) – mockup av spelscen.
 - [docs/NETWORK.md](docs/NETWORK.md) – hur Vättigt använder network-kit.
+- [docs/music/index.html](docs/music/index.html) – musikverkstad med Midsommarpolskan, utkast 1.

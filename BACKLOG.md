@@ -16,7 +16,7 @@ Prioritet: Hög, Medel, Låg.
 | D-009 | Låg | Förslag | Regelbeskrivning för grundspelet: turordning, skada, vind, lådor, vårflod. |
 | D-010 | Medel | Väntar på användaren | Borås i spelet: bana, verktyget Enkel biljett till Borås, stämpeln Bara i Borås och Knallen. Förslag i docs/DESIGN.md; användaren väljer vilka delar som ska med. |
 | D-011 | Hög | Väntar på användaren | Hur Vättigt använder network-kit: värdstyrda rum, alla räknar samma fysik, lag som places. Förslag i docs/NETWORK.md. Användaren godkänner riktningen. |
-| D-012 | Medel | Väntar på användaren | Musik: chiptune möter svensk folkmusik, gjord tillsammans med användaren. Arbetssätt och första låt (förslag: Midsommarängen) bestäms först. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
+| D-012 | Medel | Väntar på användaren | Musik: chiptune möter svensk folkmusik. Agenten komponerar och producerar allt, användaren lyssnar och styr. Utkast 1 av Midsommarpolskan finns i docs/music/index.html; väntar på användarens synpunkter. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
 
