@@ -123,7 +123,7 @@ Bazookan: **Kalle Gurra** (Gurra är smeknamn på Gustaf). Andra förslag: Karl-
 
 ### Så fungerar vapnen (förslag)
 
-Grundregler: en vätte har 100 liv. En tur är att röra sig och sedan använda ett vapen. Verktyg avslutar inte turen. Siffrorna är startvärden att provspela, inte låsta.
+Grundregler: en vätte har 100 liv. En vätte som hamnar i vattnet är ute direkt, liksom en som faller ut över kanten. En tur är att röra sig och sedan använda ett vapen. Verktyg avslutar inte turen. Siffrorna är startvärden att provspela, inte låsta.
 
 **Skjutvapen** – sikta med vinkel, håll in för kraft.
 
@@ -179,7 +179,7 @@ Grundregler: en vätte har 100 liv. En tur är att röra sig och sedan använda 
 | Kasta macka | Kastvapen | En platt sten som kastas lågt och studsar på allt som är plant och hårt: vatten, is, granithällar, tak, vägar. Lämnar en liten grop vid varje studs och smäller på sista. Studsar längst på vatten och is, kortast på gräs och jord. Fungerar därför på alla banor men är bäst på Kobbarna, Älven och vinterbanor. |
 | Slagskottet | Skjutvapen | En puck som går rakt och studsar mot väggar upp till tre gånger. Bra i gångar. |
 | Epatraktorn | Fordon | Rullar mycket sakta över banan med hög bas och knuffar allt framför sig. En vätte kan åka med. |
-| Myggburken | Kastvapen | En syltburk med lock, full med mygg. Kastas som en granat och spricker vid nedslaget. Svärmen tar närmaste vätte, även en egen, och följer den i tre rundor: 5 skada per runda och lite darrigt sikte. Svärmen flyr från surströmmingsmoln, rök och eld, och försvinner om vätten hoppar i vattnet eller det regnar. |
+| Myggburken | Kastvapen | En syltburk med lock, full med mygg. Kastas som en granat och spricker vid nedslaget. Svärmen tar närmaste vätte, även en egen, och följer den i tre rundor: 5 skada per runda och lite darrigt sikte. Svärmen flyr från surströmmingsmoln, rök och eld, och lämnar vätten om den kryper ner i en gång eller i boet, eller om det börjar regna. |
 | Dammsugaren | Läggs ut | En grön marsipanrulle som suger till sig vättar och lådor i närheten. Samlar ihop dem inför nästa skott. |
 | Lussekatten | Kastvapen (vinter) | Bumerang. Kommer tillbaka om den missar. |
 
