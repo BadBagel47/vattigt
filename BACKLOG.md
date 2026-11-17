@@ -14,8 +14,8 @@ Prioritet: Hög, Medel, Låg.
 | D-007 | Medel | Förslag | Rita vättarna i större format: lagfärger, luvor, skägg, rörelser (gå, sikta, falla, fika). |
 | D-008 | Medel | Förslag | Skärmar utanför matchen: startmeny, eget spel med reglage för stämning, lagbyggare. |
 | D-010 | Medel | Väntar på användaren | Borås i spelet: bana, verktyget Enkel biljett till Borås, stämpeln Bara i Borås och Knallen. Förslag i docs/DESIGN.md; användaren väljer vilka delar som ska med. |
-| F-014 | Hög | Förslag | Vättigt på Cloudflare: en Worker som serverar spelets sidor och kör rummen (network-kit v0.5.0, rum i EU), publicering från main med ett arbetsflöde. Kräver en Cloudflare-nyckel som hemlighet i repot. GitHub Pages stängs när Cloudflare-versionen är kontrollerad. |
-| F-015 | Hög | Förslag | Spel över nätet: skapa rum, bjud in med länk eller QR-kod, lobby med lag, matchen räknas likadant hos alla (indata i buntar, se docs/NETWORK.md), värden tar över om någon försvinner. Kort integritetstext i spelet (smeknamn och IP-adresser hos Cloudflare). |
+| F-014 | Hög | Pågår (2026-11-17, session Vättigt, main) | Vättigt på Cloudflare: en Worker som serverar spelets sidor och kör rummen (network-kit v0.5.0, rum i EU), publicering från main med ett arbetsflöde. Kräver en Cloudflare-nyckel som hemlighet i repot. GitHub Pages stängs när Cloudflare-versionen är kontrollerad. |
+| F-015 | Hög | Pågår (2026-11-17, session Vättigt, main) | Spel över nätet: skapa rum, bjud in med länk eller QR-kod, lobby med lag, matchen räknas likadant hos alla (indata i buntar, se docs/NETWORK.md), värden tar över om någon försvinner. Kort integritetstext i spelet (smeknamn och IP-adresser hos Cloudflare). |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs

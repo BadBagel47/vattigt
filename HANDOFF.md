@@ -51,6 +51,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - 2026-11-17: Riktningen i D-011 är godkänd: fysiken räknar exakt likadant i alla webbläsare, från första raden kod, så att online kan läggas till med network-kit.
 - 2026-11-17: Fokus är att komma till något spelbart.
 - 2026-11-17: Vättigt är första spelet på network-kit (före Critical ST8, som fortsätter parallellt). Beslutat i network-kit-sessionen, bekräftat här.
+- 2026-11-17: Online: Cloudflares gratisadress (workers.dev) nu, egen domän senare; två lag med en eller flera spelare per lag plus åskådare; GitHub Pages stängs när Cloudflare-versionen är kontrollerad (svar på körförslagets frågor, rekommendationerna godkända).
 - 2026-11-17: Vättigt ska ligga på Cloudflare: spelets sidor och rummen kommer från samma Worker, på en adress. Ersätter GitHub Pages, som ligger kvar tills Cloudflare-versionen är på plats och kontrollerad (F-014). Musiken (utkast 1) används tills vidare och tas upp senare.
 - 2026-11-16: Spelet heter **Vättigt** (efter vättarna). Repot heter `vattigt`, utan svenska tecken.
 
