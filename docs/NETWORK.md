@@ -57,7 +57,7 @@ export default {
 
 ## Behov som rapporterats till network-kit
 
-Inget av detta krävs; Vättigt passar v0.5.0 som den är. Skickat 2026-11-17 till agenten som arbetar med network-kit, som avgör hur det tas in:
+Inget av detta krävs; Vättigt passar v0.5.0 som den är. Skickat 2026-11-17 till agenten som arbetar med network-kit. Den har lagt in idéerna som F-039 och F-040 i network-kits lista, med låg prioritet; användaren bestämmer när de byggs. Säg till den agenten när Vättigt börjar med onlinespel, så tas de upp då. Fram till dess skickar värden vidare indata.
 
 - Den aktiva spelaren skulle kunna skicka direkt till alla, i stället för via värden. Halverar antalet meddelanden och gör att indata kommer fram även när värdens telefon sover.
 - Värden skulle kunna peka ut vem som tar över först, till exempel den vars tur det är. Mellan turerna lägger spelarna ofta ifrån sig telefonen, så värdens telefon somnar lätt.
