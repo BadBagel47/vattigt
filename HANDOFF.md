@@ -15,6 +15,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - Cloudflare (F-014): en Worker serverar spelet och kör rummen (network-kit v0.5.0, kopia i `vendor/network-kit`, rum i EU) på https://vattigt.l8p1.workers.dev. Publiceras från main av arbetsflödet `deploy.yml`.
 - Provat: spel över nätet mellan två emulerade telefoner mot en lokal rumsserver (samma match hos båda, omladdning, värdbyte), och av användaren på Cloudflare 2026-11-17: multiplayer fungerar.
 - Känd begränsning: har ett lag ingen ansluten spelare går dess tur ut av sig själv (45 sekunder).
+- Fyra spelbara banor (Midsommarängen, Kobbarna, Trollskogen, Gruvan) med egna material och regler, eget spel och lagbyggare (D-018, D-019, 2026-11-17). Online väljer rumsägaren bana och stämning.
 - Grundreglerna står i [docs/RULES.md](docs/RULES.md) (D-009). Hur onlinedelen fungerar står i [docs/NETWORK.md](docs/NETWORK.md).
 
 ## Nästa steg
@@ -62,7 +63,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 
 - Varumärken och upphovsrätt: spelet får inte använda namn, figurer eller utseende från Worms, och vapennamn får inte vara verkliga varumärken. Hanteras genom egna namn. Bevakas i B/F/D-listan (D-005).
 - Typsnitt, ljud och bilder måste ha licens som tillåter användningen. Mockupen laddar två typsnitt från Google Fonts (öppen licens), vilket också innebär att besökarens webbläsare kontaktar Google. Tas upp inför publicering (D-006).
-- Personuppgifter och kakor blir aktuellt först med multiplayer och konton. Inget sådant finns ännu.
+- Spel över nätet hanterar smeknamn och IP-adresser hos Cloudflare (rum i EU, raderas ett dygn efter sista spelaren). Spelet säger det på skärmen för spel över nätet. Webbläsarens lagring används för att komma tillbaka in i ett rum efter omladdning (sessionStorage, försvinner när fliken stängs) och för lagen i lagbyggaren (localStorage, bara på enheten). Båda behövs för funktioner som spelaren själv väljer, så samtycke bedöms inte behövas (lagen om elektronisk kommunikation 9 kap. 28 §); ingen spårning eller analys finns. Ingen juridisk säkerhet.
 - Ingen juridisk säkerhet utlovas. Frågor om varumärken kan behöva juridisk rådgivning (PRV är officiell källa).
 
 ## Miljö och begränsningar (2026-11-13)

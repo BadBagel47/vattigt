@@ -10,11 +10,14 @@ import { createMatch, replay } from './match.js';
 import { TPS } from '../sim/rules.js';
 
 export const TEAM_PLACES = ['lag1', 'lag2'];
+const NIGHT = new Set(['midsommar', 'vinter']);
+// The match settings come from the room's shared data, set by the owner in the lobby.
+export const optsFrom = (data) => ({ settings: { map: data?.map || 'midsommar', night: data?.mood ? NIGHT.has(data.mood) : true } });
 const BATCH_STEPS = 6;            // a batch every 0.1 s
 const SNAPSHOT_MS = 10000;        // the host's kept copy for a takeover or a reload
 
 export function createOnline(server, hooks = {}) {
-  let room = null, match = null, round = 0, seed = 0, ctl = null, mood = 'midsommar';
+  let room = null, match = null, round = 0, seed = 0, ctl = null, mood = 'midsommar', opts = optsFrom(null);
   let sent = 0, sinceBatch = 0, sentPrints = new Set(), lastSnapshot = 0, endedRound = 0;
   const theirPrints = new Map();  // tick -> fingerprint from the host
   let futureBatches = [];
@@ -38,21 +41,21 @@ export function createOnline(server, hooks = {}) {
   }
 
   /* ---------- starting and rebuilding a match ---------- */
-  function startMatch(r, s, m) {
-    round = r; seed = s; mood = m || mood;
-    match = createMatch(seed);
+  function startMatch(r, s, data) {
+    round = r; seed = s; mood = data?.mood || mood; opts = optsFrom(data);
+    match = createMatch(seed, opts);
     sent = 0; sinceBatch = 0; sentPrints = new Set(); theirPrints.clear(); acc = 0; ctl = null;
     emit('onMatch', match, mood);
     const later = futureBatches.filter((b) => b.r === round); futureBatches = futureBatches.filter((b) => b.r > round);
     for (const b of later) takeBatch(b);
   }
   function rebuild(full) {
-    round = full.r; seed = full.seed; mood = full.mood || mood;
-    match = replay(seed, {}, full.log, full.to);
+    round = full.r; seed = full.seed; mood = full.mood || mood; opts = full.opts || optsFrom({ mood });
+    match = replay(seed, opts, full.log, full.to);
     sent = match.log.length; sentPrints = new Set(match.prints.keys()); theirPrints.clear(); ctl = full.ctl ?? null;
     emit('onMatch', match, mood);
   }
-  const fullState = () => ({ t: 'full', r: round, seed, mood, to: match.reach, log: match.log, ctl });
+  const fullState = () => ({ t: 'full', r: round, seed, mood, opts, to: match.reach, log: match.log, ctl });
 
   /* ---------- messages ---------- */
   function takeBatch(b) {
@@ -77,7 +80,7 @@ export function createOnline(server, hooks = {}) {
     room = r;
     r.on('room', (rm) => {
       if (rm.data?.mood && rm.data.mood !== mood) { mood = rm.data.mood; emit('onMood', mood); }
-      if (rm.phase === 'playing' && rm.round !== round && rm.seed != null) startMatch(rm.round, rm.seed >>> 0, rm.data?.mood);
+      if (rm.phase === 'playing' && rm.round !== round && rm.seed != null) startMatch(rm.round, rm.seed >>> 0, rm.data);
       emit('onRoom', rm);
     });
     r.on('message', onMessage);
@@ -88,7 +91,7 @@ export function createOnline(server, hooks = {}) {
       if (match && round === r.room.round) {
         while (match.world.tick < match.reach && match.world.turn.phase !== 'over') { match.logStep(); }
       } else if (snapshot && snapshot.r === r.room.round) rebuild(snapshot);
-      else startMatch(r.room.round, r.room.seed >>> 0, r.room.data?.mood);
+      else startMatch(r.room.round, r.room.seed >>> 0, r.room.data);
       sent = match.log.length; sinceBatch = 0;
       emit('onRole');
     });
@@ -176,6 +179,7 @@ export function createOnline(server, hooks = {}) {
       return events;
     },
     setMood(m) { mood = m; if (room?.isOwner || isHost()) room.setData({ ...(room.room?.data || {}), mood: m }); },
+    setMap(m) { if (room?.isOwner || isHost()) room.setData({ ...(room.room?.data || {}), map: m }); },
     leave() { try { room?.leave(); } catch (e) { /* already gone */ } room = null; match = null; round = 0; },
   };
 }

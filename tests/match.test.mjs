@@ -48,3 +48,11 @@ test('a follower waits for the log while someone is in control', () => {
   assert.equal(guest.world.turn.phase, 'aim', 'stops at the first turn');
   assert.ok(guest.world.tick < host.world.tick);
 });
+
+test('online settings from the room data reach the match', async () => {
+  const { optsFrom } = await import('../src/net/online.js').catch(() => ({}));
+  if (!optsFrom) return; // the online module needs a browser for the kit; covered in the browser test
+  const m = createMatch(9, optsFrom({ map: 'gruvan', mood: 'dag' }));
+  assert.equal(m.world.map.id, 'gruvan');
+  assert.equal(m.world.settings.night, false);
+});

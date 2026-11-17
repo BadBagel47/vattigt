@@ -41,7 +41,15 @@ export const WEAPONS = [
   { id: 'dyn', name: 'Dynamit-Alfred', speed: 0, wind: false, radius: 24, damage: 75, force: 6 * FP, aim: false, ammo: 2, fuse: 5 * TPS }
 ];
 
+// The troll in Trollskogen throws one of these back when it is woken at night.
+export const TROLLSTONE = { id: 'troll', name: 'Trollsten', wind: false, radius: 14, damage: 40, force: 4 * FP };
+
 export const TEAMS = [
-  { name: 'Vettvillingarna', units: ['MÄRTA', 'STINA', 'GÖSTA'] },
-  { name: 'Vättrundan', units: ['ALVA', 'VERA', 'SIXTEN'] }
+  { name: 'Vettvillingarna', units: ['MÄRTA', 'STINA', 'GÖSTA', 'EBBE', 'AGDA'], color: 0, hat: 'toppig' },
+  { name: 'Vättrundan', units: ['ALVA', 'VERA', 'SIXTEN', 'TAGE', 'KNUT'], color: 1, hat: 'tofs' }
 ];
+
+// Settings for a match (eget spel). Everything that changes the match is here,
+// so every browser in an online room builds the same match from the same settings.
+export const DEFAULT_SETTINGS = { map: 'midsommar', night: true, units: UNITS_PER_TEAM, turn: 45, flood: FLOOD_ROUND, weapons: ['gurra', 'strom', 'dyn'] };
+export const MAX_UNITS = 5;

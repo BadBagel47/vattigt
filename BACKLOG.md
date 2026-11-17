@@ -10,23 +10,22 @@ Prioritet: Hög, Medel, Låg.
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
 | D-006 | Låg | Förslag | Bestäm hur typsnitt ska levereras (egen fil i stället för Google Fonts) inför publicering. |
 | D-010 | Medel | Väntar på användaren | Borås i spelet: bana, verktyget Enkel biljett till Borås, stämpeln Bara i Borås och Knallen. Förslag i docs/DESIGN.md; användaren väljer vilka delar som ska med. |
-| D-018 | Medel | Pågår (2026-11-17, session Vättigt, main) | Gör de nya banorna spelbara (Kobbarna, Trollskogen, Gruvan) med sina egna regler: hård granit och trä som rasar, block som rullar och ett troll som vaknar, mörker med lyktor. |
-| D-019 | Medel | Pågår (2026-11-17, session Vättigt, main) | Bygg eget spel och lagbyggaren i spelet efter mockupen (D-008), med stämning som tre reglage. |
-| D-020 | Låg | Förslag | Bestäm om vättarna ska bli större på banan (16 × 22 och banor i 640 × 360) eller bara i menyer (D-007). |
+| F-021 | Medel | Förslag | Fler inställningar i onlinelobbyn: turtid, vättar per lag, vårflod, vapen och egna lag från lagbyggaren (i dag bara bana och stämning). |
+| F-022 | Låg | Förslag | Banornas extra regler som saknas: flyttblock som rullar, gruvvagnen som rullar på rälsen, dimman i Trollskogen som döljer vättar. |
+| F-023 | Medel | Förslag | Fler vapen ur designförslaget i spelet, till exempel Fallukorv, Dalahästen, Älgtestet och Köttbullar. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
 
-Prioriterat för: mer att spela med vänner, i ordningen namn, banor, eget spel.
+Prioriterat för: roligare matcher med vänner.
 
-- **A** – standardmodell, medelnivå – Byt lagnamnet
-  - D-017 – Byt Vätternrundan mot ett eget namn i spelet och dokumenten, så att laget inte förväxlas med cykelloppet
-  - Fråga: Vilket namn? Rekommendation: Vättrundan.
-- **B** – stark modell, hög nivå – Nya banor i spelet
-  - D-018 – Gör Kobbarna, Trollskogen och Gruvan spelbara med sina egna regler, så att matcherna får variation
-- **C** – stark modell, hög nivå – Eget spel och lagbyggare
-  - D-019 – Bygg eget spel och lagbyggaren efter mockupen, så att ni kan välja bana, stämning, turtid och egna lag
-  - Fråga: Ska vättarna bli större på banan (D-020)? Rekommendation: nej, inte nu; använd det stora formatet i menyer och lagbyggaren.
+- **A** – stark modell, hög nivå – Fler vapen
+  - F-023 – Lägg till Fallukorv, Dalahästen, Älgtestet och Köttbullar, så att matcherna får fler sätt att vinna
+  - Fråga: Vilka vapen först? Rekommendation: de fyra ovan, eftersom de skiljer sig mest från dagens tre.
+- **B** – standardmodell, medelnivå – Inställningar online
+  - F-021 – Låt rumsägaren välja turtid, vättar per lag, vårflod, vapen och egna lag, så att online blir som eget spel
+- **C** – stark modell, hög nivå – Banornas sista regler
+  - F-022 – Block som rullar, gruvvagnen och dimman som döljer, så att banorna blir som i designen
 
 D-006 (typsnitt) tas inför bredare publicering.
 
@@ -37,6 +36,9 @@ Parkerat: D-012 (musik).
 | ID | Klart | Beskrivning |
 |---|---|---|
 | D-001 | 2026-11-13 | Första designförslaget: stil, banor, arsenal, väsen, spelidéer (docs/DESIGN.md). |
+| D-018 | 2026-11-17 | Kobbarna, Trollskogen och Gruvan spelbara: granit och flyttblock tål mer, trä går sönder lätt, trollet kastar sten på natten, lyktor släcks av smällar och mörker i gruvan. Inte med: block som rullar, gruvvagnen, dimma som döljer. |
+| D-019 | 2026-11-17 | Eget spel (bana, stämning, lag, vättar per lag, turtid, vårflod, vapen, förhandsvisning med riktig grafik) och lagbyggare (namn, färg, luva, fem vättar, sparas i webbläsaren). Online: rumsägaren väljer bana och stämning. |
+| D-020 | 2026-11-17 | Beslut: vättarna behåller sin storlek på banan tills vidare. |
 | D-017 | 2026-11-17 | Lagnamnet Vätternrundan bytt mot Vättrundan i spelet, mockupsidorna och designförslaget. |
 | D-004 | 2026-11-17 | Tre nya banor som mockup: Kobbarna, Trollskogen, Gruvan (docs/maps/). |
 | D-007 | 2026-11-17 | Vättarna i större format, 16 × 22, med rörelser och varianter (docs/characters/). |

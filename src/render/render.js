@@ -5,7 +5,19 @@ import { px, activeUnit, teamHp } from '../sim/world.js';
 import { text, textW } from './font.js';
 import { VATTE, ICON_PAL, ICON_ROWS } from './sprites.js';
 
-export const TEAM_COLORS = [{ c: 0xe5533d, d: 0xa5342a, css: '#e5533d' }, { c: 0x4fa3ff, d: 0x2a6fd0, css: '#4fa3ff' }];
+// Team colours to choose from in the team builder; teams 0 and 1 default to red and blue.
+export const TEAM_COLORS = [
+  { c: 0xe5533d, d: 0xa5342a, css: '#e5533d', name: 'Röd' }, { c: 0x4fa3ff, d: 0x2a6fd0, css: '#4fa3ff', name: 'Blå' },
+  { c: 0x5fae3a, d: 0x3b7d34, css: '#5fae3a', name: 'Grön' }, { c: 0xf2c43c, d: 0xc8962a, css: '#f2c43c', name: 'Gul' },
+  { c: 0xb06ad8, d: 0x7a3fa0, css: '#b06ad8', name: 'Lila' }, { c: 0xeeeae0, d: 0xb8b0a0, css: '#eeeae0', name: 'Vit' }
+];
+export const teamColor = (w, ti) => TEAM_COLORS[(w && w.teams[ti] && w.teams[ti].color) ?? ti] || TEAM_COLORS[ti % 2];
+export const HATS = { toppig: 'Toppig', tofs: 'Tofs', stickad: 'Stickad' };
+export function hatRows(rows, hat) {
+  if (hat === 'tofs') { rows[0] = '....h....'; rows[1] = '...hLL...'; }
+  else if (hat === 'stickad') { rows[0] = '.........'; rows[1] = '.........'; rows[2] = '...LlL...'; rows[4] = '.hhhhhhh.'; }
+  return rows;
+}
 
 /* ---------- moods ---------- */
 export const MOODS = {
@@ -160,15 +172,8 @@ export function createRenderer(scene, glow) {
     for (const [dx, dy, r] of [[0, 0, 6], [8, 2, 5], [-8, 3, 4], [15, 4, 3], [3, -4, 4]]) disc(cx + dx * s, cy + dy * s, Math.round(r * s), 0xffffff);
     for (let i = -12 * s; i < 18 * s; i++) for (let j = 4 * s; j < 8 * s; j++) if (get(cx + i, cy + j) === 0xffffff && get(cx + i, cy + j + 2) !== 0xffffff) set(cx + i, cy + j, 0xcfe4f6);
   }
-  function buildBase() {
-    T = base; tintCache = new Map();
-    const S = mood.sky, n = S.length - 1;
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) set(x, y, S[Math.min(n, Math.floor(Math.min(1, y / 205) * n + bay(x, y) * .999))]);
-    for (let i = 0; i < 110; i++) if (hash(i, 3) < mood.stars) set(hash(i, 1) * W, hash(i, 2) * 130, hash(i, 5) < .3 ? 0xffffff : 0xb8c4e8);
-    if (mood.aurora) aurora();
-    if (mood.clouds) { cloud(90, 44, 1.4); cloud(250, 28, 1); cloud(350, 70, 1.2); cloud(30, 96, .8); }
-    if (mood.sun) disc(mood.sun.x, mood.sun.y, mood.sun.r, mood.sun.c);
-    if (mood.moon) { const m = mood.moon; disc(m.x, m.y, m.r, m.c); disc(m.x + 4, m.y - 3, m.r - 1, S[1]); }
+  /* ---------- the four maps: background, terrain colours and decor ---------- */
+  function meadowHills() {
     for (let x = 0; x < W; x++) {
       const y1 = Math.round(156 + 10 * Math.sin(x / 50) + 7 * Math.sin(x / 23 + 2) + 3 * Math.sin(x / 11));
       const y2 = Math.round(176 + 8 * Math.sin(x / 37 + 1) + 5 * Math.sin(x / 17));
@@ -177,14 +182,196 @@ export function createRenderer(scene, glow) {
       for (let y = y2; y < H; y++) set(x, y, mix(mood.hill[1], mood.hill[0], Math.max(0, .5 - (y - y2) / 16) * (bay(x, y) > .5 ? 1 : 0)));
       for (let y = y3; y < H; y++) set(x, y, mood.forest);
     }
+  }
+  const depthAt = (x, y) => { let d = 0; while (d < 9 && solid(x, y - d - 1)) d++; return d; };
+  const snowCap = (x, y, c) => (mood.snow && !solid(x, y - 1) ? 0xf4f8ff : mood.snow && !solid(x, y - 2) ? 0xdfe8f6 : c);
+  const GRANITE = [0xe2b7aa, 0xcfa196, 0xb48a86, 0x8d6d74];
+  const WOODC = [0x9a6a46, 0x6a4430];
+  function rockColor(x, y) {
+    const n = vnoise(x, y, 14) * .6 + vnoise(x, y, 5) * .4;
+    let c = n < .35 ? 0x4a4048 : n < .55 ? 0x3a3238 : n < .75 ? 0x2f292f : 0x262126;
+    const vein = Math.abs(Math.sin(x * .05 - y * .11 + vnoise(x, y, 30) * 5));
+    if (vein < .05) c = 0x8a4a3a; if (vein < .015 && hash(x, y) < .4) c = 0xd8b46a;
+    if (!solid(x, y - 1)) c = 0x6a5e62; else if (!solid(x, y + 1)) c = 0x241f24;
+    return c;
+  }
+  const ART = {
+    midsommar: {
+      background: meadowHills,
+      decor() { tree(49, 'bjork'); tree(205, 'bjork'); tree(318, 'gran'); tree(434, 'bjork'); house(); maypole(); fence(218, 246); mushroom(158); mushroom(412); mushroom(330); },
+      color: terrainColor,
+      after() {
+        burrowInside(118, 209, -1); burrowInside(372, 168, 1);
+        for (const [lx, ly] of LAMPS) if (!solid(lx, ly - 2)) { wp(lx, ly - 4, 0x8a8f9a); wp(lx, ly - 3, 0x8a8f9a); rect(lx - 1, ly - 2, 3, 3, 0xffd66b); set(lx, ly - 1, 0xfff6c8); }
+      },
+      lights(L) {
+        if (lit() && anchored(120)) L.push([124, 142, 30, '255,200,95', .7]);
+        for (const [lx, ly] of LAMPS) if (!solid(lx, ly - 2)) L.push([lx, ly, 26, '255,205,100', .75]);
+      }
+    },
+    kobbarna: {
+      background() {
+        for (let x = 0; x < W; x++) { const h = Math.max(0, 6 + 5 * Math.sin(x / 31) + 3 * Math.sin(x / 9)) * (x % 160 < 110 ? 1 : 0); for (let y = Math.round(world.map.water - h); y < world.map.water; y++) set(x, y, mood.hill[0]); }
+        for (const [gx, gy] of [[150, 60], [170, 52], [330, 96], [205, 110]]) for (const [dx, dy] of [[-2, 0], [-1, -1], [0, 0], [1, -1], [2, 0]]) set(gx + dx, gy + dy, mood.snow ? 0xd8dde8 : 0x3a3a4a);
+      },
+      color(x, y) {
+        const i = y * W + x;
+        if (world.map.mat[i] === 3) return tn(y % 2 ? WOODC[1] : (x % 4 === 0 ? WOODC[1] : WOODC[0]));
+        const d = y - surf(x);
+        const band = vnoise(x * .6, y * 1.2, 9) * .7 + vnoise(x, y, 4) * .3 + d / 120;
+        let c = GRANITE[Math.min(3, Math.floor(band * 3 + bay(x, y) * .6))];
+        if (Math.abs(Math.sin(x * .09 + y * .045 + vnoise(x, y, 20) * 4)) < .035 && d > 2) c = 0x6e5560;
+        if (!solid(x, y - 1)) c = 0xf3d2c6; else if (!solid(x - 1, y) || !solid(x + 1, y)) c = mix(c, 0xffffff, .15);
+        if (d < 7 && hash(x, y) < .035) c = hash(y, x) < .5 ? 0xe0a040 : 0xc9c46a;
+        if (world.map.burnt[i]) c = mix(c, 0x3a2a2a, .5);
+        c = tn(snowCap(x, y, c));
+        if (y > world.water - 3 && y < world.water) c = mix(c, 0x3a3a4a, .4);
+        if (y >= world.water) c = mix(c, y - world.water < 2 ? mood.water[0] : mix(mood.water[0], mood.water[1], Math.min(1, (y - world.water) / 50)), .8);
+        return c;
+      },
+      decor() {},
+      after() {
+        const bh = world.map.boathouse;
+        if (bh && solid(bh.x + 8, bh.base + 1) && solid(bh.x + 24, bh.base + 1)) {
+          const x = bh.x, base = bh.base, top = base - 22;
+          for (let j = 0; j < 22; j++) for (let i = 0; i < 30; i++) wp(x + i, top + j, i % 4 === 3 ? 0x8a2a24 : 0xa5342a);
+          rect(x, top, 2, 22, tn(0xf2efe6)); rect(x + 28, top, 2, 22, tn(0xf2efe6));
+          for (let j = 0; j < 9; j++) for (let i = -2 + j; i < 32 - j; i++) wp(x + i, top - 1 - j, j === 0 ? 0x2a2630 : mood.snow ? 0xf4f8ff : 0x4a3f48);
+          rect(x + 10, base - 13, 10, 13, tn(0x5a1e1a)); rect(x + 14, base - 13, 2, 13, tn(0xf2efe6));
+          for (const px2 of [x + 2, x + 14, x + 27]) for (let y = base + 3; y < world.map.water + 8; y++) if (!solid(px2, y)) wp(px2, y, 0x5a3a2a);
+        }
+        for (const x of [162, 172, 182, 192]) if (solid(x, world.map.water - 6)) for (let yy = world.map.water - 4; yy < world.map.water + 10; yy++) if (!solid(x, yy)) wp(x, yy, 0x4a3022);
+        const lx = 418;
+        if (anchored(lx)) {
+          const base = surf(lx);
+          for (let j = 0; j < 40; j++) { const wdt = 4 + Math.floor(j / 10); for (let i = -wdt; i <= wdt; i++) wp(lx + i, base - 40 + j, (j > 12 && j < 20) ? 0xc8382e : (i < -wdt + 2 ? 0xd8dde8 : 0xffffff)); }
+          rect(lx - 5, base - 46, 11, 6, tn(0x2a2630)); rect(lx - 3, base - 45, 7, 4, 0xfff1b0); rect(lx - 6, base - 48, 13, 2, tn(0xc8382e));
+        }
+      },
+      lights(L) { if (anchored(418)) L.push([418, surf(418) - 43, 34, '255,240,170', lit() ? .9 : .4]); }
+    },
+    trollskogen: {
+      background() {
+        const sp = (x, base, h, c, c2) => { for (let j = 0; j < h; j++) { const wd = Math.floor((j / h) * h * .28) + ((j % 6) < 2 ? 0 : 1); for (let i = -wd; i <= wd; i++) set(x + i, base - h + j, i < 0 ? c2 : c); } };
+        const far = mix(mood.hill[0], mood.forest, .5), near = mood.forest;
+        for (let k = 0; k < 26; k++) sp(k * 19 + (k % 3) * 5, 210 + (k % 4) * 3, 54 + (k * 7) % 30, far, mix(far, 0x000000, .12));
+        for (let k = 0; k < 18; k++) sp(k * 28 + 9, 228, 70 + (k * 11) % 34, near, mix(near, 0x000000, .15));
+      },
+      color(x, y) {
+        const i = y * W + x, m = world.map;
+        let c;
+        if (m.mat[i] === 2) {
+          let cx = x, cy = y, r = 4;
+          for (const [bx, by, br] of m.rocks) { const dx = x - bx, dy = y - by; if (dx * dx + dy * dy <= (br + 2) * (br + 2)) { cx = bx; cy = by; r = br; break; } }
+          const sh = ((x - cx) + (y - cy)) / (2 * r) + (bay(x, y) - .5) * .4;
+          c = sh < -.35 ? 0xa4a8b0 : sh < .1 ? 0x868a94 : sh < .45 ? 0x686c78 : 0x4e5260;
+          const d = depthAt(x, y);
+          if (d < 3 && bay(x, y) < .8 - d * .25 && !(m.troll && cx === m.troll.x && Math.abs(x - cx) < 16 && y > cy - 14)) c = mood.snow ? (d ? 0xdfe8f6 : 0xf4f8ff) : d === 0 ? 0x9fd06a : 0x5f9a4a;
+        } else {
+          const d = depthAt(x, y);
+          c = d === 0 ? (mood.snow ? 0xf4f8ff : mood.grass[0]) : d < 3 ? mood.grass[1] : d < 5 + (bay(x, y) > .5) ? mood.grass[2] : (vnoise(x, y, 7) > .6 ? 0x3b2f2a : 0x2b221f);
+          if (d > 8 && hash(x, y) < .02) c = 0x6a4a34;
+        }
+        if (m.burnt[i]) c = mix(c, 0x241816, .6);
+        c = tn(c);
+        if (y >= world.water) c = mix(c, mood.water[1], .6);
+        return c;
+      },
+      decor() {
+        for (const x of [30, 64, 128, 190, 262, 300, 396, 470]) if (anchored(x)) { const g = surf(x); for (let k = 0; k < 6; k++) { wp(x - k, g - 1 - (k >> 1), 0x4f8a4b); wp(x + k, g - 1 - (k >> 1), 0x5f9a52); } }
+        for (const x of [118, 248, 288, 410]) mushroom(x);
+      },
+      after() {
+        const tr = world.map.troll;
+        if (tr && solid(tr.x, tr.y)) {
+          const f = (x, y, c) => wp(tr.x + x, tr.y + y, c), awake = world.settings && world.settings.night && world.trollTurn === world.turn.number;
+          for (const ex of [-12, 4]) {
+            if (awake) { f(ex + 1, -7, 0xffffff); f(ex + 2, -7, 0xffe38a); f(ex + 3, -7, 0xffffff); f(ex + 2, -6, 0x2a2630); }
+            else { f(ex, -6, 0x2a2630); f(ex + 1, -5, 0x2a2630); f(ex + 2, -5, 0x2a2630); f(ex + 3, -5, 0x2a2630); f(ex + 4, -6, 0x2a2630); }
+          }
+          for (let j = 0; j < 7; j++) for (let i = -3; i <= 3 - (j > 4 ? 1 : 0); i++) if (i * i + (j - 3) * (j - 3) <= 10) f(i - 3, -2 + j, j < 2 ? 0xa8acb6 : 0x8e929c);
+          for (let i = -10; i <= 8; i++) f(i, 9 + Math.round(Math.abs(i) / 6), 0x3a3e4a);
+          if (!awake) { text(P, 'Z', tr.x + 22, tr.y - 34, 0xd8dde8); text(P, 'Z', tr.x + 28, tr.y - 41, 0xd8dde8); }
+        }
+        for (let y = 180; y < 232; y++) for (let x = 0; x < W; x++) { if (solid(x, y)) continue; const a = Math.max(0, 1 - Math.abs(y - 214 + 10 * Math.sin(x / 70)) / 18) * (.55 + .45 * vnoise(x, y, 23)); if (a > bay(x, y) * 1.1 + .1) blend(x, y, 0xc8d4d8, .3); }
+      },
+      lights(L, t) { L.push([268 + Math.sin(t * .05) * 20, 160 + Math.cos(t * .07) * 8, 26, '150,210,255', .8]); }
+    },
+    gruvan: {
+      background() {
+        const r = world.map.roof;
+        const x = 305, b = r;
+        for (let j = 0; j < 38; j++) { const o = Math.floor(j / 3); set(x - 14 + o, b - j, 0x6a4a34); set(x + 14 - o, b - j, 0x6a4a34); if (j % 8 === 0) for (let i = -14 + o; i <= 14 - o; i++) set(x + i, b - j, 0x5a3a2a); }
+        for (let a = 0; a < 40; a++) set(x + Math.round(Math.cos(a / 40 * 6.283) * 6), b - 40 + Math.round(Math.sin(a / 40 * 6.283) * 6), 0x9aa0aa);
+        rect(x + 22, b - 14, 34, 14, tn(0xa5342a)); for (let j = 0; j < 6; j++) rect(x + 20 + j, b - 15 - j, 38 - 2 * j, 1, mood.snow ? 0xf4f8ff : 0x3a2f38);
+        rect(x + 30, b - 9, 6, 5, lit() ? 0xffd66b : tn(0x9fc8e0));
+      },
+      color(x, y) {
+        const i = y * W + x;
+        let c = y <= world.map.roof + 1 ? (y === world.map.roof ? (mood.snow ? 0xf4f8ff : mood.grass[1]) : mood.grass[2]) : rockColor(x, y);
+        if (world.map.burnt[i]) c = mix(c, 0x120c10, .5);
+        if (y >= world.water) c = mix(c, mood.water[1], .6);
+        return c;
+      },
+      decor() {},
+      cave(x, y) { return (x + y * 3) % 9 === 0 ? 0x1c1820 : 0x161219; },
+      after() {
+        for (let y = world.map.roof; y < 232; y++) { if (solid(299, y)) continue; set(299, y, 0x8a5a3a); set(311, y, 0x8a5a3a); if (y % 5 === 0) for (let x = 299; x <= 311; x++) if (!solid(x, y)) set(x, y, 0xa86a42); }
+        const floor = (x, from) => { for (let y = from; y < H; y++) if (solid(x, y)) return y; return H; };
+        for (const [x, from] of [[60, 80], [140, 80], [220, 80], [380, 80], [440, 80], [40, 150], [250, 150], [200, 210], [360, 210], [430, 210]]) {
+          if (solid(x, from)) continue;
+          const fy = floor(x, from); let ty = fy - 1; while (ty > from - 30 && !solid(x, ty - 1)) ty--;
+          for (let y = ty; y < fy; y++) { set(x - 6, y, 0x7a5236); set(x + 6, y, 0x7a5236); } for (let i = -7; i <= 7; i++) set(x + i, ty, 0x9a6a46);
+        }
+        for (const [x1, x2, from] of [[20, 320, 150], [130, 470, 210]]) for (let x = x1; x <= x2; x++) { if (solid(x, from)) continue; const fy = floor(x, from); if (fy >= H) continue; set(x, fy - 1, x % 5 === 0 ? 0x6a4a34 : 0x9aa0aa); }
+        for (const l of world.map.lamps) { set(l.x, l.y - 2, 0x8a8f9a); rect(l.x - 1, l.y - 1, 3, 3, l.on ? 0xffd66b : 0x3a3238); if (l.on) set(l.x, l.y, 0xfff6c8); }
+      },
+      lights(L) { for (const l of world.map.lamps) if (l.on) L.push([l.x, l.y, 40, '255,190,90', .85]); L.push([333, world.map.roof - 7, 22, '255,200,100', lit() ? .7 : .2]); },
+      dark: true
+    }
+  };
+  const art = () => ART[world.map.id] || ART.midsommar;
+
+  // Gruvan: everything below ground is dark except where light reaches.
+  let lightBase = null, lightKey = '';
+  function darkness(dyn) {
+    const m = world.map, top = m.roof + 2;
+    const key = world.mapVersion + '|' + m.lamps.map((l) => l.on).join('');
+    if (key !== lightKey) {
+      lightKey = key; lightBase = new Float32Array(W * H);
+      for (const l of m.lamps) if (l.on) addLight(lightBase, l.x, l.y, 46);
+    }
+    const L = lightBase.slice();
+    for (const [x, y, r] of dyn) addLight(L, x, y, r);
+    for (let y = top; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x, step = Math.floor((Math.min(1, L[i]) + bay(x, y) * .25) * 4) / 4;
+      if (step < 1) T[i] = abgr(mix(get(x, y), 0x040308, Math.min(.92, (1 - step) * .95)));
+    }
+  }
+  function addLight(A, lx, ly, r) {
+    lx = Math.round(lx); ly = Math.round(ly);
+    for (let y = Math.max(0, ly - r); y <= Math.min(H - 1, ly + r); y++) for (let x = Math.max(0, lx - r); x <= Math.min(W - 1, lx + r); x++) {
+      const d = ((x - lx) * (x - lx) + (y - ly) * (y - ly)) / (r * r);
+      if (d < 1) { const i = y * W + x, v = 1 - d; if (v > A[i]) A[i] = v; }
+    }
+  }
+
+  function buildBase() {
+    T = base; tintCache = new Map();
+    const S = mood.sky, n = S.length - 1, A = art();
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) set(x, y, S[Math.min(n, Math.floor(Math.min(1, y / (world.map.roof ? Math.max(30, world.map.roof) : 205)) * n + bay(x, y) * .999))]);
+    for (let i = 0; i < 110; i++) if (hash(i, 3) < mood.stars) set(hash(i, 1) * W, hash(i, 2) * (world.map.roof || 130), hash(i, 5) < .3 ? 0xffffff : 0xb8c4e8);
+    if (mood.aurora && !world.map.roof) aurora();
+    if (mood.clouds) { cloud(90, 44, 1.4); cloud(250, 28, 1); cloud(350, 70, 1.2); cloud(30, 96, .8); }
+    if (mood.sun && !world.map.roof) disc(mood.sun.x, mood.sun.y, mood.sun.r, mood.sun.c);
+    if (mood.moon) { const m = mood.moon, my = world.map.roof ? 18 : m.y, mx = world.map.roof ? 200 : m.x; disc(mx, my, m.r - (world.map.roof ? 2 : 0), m.c); disc(mx + 4, my - 3, m.r - (world.map.roof ? 3 : 1), S[1]); }
+    A.background();
     const cv = world.map.cave;
-    for (let i = 0; i < W * H; i++) if (cv[i] && !world.map.solid[i]) { const x = i % W, y = (i / W) | 0; set(x, y, tn((x + y * 2) % 7 === 0 ? 0x4a302a : 0x3a2520)); }
-    tree(49, 'bjork'); tree(205, 'bjork'); tree(318, 'gran'); tree(434, 'bjork');
-    house(); maypole(); fence(218, 246); mushroom(158); mushroom(412); mushroom(330);
+    for (let i = 0; i < W * H; i++) if (cv[i] && !world.map.solid[i]) { const x = i % W, y = (i / W) | 0; set(x, y, A.cave ? A.cave(x, y) : tn((x + y * 2) % 7 === 0 ? 0x4a302a : 0x3a2520)); }
+    A.decor();
     const s = world.map.solid;
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (s[y * W + x]) set(x, y, terrainColor(x, y));
-    burrowInside(118, 209, -1); burrowInside(372, 168, 1);
-    for (const [lx, ly] of LAMPS) if (!solid(lx, ly - 2)) { wp(lx, ly - 4, 0x8a8f9a); wp(lx, ly - 3, 0x8a8f9a); rect(lx - 1, ly - 2, 3, 3, 0xffd66b); set(lx, ly - 1, 0xfff6c8); }
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (s[y * W + x]) set(x, y, A.color(x, y));
+    A.after();
     T = buf;
   }
 
@@ -205,7 +392,7 @@ export function createRenderer(scene, glow) {
         floaters.push({ x: e.x, y: e.y, s: '-' + e.n, c: 0xff6a5a, age: 0 });
       } else if (e.t === 'turn') {
         const u = w.units.find((o) => o.id === e.unit);
-        banner = { s: possessive(u.name) + ' TUR', c: TEAM_COLORS[u.team].c, age: 0 };
+        banner = { s: possessive(u.name) + ' TUR', c: teamColor(w, u.team).c, age: 0 };
       } else if (e.t === 'cloud') {
         for (let i = 0; i < 16; i++) { const a = rnd() * 6.283, v = rnd() * 1.2; parts.push({ x: e.x, y: e.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - .3, g: -.005, life: 50, c: 0xb8d45a, kind: 'smoke', r: 2 }); }
       } else if (e.t === 'flood') {
@@ -225,10 +412,10 @@ export function createRenderer(scene, glow) {
   /* ---------- dynamic layer ---------- */
   let lights = [];
   function drawUnit(u, t, active, w, view) {
-    const tm = TEAM_COLORS[u.team], x = px(u.X), y = px(u.Y), sx = x - 4, sy = y - 11;
+    const tm = teamColor(w, u.team), x = px(u.X), y = px(u.Y), sx = x - 4, sy = y - 11;
     const beard = u.id % 2 === 1;
-    const pal = { L: tm.c, l: tm.d, S: 0xf2c9a2, N: 0xe89a80, e: 0x2a2030, W: beard ? 0xf4f4f0 : 0x9aa0aa, G: 0x9aa0aa, g: 0x6a707c, B: 0x3a2c28 };
-    const rows = VATTE.slice();
+    const pal = { L: tm.c, l: tm.d, h: 0xf4f4f0, S: 0xf2c9a2, N: 0xe89a80, e: 0x2a2030, W: beard ? 0xf4f4f0 : 0x9aa0aa, G: 0x9aa0aa, g: 0x6a707c, B: 0x3a2c28 };
+    const rows = hatRows(VATTE.slice(), w.teams[u.team].hat);
     if (!beard) rows[8] = '..SSSSS..';
     if (!still && (t + u.id * 7) % 41 < 2) rows[6] = '..SSSSS..';
     if (u.air && !still) rows[11] = (t & 2) ? '.B.....B.' : '..B...B..';
@@ -293,7 +480,7 @@ export function createRenderer(scene, glow) {
     for (const s of w.stones) {
       const x = px(s.X), y = px(s.Y);
       rect(x - 2, y - 6, 5, 7, tn(0x8b8f98)); rect(x - 1, y - 7, 3, 1, tn(0x8b8f98)); rect(x - 2, y - 6, 1, 7, tn(0xb3b8bd));
-      wp(x, y - 5, TEAM_COLORS[s.team].d); wp(x - 1, y - 3, TEAM_COLORS[s.team].d); wp(x + 1, y - 4, TEAM_COLORS[s.team].d); wp(x, y - 2, TEAM_COLORS[s.team].d);
+      const rc = teamColor(w, s.team).d; wp(x, y - 5, rc); wp(x - 1, y - 3, rc); wp(x + 1, y - 4, rc); wp(x, y - 2, rc);
     }
   }
   function water(w, t) {
@@ -346,7 +533,7 @@ export function createRenderer(scene, glow) {
   }
   function hud(w, t) {
     w.teams.forEach((tm, i) => {
-      const y = 6 + i * 16, c = TEAM_COLORS[i].c, hp = teamHp(w, i), max = 300;
+      const y = 6 + i * 16, c = teamColor(w, i).c, hp = teamHp(w, i), max = (w.settings ? w.settings.units : 3) * 100;
       text(P, tm.name.toUpperCase(), 6, y, c);
       rect(5, y + 7, 66, 5, 0x0c1022); rect(6, y + 8, Math.round(64 * hp / max), 3, c); rect(6, y + 8, Math.round(64 * hp / max), 1, mix(c, 0xffffff, .45));
       text(P, String(hp), 75, y + 7, 0xffffff);
@@ -355,7 +542,7 @@ export function createRenderer(scene, glow) {
     if (tr.phase === 'aim') {
       const s = Math.ceil(tr.timer / 60);
       text(P, String(s), W / 2, 6, s <= 10 && (t & 4) ? 0xff6a5a : 0xffffff, 2, 1);
-      if (u) text(P, possessive(u.name) + ' TUR', W / 2, 24, TEAM_COLORS[u.team].c, 1, 1);
+      if (u) text(P, possessive(u.name) + ' TUR', W / 2, 24, teamColor(w, u.team).c, 1, 1);
       const wn = WEAPONS[tr.weapon], am = w.teams[u ? u.team : 0].ammo[tr.weapon];
       text(P, wn.name.toUpperCase() + (am >= 0 ? ' (' + am + ')' : ''), W / 2, 33, 0xd8dde8, 1, 1);
     } else if (tr.phase === 'retreat') {
@@ -379,7 +566,7 @@ export function createRenderer(scene, glow) {
 
   function frame(w, view = {}, tms = 0) {
     world = w;
-    const key = [w.mapVersion, w.water, mood.name].join('|');
+    const key = [w.map.id, w.seed, w.mapVersion, w.water, mood.name, w.map.lamps.map((l) => l.on).join(''), w.trollTurn === w.turn.number].join('|');
     if (key !== builtKey) { buildBase(); builtKey = key; }
     const t = Math.floor(tms / 100);
     stepEffects();
@@ -387,16 +574,23 @@ export function createRenderer(scene, glow) {
     if (mood.sun) lights.push([mood.sun.x, mood.sun.y, 70, mood.sun.c === 0xfffbe0 ? '255,250,220' : '255,200,120', .5]);
     if (mood.moon) lights.push([mood.moon.x, mood.moon.y, 44, '200,215,255', .35]);
     if (mood.aurora) { lights.push([150, 50, 120, '70,240,160', .16]); lights.push([360, 40, 110, '120,110,240', .14]); }
-    if (lit() && anchored(120)) lights.push([124, 142, 30, '255,200,95', .7]);
-    for (const [lx, ly] of LAMPS) if (!solid(lx, ly - 2)) lights.push([lx, ly, 26, '255,205,100', .75]);
+    art().lights(lights, t);
     drawStones(w);
     const act = activeUnit(w);
     for (const u of w.units) if (u.alive) drawUnit(u, t, act && u.id === act.id, w, view);
     drawProjectiles(w, t);
     drawClouds(w, t);
     water(w, t);
-    ambient(t);
+    if (!w.map.roof) ambient(t);
     drawParts();
+    if (art().dark) {
+      const dyn = [];
+      for (const u of w.units) if (u.alive) dyn.push([px(u.X), px(u.Y) - 8, 22]);
+      for (const p of w.projectiles) dyn.push([px(p.X), px(p.Y), p.kind === 'gurra' || p.kind === 'troll' ? 26 : 12]);
+      for (const f of flashes) dyn.push([f.x, f.y, Math.round(f.r * 3 - f.age * 3)]);
+      darkness(dyn);
+      for (const u of w.units) if (u.alive) { text(P, u.name, px(u.X), px(u.Y) - 25, teamColor(w, u.team).c, 1, 1); text(P, String(u.hp), px(u.X), px(u.Y) - 18, 0xffffff, 1, 1); }
+    }
     drawAim(w, view);
     hud(w, t);
     ctx.putImageData(img, 0, 0);

@@ -4,9 +4,9 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 
 ## Match
 
-- Två lag med tre vättar var. Varje vätte har 100 liv.
+- Två lag med tre vättar var (1–5 i eget spel). Varje vätte har 100 liv.
 - Lagen turas om. Inom laget går turen runt mellan de vättar som lever.
-- En tur är 45 sekunder. Under turen får vätten gå, hoppa, byta vapen och skjuta en gång.
+- En tur är 45 sekunder (30, 60 eller 90 i eget spel). Under turen får vätten gå, hoppa, byta vapen och skjuta en gång.
 - Efter skottet har vätten 3 sekunder på sig att springa undan. Sedan väntar spelet tills allt ligger still, och därefter går turen över.
 - Laget som har vättar kvar sist vinner. Dör de sista vättarna samtidigt blir det oavgjort.
 
@@ -36,8 +36,16 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 
 ## Vårfloden
 
-- Från runda 8 stiger vattnet 5 pixlar varje tur. Det gör att varje match tar slut till sist.
+- Från runda 8 stiger vattnet 5 pixlar varje tur. Det gör att varje match tar slut till sist. I eget spel kan den börja runda 6 eller 12, eller stängas av.
+
+## Banor och material
+
+- Jord försvinner inom hela smällen. Berg och sten (granit, flyttblock) tål mer: kratern blir hälften så stor. Trä (bryggan, sjöbodens golv) går sönder lättare än jord.
+- **Midsommarängen:** jord, två bon under jord.
+- **Kobbarna:** granitkobbar med mycket vatten emellan, en brygga och sjöbodens golv av trä.
+- **Trollskogen:** jord med hårda flyttblock och en stenmur. Det största blocket är ett troll. På natten (stämningarna Midsommarnatt och Vinternatt) vaknar trollet om en smäll når det, och kastar en sten mot den vars tur det är (skada upp till 40), högst en gång per tur.
+- **Gruvan:** orter under jord. Det är mörkt utom där lyktorna och vättarnas pannlampor lyser. En smäll som når en lykta släcker den för resten av matchen.
 
 ## Inte med än
 
-Lådor, fler vapen, fler banor, lagbyggare, datormotståndare och spel över nätet.
+Lådor, fler vapen, datormotståndare, block som rullar och gruvvagnen. Dimman i Trollskogen döljer ännu inget.

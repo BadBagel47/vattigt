@@ -5,8 +5,10 @@
 import { createMatch } from './net/match.js';
 import { createOnline, TEAM_PLACES } from './net/online.js';
 import { activeUnit, newMatch, step } from './sim/world.js';
-import { W, H, TPS, WEAPONS } from './sim/rules.js';
-import { createRenderer, drawIcon, MOODS, TEAM_COLORS } from './render/render.js';
+import { W, H, TPS, WEAPONS, DEFAULT_SETTINGS, TEAMS, MAX_UNITS } from './sim/rules.js';
+import { MAP_NAMES } from './sim/terrain.js';
+import { createRenderer, drawIcon, MOODS, TEAM_COLORS, HATS, hatRows, teamColor } from './render/render.js';
+import { VATTE } from './render/sprites.js';
 import { createSound } from './audio/sound.js';
 import { shareLink, readShareLink, forgetShareKey, qrSvg, tabSession } from '../vendor/network-kit/client/index.js';
 
@@ -69,7 +71,7 @@ function updatePanels() {
   const w = world();
   if (!w) return;
   const t = w.turn, u = activeUnit(w), team = u ? u.team : 0;
-  document.documentElement.style.setProperty('--team', TEAM_COLORS[team].css);
+  document.documentElement.style.setProperty('--team', teamColor(w, team).css);
   const mine = myTurn() && mode !== 'title';
   const canAct = mine && t.phase === 'aim' && u && u.alive;
   weaponButtons.forEach((b, i) => {
@@ -188,6 +190,11 @@ function loop(ms) {
     const evs = online.frame(dt);
     if (online.match) handle(evs, online.match.world);
   }
+  if (!$('custom').hidden && previewWorld) {
+    const r = $('cScene').getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+    if ($('cGlow').width !== Math.round(r.width * dpr)) { $('cGlow').width = Math.round(r.width * dpr); $('cGlow').height = Math.round(r.height * dpr); }
+    preview.frame(previewWorld, {}, ms);
+  }
   const w = world();
   if (!w) return;
   const shake = renderer.frame(w, view, ms);
@@ -197,14 +204,29 @@ function loop(ms) {
 }
 
 /* ---------- screens ---------- */
-const screens = ['title', 'pause', 'over', 'net', 'lobby'];
+const screens = ['title', 'pause', 'over', 'net', 'lobby', 'custom', 'teams'];
 function show(id) { for (const s of screens) $(s).hidden = s !== id; if (id) $(id).querySelector('button.primary, input, button')?.focus(); }
 function resetView() { view.aim = null; drag = null; held.left = held.right = false; walkDir = 0; shotsFired = 0; renderer.reset(); }
+
+/* ---------- settings (eget spel) and saved teams (lagbyggaren) ---------- */
+const NIGHT_MOODS = new Set(['midsommar', 'vinter']);
+const custom = { map: DEFAULT_SETTINGS.map, units: DEFAULT_SETTINGS.units, turn: DEFAULT_SETTINGS.turn, flood: DEFAULT_SETTINGS.flood, weapons: new Set(DEFAULT_SETTINGS.weapons), team0: 0, team1: 1 };
+const TEAM_KEY = 'vattigt-teams';
+const defaultTeams = () => TEAMS.map((t) => ({ name: t.name, color: t.color, hat: t.hat, units: t.units.map((n) => n.charAt(0) + n.slice(1).toLowerCase()) }));
+let savedTeams = (() => { try { const v = JSON.parse(localStorage.getItem(TEAM_KEY) || 'null'); if (Array.isArray(v) && v.length >= 2) return v; } catch (e) { /* storage off */ } return defaultTeams(); })();
+function saveTeams() { try { localStorage.setItem(TEAM_KEY, JSON.stringify(savedTeams)); } catch (e) { /* storage off: teams last until the page closes */ } }
+function matchOpts() {
+  const pick = (i) => savedTeams[i] || savedTeams[0];
+  return {
+    settings: { map: custom.map, night: NIGHT_MOODS.has(moodName), units: custom.units, turn: custom.turn, flood: custom.flood, weapons: [...custom.weapons] },
+    teams: [pick(custom.team0), pick(custom.team1)].map((t) => ({ name: t.name, color: t.color, hat: t.hat, units: t.units }))
+  };
+}
 
 function newLocalGame() {
   clearTimeout(overTimer);
   mode = 'local';
-  local = createMatch((Math.random() * 4294967296) >>> 0);
+  local = createMatch((Math.random() * 4294967296) >>> 0, matchOpts());
   resetView(); renderer.setMood(moodName);
   window.__vattigt = { match: local };
   paused = false; show(null); layout();
@@ -253,12 +275,80 @@ Object.entries(MOODS).forEach(([key, m]) => {
     const b = document.createElement('button');
     b.type = 'button'; b.textContent = m.name; b.dataset.mood = key; b.setAttribute('aria-pressed', String(key === moodName));
     b.addEventListener('click', () => {
-      moodName = key; markMood(key); renderer.setMood(key);
+      moodName = key; markMood(key); renderer.setMood(key); preview.setMood(key);
       if (net && online) online.setMood(key);
+      customNote();
     });
     $(box).append(b);
   }
 });
+
+/* ---------- eget spel ---------- */
+const preview = createRenderer($('cScene'), $('cGlow'));
+let previewWorld = null;
+function rebuildPreview() { previewWorld = newMatch(7, { settings: { map: custom.map, units: custom.units } }); for (let i = 0; i < 160; i++) step(previewWorld); preview.reset(); preview.setMood(moodName); }
+function choiceRow(el, values, get, set, label = String) {
+  el.innerHTML = '';
+  for (const v of values) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = label(v);
+    b.setAttribute('aria-pressed', String(get(v)));
+    b.addEventListener('click', () => { set(v); for (const o of el.children) o.setAttribute('aria-pressed', String(get(o._v))); customNote(); });
+    b._v = v; el.append(b);
+  }
+}
+function setupCustom() {
+  choiceRow($('cMaps'), Object.keys(MAP_NAMES), (v) => custom.map === v, (v) => { custom.map = v; rebuildPreview(); }, (v) => MAP_NAMES[v]);
+  const row = (k) => document.querySelector(`[data-opt=${k}]`);
+  choiceRow(row('units'), [1, 2, 3, 4, MAX_UNITS], (v) => custom.units === v, (v) => { custom.units = v; rebuildPreview(); });
+  choiceRow(row('turn'), [30, 45, 60, 90], (v) => custom.turn === v, (v) => { custom.turn = v; }, (v) => v + ' s');
+  choiceRow(row('flood'), [0, 6, 8, 12], (v) => custom.flood === v, (v) => { custom.flood = v; }, (v) => (v ? 'Runda ' + v : 'Av'));
+  choiceRow(row('weapons'), WEAPONS.map((w) => w.id), (v) => custom.weapons.has(v), (v) => { if (custom.weapons.has(v) && custom.weapons.size > 1) custom.weapons.delete(v); else custom.weapons.add(v); }, (v) => WEAPONS.find((w) => w.id === v).name);
+  for (const [i, sel] of [[0, $('cTeam0')], [1, $('cTeam1')]]) {
+    sel.innerHTML = '';
+    savedTeams.forEach((t, k) => { const o = document.createElement('option'); o.value = k; o.textContent = t.name; sel.append(o); });
+    sel.value = String(Math.min(i ? custom.team1 : custom.team0, savedTeams.length - 1));
+    sel.onchange = () => { custom['team' + i] = +sel.value; customNote(); };
+  }
+  if (!previewWorld) rebuildPreview();
+  customNote();
+}
+function customNote() {
+  const notes = { kobbarna: 'Granit tål mer än jord och bryggan är av trä.', trollskogen: 'Flyttblocken är hårda. Trollet vaknar om det träffas på natten (Midsommarnatt, Vinternatt).', gruvan: 'Mörkt under jord. Lyktorna går att skjuta sönder.', midsommar: '' };
+  let n = notes[custom.map] || '';
+  if (custom.team0 === custom.team1) n += ' Välj två olika lag.';
+  $('cNote').textContent = n.trim();
+  $('cStart').disabled = custom.team0 === custom.team1;
+}
+$('goCustom').addEventListener('click', () => { sound.unlock(); setupCustom(); show('custom'); });
+$('cBack').addEventListener('click', () => show('title'));
+$('cStart').addEventListener('click', () => { sound.unlock(); goFull(); newLocalGame(); });
+
+/* ---------- lagbyggaren ---------- */
+const OLD_NAMES = ['Agda', 'Alrik', 'Birger', 'Dagny', 'Elof', 'Frideborg', 'Gunnel', 'Holger', 'Ingrid', 'Josef', 'Knut', 'Lennart', 'Majken', 'Nils', 'Oskar', 'Ragnhild', 'Signe', 'Torsten', 'Ulla', 'Valborg', 'Åke', 'Östen', 'Gösta', 'Märta', 'Sixten', 'Tage'];
+let curTeam = 0;
+function teamsScreen() {
+  const t = savedTeams[curTeam];
+  $('tList').innerHTML = '';
+  savedTeams.forEach((tm, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = tm.name; b.style.borderLeftColor = TEAM_COLORS[tm.color].css; b.setAttribute('aria-pressed', String(i === curTeam)); b.addEventListener('click', () => { curTeam = i; teamsScreen(); }); $('tList').append(b); });
+  $('tName').value = t.name;
+  $('tColors').innerHTML = '';
+  TEAM_COLORS.forEach((c, i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.setAttribute('aria-label', c.name); b.title = c.name; b.setAttribute('aria-pressed', String(t.color === i)); const sp = document.createElement('span'); sp.style.background = c.css; b.append(sp); b.addEventListener('click', () => { t.color = i; saveTeams(); teamsScreen(); }); $('tColors').append(b); });
+  $('tHats').innerHTML = '';
+  for (const [k, name] of Object.entries(HATS)) { const b = document.createElement('button'); b.type = 'button'; b.textContent = name; b.setAttribute('aria-pressed', String(t.hat === k)); b.addEventListener('click', () => { t.hat = k; saveTeams(); teamsScreen(); }); $('tHats').append(b); }
+  $('tNames').innerHTML = '';
+  for (let i = 0; i < MAX_UNITS; i++) { const inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 10; inp.value = t.units[i] || ''; inp.setAttribute('aria-label', `Vätte ${i + 1}`); inp.addEventListener('input', () => { t.units[i] = inp.value.trim(); saveTeams(); }); $('tNames').append(inp); }
+  $('tDelete').disabled = savedTeams.length <= 2;
+  const g = $('tPrev').getContext('2d'), col = TEAM_COLORS[t.color];
+  g.clearRect(0, 0, 20, 24);
+  const pal = { L: col.c, l: col.d, h: 0xf4f4f0, S: 0xf2c9a2, N: 0xe89a80, e: 0x2a2030, W: 0xf4f4f0, G: 0x9aa0aa, g: 0x6a707c, B: 0x3a2c28 };
+  hatRows(VATTE.slice(), t.hat).forEach((r, j) => [...r].forEach((ch, i) => { if (ch !== '.') { g.fillStyle = '#' + pal[ch].toString(16).padStart(6, '0'); g.fillRect(5 + i, 7 + j, 1, 1); } }));
+}
+$('tName').addEventListener('input', () => { savedTeams[curTeam].name = $('tName').value.trim() || 'Laget'; saveTeams(); for (const [i, b] of [...$('tList').children].entries()) b.textContent = savedTeams[i].name; });
+$('tShuffle').addEventListener('click', () => { const pool = OLD_NAMES.slice(); savedTeams[curTeam].units = Array.from({ length: MAX_UNITS }, () => pool.splice(Math.floor(Math.random() * pool.length), 1)[0]); saveTeams(); teamsScreen(); });
+$('tNew').addEventListener('click', () => { const pool = OLD_NAMES.slice(); savedTeams.push({ name: 'Nytt lag', color: savedTeams.length % TEAM_COLORS.length, hat: 'stickad', units: Array.from({ length: MAX_UNITS }, () => pool.splice(Math.floor(Math.random() * pool.length), 1)[0]) }); curTeam = savedTeams.length - 1; saveTeams(); teamsScreen(); $('tName').focus(); });
+$('tDelete').addEventListener('click', () => { if (savedTeams.length <= 2) return; savedTeams.splice(curTeam, 1); curTeam = 0; custom.team0 = 0; custom.team1 = 1; saveTeams(); teamsScreen(); });
+$('goTeams').addEventListener('click', () => { sound.unlock(); curTeam = 0; teamsScreen(); show('teams'); });
+$('tBack').addEventListener('click', () => show('title'));
 function markMood(key) { document.querySelectorAll('[data-mood]').forEach((o) => o.setAttribute('aria-pressed', String(o.dataset.mood === key))); }
 
 async function goFull() {
@@ -364,6 +454,9 @@ function updateLobby(rm) {
   $('watchers').textContent = watchers.length ? 'Tittar på: ' + watchers.join(', ') : '';
   const lead = r.isOwner || r.isHost;
   $('ownerBox').hidden = !lead;
+  const curMap = rm.data?.map || 'midsommar';
+  if (lead) choiceRow($('netMaps'), Object.keys(MAP_NAMES), (v) => (online.room?.room?.data?.map || 'midsommar') === v, (v) => online.setMap(v), (v) => MAP_NAMES[v]);
+  $('lobbyMap').textContent = `Bana: ${MAP_NAMES[curMap]}.`;
   const ready = TEAM_PLACES.every((pl) => (rm.places?.[pl] || []).length > 0);
   $('startNet').hidden = !lead;
   $('startNet').disabled = !ready || rm.phase === 'countdown';

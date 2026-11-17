@@ -3,7 +3,7 @@
 // (whole numbers only, no Math.random, no Math.sin), so online play can send
 // inputs only (D-011).
 import * as R from './rules.js';
-import { makeMap, carve, isSolid, SPAWNS } from './terrain.js';
+import { makeMap, blast, isSolid } from './terrain.js';
 import { sin, cos, isqrt } from './trig.js';
 
 const { FP, W, H } = R;
@@ -20,23 +20,50 @@ function rand(w) {
 const randInt = (w, n) => rand(w) % n;
 
 /* ---------- setup ---------- */
+// Normalise match settings so that every browser uses exactly the same values.
+export function matchSettings(opts = {}) {
+  const d = R.DEFAULT_SETTINGS, s = { ...d, ...(opts.settings || {}) };
+  const clamp = (v, lo, hi, def) => (Number.isInteger(v) && v >= lo && v <= hi ? v : def);
+  const weapons = Array.isArray(s.weapons) ? R.WEAPONS.map((w) => w.id).filter((id) => s.weapons.includes(id)) : d.weapons;
+  return {
+    map: ['midsommar', 'kobbarna', 'trollskogen', 'gruvan'].includes(s.map) ? s.map : d.map,
+    night: !!s.night,
+    units: clamp(s.units, 1, R.MAX_UNITS, d.units),
+    turn: clamp(s.turn, 10, 120, d.turn),
+    flood: clamp(s.flood, 0, 99, d.flood),
+    weapons: weapons.length ? weapons : ['gurra']
+  };
+}
+
 export function newMatch(seed, opts = {}) {
-  const teams = (opts.teams || R.TEAMS).map((t, i) => ({ name: t.name, index: i, ammo: R.WEAPONS.map((wp) => wp.ammo), next: 0 }));
+  const settings = matchSettings(opts);
+  const src = R.TEAMS.map((def, i) => ({ ...def, ...((opts.teams || [])[i] || {}) }));
+  const teams = src.map((t, i) => ({
+    name: String(t.name || R.TEAMS[i].name).slice(0, 20), index: i, color: Number.isInteger(t.color) ? t.color : i, hat: t.hat || R.TEAMS[i].hat,
+    ammo: R.WEAPONS.map((wp) => (settings.weapons.includes(wp.id) ? wp.ammo : 0)), next: 0
+  }));
+  const map = makeMap(seed, settings.map);
   const w = {
-    seed: seed >>> 0, rng: seed >>> 0, tick: 0,
-    map: makeMap(seed), water: R.WATER_START, wind: 0,
+    seed: seed >>> 0, rng: seed >>> 0, tick: 0, settings,
+    map, water: map.water, wind: 0, trollTurn: -1,
     teams, units: [], projectiles: [], clouds: [], stones: [],
     turn: { phase: 'start', team: -1, unit: -1, timer: 0, retreat: 0, quiet: 0, round: 0, weapon: 0, aim: { angle: 45, power: 60 }, number: 0 },
     winner: null, events: [], mapVersion: 0
   };
   let id = 0;
   teams.forEach((t, ti) => {
-    const spots = SPAWNS[ti].slice();
+    const spots = map.spawns[ti].slice();
     for (let i = spots.length - 1; i > 0; i--) { const j = randInt(w, i + 1); [spots[i], spots[j]] = [spots[j], spots[i]]; }
-    const names = (opts.teams || R.TEAMS)[ti].units;
-    for (let k = 0; k < R.UNITS_PER_TEAM; k++) {
-      const [x, y] = spots[k];
-      w.units.push({ id: id++, team: ti, name: names[k], X: x * FP, Y: y * FP, VX: 0, VY: 0, air: true, hp: R.HP, alive: true, face: ti === 0 ? 1 : -1, walk: 0 });
+    const names = src[ti].units || R.TEAMS[ti].units;
+    for (let k = 0; k < settings.units; k++) {
+      let [x, y] = spots[k % spots.length];
+      x += Math.trunc(k / spots.length) * 6;
+      // a free spot near the spawn point: first a little lower (tunnels), then higher
+      let ok = bodyFree(w, x, y);
+      for (let d = 1; !ok && d <= 24; d++) if (bodyFree(w, x, y + d)) { y += d; ok = true; }
+      while (!ok && y > 3) { y--; ok = bodyFree(w, x, y); }
+      const name = String(names[k] || R.TEAMS[ti].units[k] || 'VÄTTE').toUpperCase().slice(0, 10);
+      w.units.push({ id: id++, team: ti, name, X: x * FP, Y: y * FP, VX: 0, VY: 0, air: true, hp: R.HP, alive: true, face: ti === 0 ? 1 : -1, walk: 0 });
     }
   });
   return w;
@@ -126,9 +153,11 @@ function fire(w, u, shot) {
 
 function explode(w, x, y, wp) {
   const r = wp.radius;
-  carve(w.map, x, y, r, r, false);
+  blast(w.map, x, y, r);
   w.mapVersion++;
   w.events.push({ t: 'boom', x, y, r, kind: wp.id });
+  for (const l of w.map.lamps) if (l.on && (l.x - x) * (l.x - x) + (l.y - y) * (l.y - y) <= (r + 6) * (r + 6)) { l.on = 0; w.events.push({ t: 'lamp', x: l.x, y: l.y }); }
+  wakeTroll(w, x, y, r);
   const reach = r + 12;
   for (const u of w.units) {
     if (!u.alive) continue;
@@ -145,9 +174,25 @@ function explode(w, x, y, wp) {
   for (const p of w.projectiles) if (p.rest) { const dx = px(p.X) - x, dy = px(p.Y) - y; if (dx * dx + dy * dy < reach * reach) { p.rest = false; p.VY = -1500; } }
 }
 
+// Trollskogen at night: a blast on the troll wakes it, and it throws a stone at
+// whoever's turn it is. Once a turn, aimed roughly, as trolls do.
+function wakeTroll(w, x, y, r) {
+  const tr = w.map.troll;
+  if (!tr || !w.settings.night || w.trollTurn === w.turn.number) return;
+  const dx0 = x - tr.x, dy0 = y - tr.y;
+  if (dx0 * dx0 + dy0 * dy0 > (tr.r + r) * (tr.r + r)) return;
+  const target = w.units.find((u) => u.id === w.turn.unit && u.alive) || w.units.find((u) => u.alive);
+  if (!target) return;
+  w.trollTurn = w.turn.number;
+  const sx = tr.x, sy = tr.y - tr.r - 6, dx = px(target.X) - sx, dir = dx < 0 ? -1 : 1;
+  const v = Math.max(2048, Math.min(10 * FP, isqrt(Math.abs(dx) * FP * R.GRAVITY)));
+  w.projectiles.push({ kind: 'troll', X: sx * FP, Y: sy * FP, VX: Math.trunc((dir * v * 724) / 1024), VY: -Math.trunc((v * 724) / 1024), owner: -1, age: 0, fuse: -1, rest: false });
+  w.events.push({ t: 'troll', x: sx, y: sy });
+}
+
 function stepProjectile(w, p) {
   p.age++;
-  const wp = R.WEAPONS.find((o) => o.id === p.kind);
+  const wp = p.kind === 'troll' ? R.TROLLSTONE : R.WEAPONS.find((o) => o.id === p.kind);
   if (p.fuse > 0 && --p.fuse === 0) { open(w, p, wp); return false; }
   if (p.rest) {
     if (!solidAt(w, px(p.X), px(p.Y) + 1)) p.rest = false; else return true;
@@ -160,7 +205,7 @@ function stepProjectile(w, p) {
     const nx = p.X + sx, ny = p.Y + sy, ix = px(nx), iy = px(ny);
     if (iy > w.water) { w.events.push({ t: 'splash', x: ix, y: w.water }); return false; }
     if (ix < -60 || ix > W + 60 || iy > H + 20) return false;
-    if (p.kind === 'gurra') {
+    if (p.kind === 'gurra' || p.kind === 'troll') {
       const hitUnit = w.units.some((u) => u.alive && !(u.id === p.owner && p.age < 12) && Math.abs(px(u.X) - ix) <= 3 && iy >= px(u.Y) - 10 && iy <= px(u.Y));
       if (solidAt(w, ix, iy) || hitUnit) { explode(w, ix, iy, wp); return false; }
     } else if (solidAt(w, ix, iy)) {
@@ -202,7 +247,7 @@ function nextTurn(w) {
   }
   for (const c of w.clouds) c.turns--;
   w.clouds = w.clouds.filter((c) => c.turns > 0);
-  if (t.round >= R.FLOOD_ROUND && t.phase !== 'start') { w.water -= R.FLOOD_PX; w.events.push({ t: 'flood', water: w.water }); }
+  if (w.settings.flood && t.round >= w.settings.flood && t.phase !== 'start') { w.water -= R.FLOOD_PX; w.events.push({ t: 'flood', water: w.water }); }
   const left = w.teams.filter((tm) => aliveIn(w, tm.index).length > 0);
   if (left.length <= 1 && t.phase !== 'start') return gameOver(w, left);
   if (!aliveIn(w, team).length) { t.team = team; return nextTurn(w); }
@@ -210,8 +255,8 @@ function nextTurn(w) {
   const tm = w.teams[team], own = w.units.filter((u) => u.team === team);
   let pick = null;
   for (let k = 0; k < own.length; k++) { const u = own[(tm.next + k) % own.length]; if (u.alive) { pick = u; tm.next = (own.indexOf(u) + 1) % own.length; break; } }
-  t.team = team; t.unit = pick.id; t.phase = 'aim'; t.timer = R.TURN_TICKS; t.retreat = 0; t.quiet = 0; t.number++;
-  t.weapon = tm.ammo[t.weapon] === 0 ? 0 : t.weapon;
+  t.team = team; t.unit = pick.id; t.phase = 'aim'; t.timer = w.settings.turn * R.TPS; t.retreat = 0; t.quiet = 0; t.number++;
+  if (tm.ammo[t.weapon] === 0) t.weapon = Math.max(0, tm.ammo.findIndex((a) => a !== 0));
   t.aim = { angle: pick.face > 0 ? 45 : 135, power: 60 };
   w.wind = randInt(w, R.WIND_MAX * 2 + 1) - R.WIND_MAX;
   w.events.push({ t: 'turn', team, unit: pick.id, wind: w.wind, round: t.round });
@@ -284,6 +329,7 @@ export function fingerprint(w) {
   for (const u of w.units) { mix(u.X); mix(u.Y); mix(u.VX); mix(u.VY); mix(u.hp); mix(u.alive ? 1 : 0); }
   for (const p of w.projectiles) { mix(p.X); mix(p.Y); mix(p.VX); mix(p.VY); mix(p.fuse); }
   for (const c of w.clouds) { mix(c.X); mix(c.turns); }
+  for (const l of w.map.lamps) mix(l.on);
   const s = w.map.solid;
   for (let i = 0; i < s.length; i += 7) mix(s[i] * (i + 1));
   mix(w.turn.team + 5); mix(w.turn.unit + 5); mix(w.turn.timer); mix(w.turn.round);
