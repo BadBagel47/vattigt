@@ -330,6 +330,43 @@ export function createRenderer(scene, glow) {
       dark: true
     }
   };
+  ART.boras = {
+    background() {
+      for (let y = 0; y < 230; y++) for (let x = 0; x < W; x++) blend(x, y, 0x5a6070, .45);
+      for (let k = 0; k < 16; k++) {
+        const bx = k * 31 - 6 + (k % 3) * 4, bw = 18 + (k * 7) % 12, bh = 34 + (k * 13) % 40, top = 214 - bh;
+        for (let y = top; y < H; y++) for (let x = bx; x < bx + bw; x++) set(x, y, k % 2 ? 0x3a3f4e : 0x444a5a);
+        for (let y = top + 4; y < 206; y += 7) for (let x = bx + 3; x < bx + bw - 3; x += 5) if (hash(x, y) < .45) rect(x, y, 2, 3, lit() || hash(y, x) < .4 ? 0xffd68a : 0x6a7088);
+      }
+      const cx = 252;
+      for (let y = 118; y < H; y++) for (let x = cx - 7; x <= cx + 7; x++) set(x, y, x < cx - 4 ? 0x5a5060 : 0x6a6070);
+      for (let j = 0; j < 22; j++) for (let i = -Math.trunc((22 - j) / 3); i <= Math.trunc((22 - j) / 3); i++) set(cx + i, 96 + j, 0x3a3440);
+      for (let k = 0; k < 40; k++) { const fx = cx - 6 + (k * 7) % 13, fy = 112 - (k * 11) % 26; set(fx, fy, k % 3 ? 0xffa040 : 0xffe38a); if (k % 2) set(fx, fy + 1, 0xd8442a); }
+      rect(cx - 2, 130, 4, 6, 0x2a2430);
+    },
+    color(x, y) {
+      const i = y * W + x, m = world.map, st = m.statue;
+      let c;
+      if (m.mat[i] === 2 && st && x >= st.x - 9 && x <= st.x + 14 && y >= st.top && y <= st.base) c = hash(x, y) < .08 ? 0x5a9a7a : (x - st.x) + (y - st.top) * .2 < 2 ? 0xb08a4a : 0x8a6a3a;
+      else if (m.mat[i] === 2) { c = bay(x, y) > .55 ? 0x8a8c90 : 0x9a9ca0; if (!solid(x, y - 1)) c = 0xb4b6ba; else if (hash(x, y) < .03) c = 0x6a6064; }
+      else if (m.mat[i] === 3) c = y % 2 ? WOODC[1] : WOODC[0];
+      else { const d = depthAt(x, y); c = d < 3 ? (d === 0 && x % 12 < 5 && x < 196 ? 0xd8d8c8 : 0x3a3a42) : (vnoise(x, y, 7) > .55 ? 0x5a4a3a : 0x4a3a30); }
+      if (m.burnt[i]) c = mix(c, 0x241816, .55);
+      c = tn(c);
+      if (y >= world.water) c = mix(c, mood.water[1], .6);
+      return c;
+    },
+    decor() {},
+    after() {
+      rect(28, 98, 11, 11, 0x2a6fd0); text(P, 'P', 33, 101, 0xffffff, 1, 1);
+      for (const lx of [16, 186, 292, 428]) { const gy = surf(lx); if (!anchored(lx)) continue; for (let j = 1; j < 20; j++) wp(lx, gy - j, 0x5a5a62); rect(lx - 1, gy - 21, 4, 2, tn(0x5a5a62)); set(lx + 1, gy - 19, 0xffd68a); }
+      for (let x = 196; x <= 284; x += 4) if (solid(x, 200)) for (let j = 1; j <= 4; j++) wp(x, 200 - j, 0x8a8c90);
+    },
+    lights(L, t) {
+      L.push([252, 106, 34 + (still ? 0 : Math.sin(t * .9) * 4), '255,150,60', .9]);
+      for (const lx of [16, 186, 292, 428]) if (anchored(lx)) L.push([lx + 1, surf(lx) - 19, 20, '255,215,140', .7]);
+    }
+  };
   const art = () => ART[world.map.id] || ART.midsommar;
 
   // Gruvan: everything below ground is dark except where light reaches.
@@ -370,7 +407,8 @@ export function createRenderer(scene, glow) {
     for (let i = 0; i < W * H; i++) if (cv[i] && !world.map.solid[i]) { const x = i % W, y = (i / W) | 0; set(x, y, A.cave ? A.cave(x, y) : tn((x + y * 2) % 7 === 0 ? 0x4a302a : 0x3a2520)); }
     A.decor();
     const s = world.map.solid;
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (s[y * W + x]) set(x, y, A.color(x, y));
+    const mt = world.map.mat;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (s[y * W + x]) set(x, y, mt[y * W + x] === 4 ? tn(!solid(x, y - 1) ? 0xffffff : bay(x, y) > .7 ? 0xc4d3ea : 0xeef4fb) : A.color(x, y));
     A.after();
     T = buf;
   }
@@ -396,7 +434,11 @@ export function createRenderer(scene, glow) {
       } else if (e.t === 'cloud') {
         for (let i = 0; i < 16; i++) { const a = rnd() * 6.283, v = rnd() * 1.2; parts.push({ x: e.x, y: e.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - .3, g: -.005, life: 50, c: 0xb8d45a, kind: 'smoke', r: 2 }); }
       } else if (e.t === 'crate') {
-        floaters.push({ x: e.x, y: e.y - 10, s: e.kind === 'fika' ? '+' + e.n : WEAPONS[e.weapon].name.toUpperCase(), c: e.kind === 'fika' ? 0x9bd45a : 0xffd66b, age: 0 });
+        floaters.push({ x: e.x, y: e.y - 10, s: e.kind === 'fika' ? '+' + e.n : e.kind === 'wrong' ? 'FEL VARA' : WEAPONS[e.weapon].name.toUpperCase(), c: e.kind === 'fika' ? 0x9bd45a : e.kind === 'wrong' ? 0xff6a5a : 0xffd66b, age: 0 });
+      } else if (e.t === 'trade') {
+        floaters.push({ x: e.x, y: e.y - 26, s: 'BYTE: ' + WEAPONS[e.give].name.toUpperCase(), c: 0xffd66b, age: 0 });
+      } else if (e.t === 'sinkhole') {
+        floaters.push({ x: e.x, y: e.y - 10, s: 'SLUKHÅL!', c: 0xff6a5a, age: 0 }); shake = Math.max(shake, 5);
       } else if (e.t === 'ticket') {
         banner = { s: 'ENKEL BILJETT', c: 0x8ad0ff, age: 0 };
         for (let i = 0; i < 12; i++) parts.push({ x: e.x, y: e.y - 6, vx: (rnd() - .5) * 1.5, vy: -rnd() * 1.5, g: -.01, life: 40, c: 0xd8e8ff, kind: 'smoke', r: 1 });
@@ -497,6 +539,12 @@ export function createRenderer(scene, glow) {
         sprite(HORSE, { r: 0xe5533d, w: 0xffffff, b: 0x4fa3ff, g: 0x9bd45a }, x - 4, y - 7 - (still ? 0 : (t >> 1) % 2), p.dir < 0, true);
       } else if (p.kind === 'alg') {
         sprite(MOOSE[still ? 0 : (t >> 1) % 2], { a: 0xd8c8a0, b: 0x6a4430, n: 0x3a2418 }, x - 6, y - 7, p.dir < 0);
+      } else if (p.kind === 'drop') {
+        set(x, y, 0x8ad0ff); if (p.VY > 600) set(x, y - 1, 0xbfe6f4);
+      } else if (p.kind === 'kraft') {
+        rect(x - 2, y - 1, 5, 3, 0xd8382a); set(x - 3, y - 2, 0xd8382a); set(x + 3, y - 2, 0xd8382a);
+      } else if (p.kind === 'sno') {
+        const r = p.roll ? p.size : 2; disc(x, y - r, r, 0xffffff); for (let i = -r + 1; i < r; i++) set(x + i, y, 0xc4d3ea);
       } else if (p.kind === 'jas') {
         rect(x - 1, y - 3, 3, 6, tn(0x6a707c)); set(x, y + 3, 0xffe38a); set(x - 1, y - 4, tn(0x9aa0aa)); set(x + 1, y - 4, tn(0x9aa0aa));
       } else if (p.kind === 'tarta') {
@@ -632,6 +680,11 @@ export function createRenderer(scene, glow) {
       for (let k = 0; k < 6; k++) { const fx = x - 4 + ((k * 3 + (still ? 0 : t)) % 9), fy = y - 9 - ((k * 5 + (still ? 0 : t * 2)) % 7); set(fx, fy, k % 2 ? 0xffa040 : 0xffe38a); }
       lights.push([x, y - 6, 22, '255,160,60', .9]);
     }
+    for (const m of w.mines) {
+      const x = px(m.X), y = px(m.Y), k = still ? 0 : (t >> 2) % 2;
+      rect(x - 2, y - 2, 5, 2, tn(0xd8382a)); set(x - 1, y - 3, tn(0x2a2030)); set(x + 1, y - 3, tn(0x2a2030));
+      set(x - 3, y - 3 - k, tn(0xd8382a)); set(x + 3, y - 3 - (1 - k), tn(0xd8382a)); set(x - 2, y, tn(0xa82a20)); set(x + 2, y, tn(0xa82a20));
+    }
     for (const c of w.crates) {
       const x = px(c.X), y = px(c.Y);
       if (!c.rest) { for (let i = -5; i <= 5; i++) set(x + i, y - 14 + Math.round(i * i / 9), 0xffffff); for (const i of [-5, 0, 5]) for (let j = -12 + Math.round(i * i / 9); j < -6; j++) set(x + i * (1 - (j + 12) / 8), y + j, 0xd8dde8); }
@@ -639,11 +692,17 @@ export function createRenderer(scene, glow) {
       else { rect(x - 3, y - 5, 7, 5, tn(0xd8b06a)); rect(x - 2, y - 7, 5, 1, tn(0x8a6a3a)); for (let i = -3; i <= 3; i += 2) set(x + i, y - 5, tn(0xd8382a)); }
     }
     for (const u of w.units) if (u.alive && !u.away && !inFog(w, u, act)) drawUnit(u, t, act && u.id === act.id, w, view);
+    if (w.knalle) {
+      const k = w.knalle, x = px(k.X), y = px(k.Y);
+      sprite(['..hhhh...', '.hhhhhh..', '..SSSS...', '..SeSe.bb', '..SSSSbbb', '..WWWWbbb', '.ccccccbb', '.cccccccb', '.cccccc..', '..c..c...', '..B..B...'], { h: 0x2a2630, S: 0xf2c9a2, e: 0x2a2030, W: 0xd8d8d0, b: 0x8a5a3a, c: 0x4a6a3a, B: 0x3a2c28 }, x - 4, y - 10, k.dir < 0);
+      text(P, 'KNALLEN', x, y - 24, 0xffd66b, 1, 1);
+    }
     for (const u of w.units) if (u.alive && !u.away && u.wet) { const x = px(u.X), y = px(u.Y) - 15; for (let i = -5; i <= 5; i++) set(x + i, y + Math.round(i * i / 10), i % 2 ? 0x4fa3ff : 0x2a6fd0); for (let j = 1; j < 6; j++) set(x, y + j, 0x3a2c28); }
     drawProjectiles(w, t);
     drawClouds(w, t);
     water(w, t);
-    if (!w.map.roof) ambient(t);
+    if (w.map.rain) for (let i = 0; i < 140; i++) { const x = (hash(i, 61) * W + (still ? 0 : t * 3) + W * 9) % W, y = (hash(i, 62) * H + (still ? 0 : t * 9)) % H; if (!solid(x | 0, y | 0)) { blend(x, y, 0xbcd0e8, .6); blend(x - 1, y - 2, 0xbcd0e8, .4); } }
+    else if (!w.map.roof) ambient(t);
     drawParts();
     if (plane) { const x = plane.x, y = plane.y; rect(x - 8, y, 16, 2, tn(0x8a8f9a)); rect(x - 2, y - 3, 3, 8, tn(0x6a707c)); rect(x - 8, y - 2, 2, 2, tn(0x6a707c)); set(x + 8, y, 0xd8dde8); }
     if (art().dark) {

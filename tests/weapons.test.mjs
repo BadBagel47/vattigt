@@ -108,3 +108,35 @@ test('a crate falls every second round and can be picked up', () => {
     assert.ok(got, 'picked up');
   }
 });
+
+test('Skurhinken: the water runs, washes vättar along and puts out fire', () => {
+  const w = settle(newMatch(41));
+  const enemy = w.units.find((u) => u.team === 1);
+  w.fires.push({ X: enemy.X, Y: enemy.Y, turns: 4 });
+  const hp = enemy.hp, x0 = enemy.X;
+  step(w, { weapon: idx('hink') }); step(w, { fire: { tx: enemy.X >> 10, ty: 10 } });
+  let steam = false;
+  for (let i = 0; i < 300; i++) { step(w); if (w.events.some((e) => e.t === 'steam')) steam = true; }
+  assert.ok(steam, 'the fire went out');
+  assert.equal(w.fires.length, 0);
+  assert.ok(enemy.hp < hp, 'the water hurt (or washed the vätte away)');
+  assert.ok(enemy.X !== x0 || !enemy.alive, 'washed along');
+  assert.ok(w.projectiles.every((p) => p.kind !== 'drop'), 'the water is gone after a while');
+});
+
+test('Kräftskivan leaves crayfish that nip whoever walks by', () => {
+  const { w } = shoot(42, 'kraft', { angle: 70, power: 40 }, 200);
+  assert.equal(w.mines.length, 4);
+  const m = w.mines[0], u = w.units.find((o) => o.alive);
+  const hp = u.hp;
+  u.X = m.X; u.Y = m.Y; u.air = true;
+  for (let i = 0; i < 20; i++) step(w);
+  assert.ok(u.hp <= hp - R.NIP_DAMAGE, 'nipped');
+  assert.ok(w.mines.length < 4, 'a crayfish is used up');
+});
+
+test('Snöbollen rolls and leaves a heap of snow', () => {
+  const { w, ev } = shoot(43, 'sno', { angle: 30, power: 50 }, 600);
+  assert.ok(ev.some((e) => e.t === 'snow' || e.t === 'splash'));
+  if (ev.some((e) => e.t === 'snow')) { let snow = 0; for (let i = 0; i < w.map.mat.length; i++) if (w.map.solid[i] && w.map.mat[i] === 4) snow++; assert.ok(snow > 10, `${snow} snow pixels`); }
+});

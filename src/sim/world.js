@@ -3,7 +3,7 @@
 // (whole numbers only, no Math.random, no Math.sin), so online play can send
 // inputs only (D-011).
 import * as R from './rules.js';
-import { makeMap, blast, isSolid, ROCK } from './terrain.js';
+import { makeMap, blast, isSolid, ROCK, SNOW } from './terrain.js';
 import { sin, cos, isqrt } from './trig.js';
 
 const { FP, W, H } = R;
@@ -26,7 +26,7 @@ export function matchSettings(opts = {}) {
   const clamp = (v, lo, hi, def) => (Number.isInteger(v) && v >= lo && v <= hi ? v : def);
   const weapons = Array.isArray(s.weapons) ? R.WEAPONS.map((w) => w.id).filter((id) => s.weapons.includes(id)) : d.weapons;
   return {
-    map: ['midsommar', 'kobbarna', 'trollskogen', 'gruvan'].includes(s.map) ? s.map : d.map,
+    map: ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras'].includes(s.map) ? s.map : d.map,
     night: !!s.night,
     units: clamp(s.units, 1, R.MAX_UNITS, d.units),
     turn: clamp(s.turn, 10, 120, d.turn),
@@ -47,9 +47,10 @@ export function newMatch(seed, opts = {}) {
   const w = {
     seed: seed >>> 0, rng: seed >>> 0, tick: 0, settings,
     map, water: map.water, wind: 0, trollTurn: -1,
+    knalle: map.knalle ? { X: map.knalle.x * FP, Y: map.knalle.y * FP, VY: 0, dir: 1, traded: [-1, -1] } : null,
     cart: map.cart ? { X: map.cart.x * FP, Y: map.cart.y * FP, VX: 0, VY: 0, air: 1, hit: -1 } : null,
     teams, units: [], projectiles: [], clouds: [], stones: [],
-    spawn: [], crates: [], fires: [],
+    spawn: [], crates: [], fires: [], mines: [],
     turn: { phase: 'start', team: -1, unit: -1, timer: 0, retreat: 0, quiet: 0, round: 0, weapon: 0, aim: { angle: 45, power: 60 }, number: 0 },
     winner: null, events: [], mapVersion: 0
   };
@@ -160,6 +161,10 @@ function fire(w, u, shot) {
   } else if (wp.id === 'halm') {
     w.fires.push({ X: u.X + u.face * 6 * FP, Y: u.Y, turns: R.FIRE_TURNS });
     w.events.push({ t: 'fire-start', x: px(u.X), y: px(u.Y) });
+  } else if (wp.water) {
+    const tx = Number.isInteger(shot.tx) ? Math.max(4, Math.min(W - 5, shot.tx)) : px(u.X) + u.face * 40;
+    for (let k = 0; k < 36; k++) w.projectiles.push({ kind: 'drop', X: (tx + (k % 9) * 2 - 8) * FP, Y: (-6 - Math.trunc(k / 9) * 4 - (w.map.roof ? -w.map.roof - 8 : 0)) * FP, VX: 0, VY: 0, owner: u.id, age: 0, fuse: -1, rest: false, dir: 0, life: 240 });
+    w.events.push({ t: 'pour', x: tx });
   } else if (wp.id === 'jas') {
     const tx = Number.isInteger(shot.tx) ? Math.max(0, Math.min(W - 1, shot.tx)) : px(u.X) + u.face * 60;
     for (let k = 0; k < 5; k++) w.projectiles.push({ kind: 'jas', X: (tx + (k - 2) * 14) * FP, Y: (-10 - k * 4) * FP, VX: 0, VY: 0, owner: u.id, age: 20, fuse: -1, rest: false });
@@ -191,6 +196,7 @@ function explode(w, x, y, wp) {
   w.events.push({ t: 'boom', x, y, r, kind: wp.id });
   for (const l of w.map.lamps) if (l.on && (l.x - x) * (l.x - x) + (l.y - y) * (l.y - y) <= (r + 6) * (r + 6)) { l.on = 0; w.events.push({ t: 'lamp', x: l.x, y: l.y }); }
   wakeTroll(w, x, y, r);
+  w.mines = w.mines.filter((m) => { const dx = px(m.X) - x, dy = px(m.Y) - y; return dx * dx + dy * dy > (r + 3) * (r + 3); });
   const hit = w.crates.filter((c) => { const dx = px(c.X) - x, dy = px(c.Y) - 3 - y; return dx * dx + dy * dy <= (r + 5) * (r + 5); });
   if (hit.length) { w.crates = w.crates.filter((c) => !hit.includes(c)); for (const c of hit) if (c.kind === 'post') explode(w, px(c.X), px(c.Y) - 3, R.CRATE_BOOM); }
   const c = w.cart;
@@ -215,6 +221,122 @@ function explode(w, x, y, wp) {
   for (const p of w.projectiles) if (p.rest) { const dx = px(p.X) - x, dy = px(p.Y) - y; if (dx * dx + dy * dy < reach * reach) { p.rest = false; p.VY = -1500; } }
 }
 
+/* ---------- water, crayfish and snow ---------- */
+function stepDrop(w, p) {
+  if (++p.age > p.life) return false;
+  const x = px(p.X), y = px(p.Y);
+  if (y > w.water || x < 0 || x >= W) return false;
+  if (!solidAt(w, x, y + 1)) {
+    p.VY = Math.min(p.VY + R.GRAVITY, 4 * FP);
+    let ny = p.Y + p.VY;
+    while (px(ny) > y && solidAt(w, x, px(ny))) ny -= FP;
+    p.Y = ny;
+  } else {
+    p.VY = 0;
+    const down = (d) => !solidAt(w, x + d, y) && !solidAt(w, x + d, y + 1) ? 2 : !solidAt(w, x + d, y) ? 1 : 0;
+    const l = down(-1), r = down(1);
+    if (!p.dir || (p.dir === -1 ? l : r) === 0) p.dir = r > l ? 1 : l > r ? -1 : r ? (p.age & 1 ? 1 : -1) : 0;
+    if (p.dir && down(p.dir)) p.X += p.dir * 2 * FP;
+  }
+  for (const f of w.fires) if (Math.abs(px(f.X) - x) < 12 && Math.abs(px(f.Y) - y) < 12) { f.turns = 0; w.events.push({ t: 'steam', x, y }); }
+  w.fires = w.fires.filter((f) => f.turns > 0);
+  for (const u of w.units) {
+    if (!u.alive || u.away || Math.abs(px(u.X) - x) > 3 || y < px(u.Y) - 10 || y > px(u.Y) + 1) continue;
+    if ((u.washed | 0) < R.WASH_MAX) { u.washed = (u.washed | 0) + 1; hurt(w, u, 1); }
+    if (u.alive) { u.VX = (p.dir || 1) * 500; if (!u.air) { u.VY = -250; u.air = true; } }
+    return false;
+  }
+  return true;
+}
+function stepRoll(w, p) {
+  if (++p.age > 420) return snowHeap(w, p);
+  const x = px(p.X), y = px(p.Y);
+  if (y > w.water) { w.events.push({ t: 'splash', x, y: w.water }); return false; }
+  if (!solidAt(w, x, y + 1)) { p.Y += FP; p.speed += 30; return true; }
+  p.acc += p.speed;
+  while (p.acc >= FP) {
+    p.acc -= FP;
+    const cx = px(p.X), cy = px(p.Y), nx = cx + p.dir;
+    let ny = null;
+    for (const dy of [1, 2, 3, 0, -1]) if (!solidAt(w, nx, cy + dy) && !solidAt(w, nx, cy + dy - p.size) && solidAt(w, nx, cy + dy + 1)) { ny = cy + dy; break; }
+    if (ny === null) { if (!solidAt(w, nx, cy) && !solidAt(w, nx, cy - p.size)) ny = cy; else return snowHeap(w, p); }
+    p.speed += ny > cy ? 60 : ny < cy ? -160 : -25;
+    p.X = nx * FP; p.Y = ny * FP; p.travel = (p.travel | 0) + 1;
+    if (p.travel % 9 === 0 && p.size < 9) p.size++;
+    if (cx < 0 || cx >= W) return false;
+  }
+  for (const u of w.units) {
+    if (!u.alive || u.away || p.hits.includes(u.id) || Math.abs(px(u.X) - px(p.X)) > p.size + 2 || Math.abs(px(u.Y) - px(p.Y)) > 10) continue;
+    p.hits.push(u.id); hurt(w, u, 5 + p.size);
+    if (u.alive) { u.VX = p.dir * (2 * FP + p.size * 150); u.VY = -2 * FP; u.air = true; }
+    w.events.push({ t: 'bump', x: px(u.X), y: px(u.Y) });
+  }
+  if (p.speed <= 0) return snowHeap(w, p);
+  return true;
+}
+function snowHeap(w, p) {
+  const cx = px(p.X), cy = px(p.Y) - p.size + 1, r = p.size + 1;
+  for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r - 2; x <= cx + r + 2; x++) {
+    if (x < 0 || x >= W || y < 0 || y >= H) continue;
+    const dx = x - cx, dy = y - cy, i = y * W + x;
+    if (dx * dx * 10 + dy * dy * 16 <= r * r * 14 && !w.map.solid[i] && !w.units.some((u) => u.alive && !u.away && Math.abs(px(u.X) - x) <= 2 && y >= px(u.Y) - 9 && y <= px(u.Y))) { w.map.solid[i] = 1; w.map.mat[i] = SNOW; }
+  }
+  w.mapVersion++;
+  w.events.push({ t: 'snow', x: cx, y: cy });
+  return false;
+}
+function stepMines(w) {
+  for (const m of w.mines) {
+    if (m.arm > 0) m.arm--;
+    const x = px(m.X), y = px(m.Y);
+    if (!solidAt(w, x, y + 1)) m.Y += FP;
+    if (y > w.water || y > H) { m.gone = 1; continue; }
+    if (m.arm) continue;
+    for (const u of w.units) {
+      if (!u.alive || u.away || Math.abs(px(u.X) - x) > 5 || Math.abs(px(u.Y) - y) > 9) continue;
+      m.gone = 1; hurt(w, u, R.NIP_DAMAGE);
+      if (u.alive) { u.VX = (px(u.X) < x ? -1 : 1) * FP; u.VY = -FP; u.air = true; }
+      w.events.push({ t: 'nip', x, y });
+      break;
+    }
+  }
+  w.mines = w.mines.filter((m) => !m.gone);
+}
+
+/* ---------- Knallen: a pedlar on the Borås map who swaps one weapon for another ---------- */
+function stepKnalle(w) {
+  const k = w.knalle;
+  if (!k) return;
+  const x = px(k.X), y = px(k.Y);
+  trade(w, k);
+  if (!solidAt(w, x, y + 1)) { k.VY = Math.min(k.VY + R.GRAVITY, 4 * FP); k.Y += k.VY; if (px(k.Y) > w.water) { w.knalle = null; w.events.push({ t: 'splash', x, y: w.water }); } return; }
+  k.VY = 0;
+  if (w.tick % 4 === 0) {
+    let moved = false;
+    for (let c = 0; c <= 3 && !moved; c++) {
+      const nx = x + k.dir, ny = y - c;
+      if (solidAt(w, nx, ny) || solidAt(w, nx, ny - 8)) continue;
+      let fy = ny; for (let d = 0; d < 6 && !solidAt(w, nx, fy + 1); d++) fy++;
+      if (!solidAt(w, nx, fy + 1) || fy >= w.water - 1 || nx < 4 || nx > W - 5) break;
+      k.X = nx * FP; k.Y = fy * FP; moved = true;
+    }
+    if (!moved) k.dir = -k.dir;
+  }
+}
+function trade(w, k) {
+  const t = w.turn, u = w.units.find((o) => o.id === t.unit);
+  if (!u || !u.alive || (t.phase !== 'aim' && t.phase !== 'retreat') || k.traded[u.team] === t.round) return;
+  if (Math.abs(px(u.X) - px(k.X)) > 6 || Math.abs(px(u.Y) - px(k.Y)) > 10) return;
+  const tm = w.teams[u.team], enabled = R.WEAPONS.map((wp, i) => i).filter((i) => R.WEAPONS[i].ammo >= 0 && w.settings.weapons.includes(R.WEAPONS[i].id));
+  const have = enabled.filter((i) => tm.ammo[i] > 0);
+  if (!enabled.length) return;
+  k.traded[u.team] = t.round;
+  const give = enabled[randInt(w, enabled.length)], take = have.length ? have[randInt(w, have.length)] : -1;
+  if (take >= 0) tm.ammo[take]--;
+  tm.ammo[give]++;
+  w.events.push({ t: 'trade', give, take, x: px(k.X), y: px(k.Y) });
+}
+
 /* ---------- crates ---------- */
 function dropCrate(w) {
   const limited = R.WEAPONS.map((wp, i) => i).filter((i) => R.WEAPONS[i].ammo >= 0 && w.settings.weapons.includes(R.WEAPONS[i].id));
@@ -222,7 +344,8 @@ function dropCrate(w) {
   let x, y;
   if (w.map.roof) { const all = w.map.spawns[0].concat(w.map.spawns[1]); [x, y] = all[randInt(w, all.length)]; y -= 8; }
   else { x = 30 + randInt(w, W - 60); y = -12; }
-  w.crates.push({ X: x * FP, Y: y * FP, VY: 0, rest: false, kind: post ? 'post' : 'fika', weapon: post ? limited[randInt(w, limited.length)] : -1 });
+  const wrong = post && w.map.wrongGoods && randInt(w, 10) < w.map.wrongGoods;
+  w.crates.push({ X: x * FP, Y: y * FP, VY: 0, rest: false, kind: post ? 'post' : 'fika', weapon: post && !wrong ? limited[randInt(w, limited.length)] : -1 });
   w.events.push({ t: 'crate-drop', x });
 }
 function stepCrates(w) {
@@ -239,6 +362,7 @@ function stepCrates(w) {
       if (!u.alive || u.away || c.taken || Math.abs(px(u.X) - x) > 6 || Math.abs(px(u.Y) - px(c.Y)) > 9) continue;
       c.taken = 1;
       if (c.kind === 'fika') { const n = Math.min(R.FIKA_HP, R.HP_MAX - u.hp); u.hp += n; w.events.push({ t: 'crate', kind: 'fika', unit: u.id, n, x, y: px(c.Y) }); }
+      else if (c.weapon < 0) w.events.push({ t: 'crate', kind: 'wrong', unit: u.id, x, y: px(c.Y) });
       else { const tm = w.teams[u.team]; if (tm.ammo[c.weapon] >= 0) tm.ammo[c.weapon]++; w.events.push({ t: 'crate', kind: 'post', unit: u.id, weapon: c.weapon, x, y: px(c.Y) }); }
     }
     if (px(c.Y) > w.water) { c.taken = 1; w.events.push({ t: 'splash', x, y: w.water }); }
@@ -369,6 +493,8 @@ function stepWalker(w, p, wp) {
 function stepProjectile(w, p) {
   p.age++;
   const wp = p.kind === 'troll' ? R.TROLLSTONE : p.kind === 'ball' ? R.MEATBALL : R.WEAPONS.find((o) => o.id === p.kind);
+  if (p.kind === 'drop') return stepDrop(w, p);
+  if (p.kind === 'sno' && p.roll) return stepRoll(w, p);
   if (wp.walker) { p.age--; return stepWalker(w, p, wp); }
   if (p.fuse > 0 && --p.fuse === 0) { open(w, p, wp); return false; }
   if (p.rest) {
@@ -382,6 +508,16 @@ function stepProjectile(w, p) {
     const nx = p.X + sx, ny = p.Y + sy, ix = px(nx), iy = px(ny);
     if (iy > w.water) { w.events.push({ t: 'splash', x: ix, y: w.water }); return false; }
     if (ix < -60 || ix > W + 60 || iy > H + 20) return false;
+    if (p.kind === 'kraft' && solidAt(w, ix, iy)) {
+      for (let k = 0; k < 4; k++) w.mines.push({ X: (px(p.X) + k * 8 - 12) * FP, Y: (px(p.Y) - 2) * FP, arm: R.MINE_ARM });
+      w.events.push({ t: 'kraft', x: px(p.X), y: px(p.Y) });
+      return false;
+    }
+    if (p.kind === 'sno' && solidAt(w, ix, iy)) {
+      p.roll = true; p.size = 2; p.dir = p.VX < 0 ? -1 : 1; p.speed = Math.min(4 * FP, Math.abs(p.VX) + 400); p.acc = 0; p.hits = [];
+      let y = px(p.Y); while (y > 0 && solidAt(w, px(p.X), y)) y--; p.Y = y * FP; p.VX = 0; p.VY = 0;
+      return true;
+    }
     if (p.kind === 'gurra' || p.kind === 'troll' || p.kind === 'bullar' || p.kind === 'ball' || p.kind === 'jas' || p.kind === 'tarta') {
       const hitUnit = w.units.some((u) => u.alive && !(u.id === p.owner && p.age < 12) && Math.abs(px(u.X) - ix) <= 3 && iy >= px(u.Y) - 10 && iy <= px(u.Y));
       if (solidAt(w, ix, iy) || hitUnit) {
@@ -422,6 +558,7 @@ function nextTurn(w) {
     if (aliveIn(w, team).length) break;
   }
   if (team <= t.team || t.team < 0) t.round++;
+  for (const u of w.units) u.washed = 0;
   // back from Borås: wet (an umbrella for two turns), with a little less life, somewhere on the own side
   for (const u of w.units) if (u.wet) u.wet--;
   for (const u of w.units) if (u.alive && u.away && --u.away === 0) {
@@ -440,7 +577,14 @@ function nextTurn(w) {
   for (const f of w.fires) f.turns--;
   w.fires = w.fires.filter((f) => f.turns > 0);
   // a crate every second round
-  if (w.settings.crates && t.phase !== 'start' && team <= t.team && t.round % R.CRATE_EVERY === 1) dropCrate(w);
+  const newRound = t.phase !== 'start' && team <= t.team;
+  if (w.settings.crates && newRound && t.round % (w.map.crateEvery || R.CRATE_EVERY) === (w.map.crateEvery === 1 ? 0 : 1)) dropCrate(w);
+  // Borås: it rains (fire goes out) and sinkholes open between rounds
+  if (w.map.rain && w.fires.length) { for (const f of w.fires) w.events.push({ t: 'steam', x: px(f.X), y: px(f.Y) }); w.fires = []; }
+  if (w.map.sinkholes && newRound && randInt(w, 2) === 0) {
+    const x = 20 + randInt(w, W - 40); let y = 190; while (y < H && !solidAt(w, x, y)) y++;
+    if (y < w.water) { blast(w.map, x, y + 6, 12); w.mapVersion++; w.events.push({ t: 'sinkhole', x, y }); }
+  }
   // the surströmming cloud stings the vättar of the team whose turn begins
   for (const c of w.clouds) for (const u of aliveIn(w, team)) {
     const dx = px(u.X) - px(c.X), dy = px(u.Y) - 5 - px(c.Y);
@@ -498,6 +642,8 @@ export function step(w, input = {}) {
     if (input.fire && t.phase === 'retreat') for (const p of w.projectiles) if (p.kind === 'hast' && p.owner === u.id && p.fuse < 0 && p.age > 6) p.fuse = 1;
   }
   stepCrates(w);
+  stepMines(w);
+  stepKnalle(w);
   for (const b of w.map.boulders) stepBoulder(w, b);
   stepCart(w);
   for (const o of w.units) stepUnit(w, o);
@@ -545,6 +691,8 @@ export function fingerprint(w) {
   for (const c of w.crates) { mix(c.X); mix(c.Y); mix(c.weapon + 2); }
   for (const f of w.fires) { mix(f.X); mix(f.turns); }
   for (const u of w.units) mix(u.away | 0);
+  for (const m of w.mines) { mix(m.X); mix(m.Y); mix(m.arm); }
+  if (w.knalle) { mix(w.knalle.X); mix(w.knalle.Y); mix(w.knalle.dir); }
   const s = w.map.solid;
   for (let i = 0; i < s.length; i += 7) mix(s[i] * (i + 1));
   mix(w.turn.team + 5); mix(w.turn.unit + 5); mix(w.turn.timer); mix(w.turn.round);

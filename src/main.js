@@ -118,7 +118,7 @@ function updatePanels() {
       hint = p ? `${p.name} spelar ${u ? u.name.charAt(0) + u.name.slice(1).toLowerCase() : ''}` : 'Ingen i laget är med just nu.';
     }
   }
-  if (!hint && canAct && wpn.target) hint = wpn.ticket ? 'Tryck på vätten som ska till Borås.' : wpn.build ? 'Tryck där plankan ska ligga.' : wpn.id === 'jas' ? 'Tryck där planet ska fälla laddningarna.' : 'Tryck där korvarna ska falla.';
+  if (!hint && canAct && wpn.target) hint = wpn.ticket ? 'Tryck på vätten som ska till Borås.' : wpn.build ? 'Tryck där plankan ska ligga.' : wpn.water ? 'Tryck där hinken ska tömmas.' : wpn.id === 'jas' ? 'Tryck där planet ska fälla laddningarna.' : 'Tryck där korvarna ska falla.';
   if (!hint && canAct && wpn.aim && shotsFired < 2 && !view.aim) hint = 'Dra i bilden för att sikta. Släpp för att skjuta.';
   if (!hint && horse) hint = 'Tryck på Spräng! när hästen är framme.';
   $('hint').textContent = hint;
@@ -251,7 +251,7 @@ function resetView() { view.aim = null; drag = null; held.left = held.right = fa
 
 /* ---------- settings (eget spel) and saved teams (lagbyggaren) ---------- */
 const NIGHT_MOODS = new Set(['midsommar', 'vinter']);
-const custom = { map: DEFAULT_SETTINGS.map, units: DEFAULT_SETTINGS.units, turn: DEFAULT_SETTINGS.turn, flood: DEFAULT_SETTINGS.flood, weapons: new Set(DEFAULT_SETTINGS.weapons), team0: 0, team1: 1 };
+const custom = { crates: true, map: DEFAULT_SETTINGS.map, units: DEFAULT_SETTINGS.units, turn: DEFAULT_SETTINGS.turn, flood: DEFAULT_SETTINGS.flood, weapons: new Set(DEFAULT_SETTINGS.weapons), team0: 0, team1: 1 };
 const TEAM_KEY = 'vattigt-teams';
 const defaultTeams = () => TEAMS.map((t) => ({ name: t.name, color: t.color, hat: t.hat, units: t.units.map((n) => n.charAt(0) + n.slice(1).toLowerCase()) }));
 let savedTeams = (() => { try { const v = JSON.parse(localStorage.getItem(TEAM_KEY) || 'null'); if (Array.isArray(v) && v.length >= 2) return v; } catch (e) { /* storage off */ } return defaultTeams(); })();
@@ -259,7 +259,7 @@ function saveTeams() { try { localStorage.setItem(TEAM_KEY, JSON.stringify(saved
 function matchOpts() {
   const pick = (i) => savedTeams[i] || savedTeams[0];
   return {
-    settings: { map: custom.map, night: NIGHT_MOODS.has(moodName), units: custom.units, turn: custom.turn, flood: custom.flood, weapons: [...custom.weapons] },
+    settings: { map: custom.map, night: NIGHT_MOODS.has(moodName), units: custom.units, turn: custom.turn, flood: custom.flood, weapons: [...custom.weapons], crates: custom.crates },
     teams: [pick(custom.team0), pick(custom.team1)].map((t) => ({ name: t.name, color: t.color, hat: t.hat, units: t.units }))
   };
 }
@@ -343,6 +343,7 @@ function setupCustom() {
   choiceRow(row('units'), [1, 2, 3, 4, MAX_UNITS], (v) => custom.units === v, (v) => { custom.units = v; rebuildPreview(); });
   choiceRow(row('turn'), [30, 45, 60, 90], (v) => custom.turn === v, (v) => { custom.turn = v; }, (v) => v + ' s');
   choiceRow(row('flood'), [0, 6, 8, 12], (v) => custom.flood === v, (v) => { custom.flood = v; }, (v) => (v ? 'Runda ' + v : 'Av'));
+  choiceRow(row('crates'), [true, false], (v) => custom.crates === v, (v) => { custom.crates = v; }, (v) => (v ? 'På' : 'Av'));
   choiceRow(row('weapons'), WEAPONS.map((w) => w.id), (v) => custom.weapons.has(v), (v) => { if (custom.weapons.has(v) && custom.weapons.size > 1) custom.weapons.delete(v); else custom.weapons.add(v); }, (v) => WEAPONS.find((w) => w.id === v).name);
   for (const [i, sel] of [[0, $('cTeam0')], [1, $('cTeam1')]]) {
     sel.innerHTML = '';
@@ -354,7 +355,7 @@ function setupCustom() {
   customNote();
 }
 function customNote() {
-  const notes = { kobbarna: 'Granit tål mer än jord och bryggan är av trä.', trollskogen: 'Flyttblocken är hårda. Trollet vaknar om det träffas på natten (Midsommarnatt, Vinternatt).', gruvan: 'Mörkt under jord. Lyktorna går att skjuta sönder.', midsommar: '' };
+  const notes = { boras: 'Det regnar alltid, så eld slocknar. Slukhål öppnar sig mellan rundorna, lådorna kommer varje runda men innehåller ibland fel vara, och Knallen byter vapen med den som går fram till honom.', kobbarna: 'Granit tål mer än jord och bryggan är av trä.', trollskogen: 'Flyttblocken är hårda. Trollet vaknar om det träffas på natten (Midsommarnatt, Vinternatt).', gruvan: 'Mörkt under jord. Lyktorna går att skjuta sönder.', midsommar: '' };
   let n = notes[custom.map] || '';
   if (custom.team0 === custom.team1) n += ' Välj två olika lag.';
   $('cNote').textContent = n.trim();
@@ -514,7 +515,7 @@ let netBuilt = false;
 function pushSetup() {
   if (!online) return;
   const o = matchOpts();
-  online.setSetup({ units: o.settings.units, turn: o.settings.turn, flood: o.settings.flood, weapons: o.settings.weapons }, o.teams);
+  online.setSetup({ units: o.settings.units, turn: o.settings.turn, flood: o.settings.flood, weapons: o.settings.weapons, crates: o.settings.crates }, o.teams);
 }
 function netSetup() {
   if (netBuilt) return;
@@ -523,6 +524,7 @@ function netSetup() {
   choiceRow($('netUnits'), [1, 2, 3, 4, MAX_UNITS], (v) => custom.units === v, (v) => { custom.units = v; pushSetup(); });
   choiceRow($('netTurn'), [30, 45, 60, 90], (v) => custom.turn === v, (v) => { custom.turn = v; pushSetup(); }, (v) => v + ' s');
   choiceRow($('netFlood'), [0, 6, 8, 12], (v) => custom.flood === v, (v) => { custom.flood = v; pushSetup(); }, (v) => (v ? 'Runda ' + v : 'Av'));
+  choiceRow($('netCrates'), [true, false], (v) => custom.crates === v, (v) => { custom.crates = v; pushSetup(); }, (v) => (v ? 'På' : 'Av'));
   choiceRow($('netWeapons'), WEAPONS.map((w) => w.id), (v) => custom.weapons.has(v), (v) => { if (custom.weapons.has(v) && custom.weapons.size > 1) custom.weapons.delete(v); else custom.weapons.add(v); pushSetup(); }, (v) => WEAPONS.find((w) => w.id === v).name);
   for (const [i, sel] of [[0, $('netTeam0')], [1, $('netTeam1')]]) {
     sel.innerHTML = '';

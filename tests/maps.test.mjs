@@ -7,7 +7,7 @@ import * as R from '../src/sim/rules.js';
 
 const settle = (w, max = 3000) => { for (let i = 0; i < max && w.turn.phase !== 'aim' && w.turn.phase !== 'over'; i++) step(w); return w; };
 
-for (const map of ['midsommar', 'kobbarna', 'trollskogen', 'gruvan']) {
+for (const map of ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras']) {
   test(`${map}: every vätte lands on the map and the first turn starts`, () => {
     for (const units of [1, 3, 5]) {
       const w = settle(newMatch(99, { settings: { map, units } }));
@@ -91,4 +91,23 @@ test('the mine cart rolls when a blast pushes it', () => {
   w.projectiles.push({ kind: 'gurra', X: (232 - 14) * R.FP, Y: 160 * R.FP, VX: 0, VY: 3000, owner: -1, age: 50, fuse: -1, rest: false });
   for (let i = 0; i < 120; i++) step(w);
   assert.ok(w.cart === null || Math.abs(w.cart.X - x0) > 5 * R.FP, 'the cart moved');
+});
+
+test('Borås: rain puts fire out, sinkholes open, crates every round, Knallen trades', () => {
+  const w = settle(newMatch(51, { settings: { map: 'boras' } }));
+  w.fires.push({ X: 100 * R.FP, Y: 205 * R.FP, turns: 4 });
+  const seen = new Set();
+  for (let i = 0; i < 60000 && w.turn.round < 8 && w.turn.phase !== 'over'; i++) { step(w); for (const e of w.events) seen.add(e.t); }
+  assert.equal(w.fires.length, 0, 'the rain put the fire out');
+  assert.ok(seen.has('sinkhole'), 'a sinkhole opened');
+  assert.ok(seen.has('crate-drop'), 'crates fell');
+  // Knallen: put the active vätte next to him
+  const k = w.knalle;
+  if (k && w.turn.phase === 'aim') {
+    const u = w.units.find((o) => o.id === w.turn.unit);
+    u.X = k.X; u.Y = k.Y; u.air = true;
+    let traded = false;
+    for (let i = 0; i < 30; i++) { step(w); if (w.events.some((e) => e.t === 'trade')) traded = true; }
+    assert.ok(traded, 'Knallen traded');
+  }
 });

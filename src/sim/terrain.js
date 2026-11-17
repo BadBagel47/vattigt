@@ -3,7 +3,7 @@
 import { W, H } from './rules.js';
 import { sin, isqrt } from './trig.js';
 
-export const SOIL = 1, ROCK = 2, WOOD = 3;   // materials: ROCK takes half the crater, WOOD breaks easily
+export const SOIL = 1, ROCK = 2, WOOD = 3, SNOW = 4;   // materials: ROCK takes half the crater, WOOD breaks easily
 
 export function hash32(x, y, seed) {
   let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(seed | 0, 1442695041)) | 0;
@@ -25,7 +25,7 @@ export function noise(x, y, s, seed) {
 }
 
 function blank(id, name, water) {
-  return { id, name, water, solid: new Uint8Array(W * H), mat: new Uint8Array(W * H), cave: new Uint8Array(W * H), burnt: new Uint8Array(W * H), surface: new Int16Array(W), lamps: [], troll: null, roof: 0, spawns: [[], []], boulders: [], cart: null };
+  return { id, name, water, solid: new Uint8Array(W * H), mat: new Uint8Array(W * H), cave: new Uint8Array(W * H), burnt: new Uint8Array(W * H), surface: new Int16Array(W), lamps: [], troll: null, roof: 0, spawns: [[], []], boulders: [], cart: null, rain: 0, sinkholes: 0, crateEvery: 0, wrongGoods: 0, knalle: null, statue: null };
 }
 const fill = (m, x, y, mat) => { if (x >= 0 && x < W && y >= 0 && y < H) { const i = y * W + x; m.solid[i] = 1; m.mat[i] = mat; } };
 function finish(m) {
@@ -131,8 +131,41 @@ function gruvan() {
   return finish(m);
 }
 
-export const MAPS = { midsommar, kobbarna, trollskogen, gruvan };
-export const MAP_NAMES = { midsommar: 'Midsommarängen', kobbarna: 'Kobbarna', trollskogen: 'Trollskogen', gruvan: 'Gruvan' };
+/* ---------- Borås: a parking garage, the river, concrete blocks and a bronze statue; it always rains ---------- */
+function boras(seed) {
+  const m = blank('boras', 'Borås', 246);
+  const ground = (x) => {
+    if (x < 196) return 206;
+    if (x < 204) return 206 + Math.trunc(((x - 196) * 52) / 8);
+    if (x < 276) return 258;
+    if (x < 284) return 258 - Math.trunc(((x - 276) * 48) / 8);
+    return 210 - Math.trunc(((x - 284) * 20) / 196) + Math.trunc(((noise(x, 0, 17, seed) - 512) * 3) / 1024);
+  };
+  for (let x = 0; x < W; x++) for (let y = ground(x); y < H; y++) fill(m, x, y, SOIL);
+  const block = (x1, y1, x2, y2, mat) => { for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) fill(m, x, y, mat); };
+  // parking garage: three decks on pillars at the ends
+  for (const y of [112, 146, 178]) block(26, y, 170, y + 3, ROCK);
+  for (const x of [26, 167]) block(x, 112, x + 3, 205, ROCK);
+  // the bridge over the river, two concrete blocks, the statue on its plinth
+  block(196, 200, 284, 203, ROCK);
+  for (let x = 300; x <= 336; x++) block(x, 170, x, ground(x) - 1, ROCK);
+  for (let x = 440; x <= 472; x++) block(x, 150, x, ground(x) - 1, ROCK);
+  const sx = 386, sb = ground(sx);
+  block(sx - 9, sb - 8, sx + 9, sb - 1, ROCK);
+  block(sx - 4, sb - 40, sx + 4, sb - 9, ROCK);                  // body
+  block(sx - 6, sb - 28, sx + 6, sb - 18, ROCK);                 // coat
+  block(sx - 3, sb - 52, sx + 3, sb - 41, ROCK);                 // head and hat
+  block(sx - 1, sb - 62, sx + 1, sb - 53, ROCK);
+  block(sx + 4, sb - 47, sx + 14, sb - 45, ROCK);                // the long nose
+  m.statue = { x: sx, base: sb, top: sb - 62 };
+  m.rain = 1; m.sinkholes = 1; m.crateEvery = 1; m.wrongGoods = 3;
+  m.knalle = { x: 250, y: 190 };
+  m.spawns = [[[50, 100], [110, 100], [60, 135], [130, 135], [80, 170], [150, 195]], [[300, 150], [350, 195], [420, 195], [455, 130], [318, 160], [295, 195]]];
+  return finish(m);
+}
+
+export const MAPS = { midsommar, kobbarna, trollskogen, gruvan, boras };
+export const MAP_NAMES = { midsommar: 'Midsommarängen', kobbarna: 'Kobbarna', trollskogen: 'Trollskogen', gruvan: 'Gruvan', boras: 'Borås' };
 export function makeMap(seed, id = 'midsommar') { return (MAPS[id] || MAPS.midsommar)(seed); }
 
 export const isSolid = (map, x, y) => x >= 0 && x < W && y >= 0 && y < H && map.solid[y * W + x] === 1;

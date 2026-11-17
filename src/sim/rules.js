@@ -60,6 +60,16 @@ WEAPONS.push(
   // Enkel biljett till Borås: tap a vätte; it is gone for a round and comes back wet, with a little less life.
   { id: 'biljett', name: 'Enkel biljett till Borås', speed: 0, wind: false, radius: 0, damage: 0, force: 0, aim: false, target: true, ticket: true, ammo: 1 }
 );
+WEAPONS.push(
+  // Skurhinken: someone above ground pours out the bucket where you tap. The water runs along the ground,
+  // washes vättar along, puts out fire and takes no terrain.
+  { id: 'hink', name: 'Skurhinken', speed: 0, wind: false, radius: 0, damage: 0, force: 0, aim: false, target: true, water: true, ammo: 1 },
+  // Kräftskivan: lands and leaves four crayfish that stay and nip whoever walks by.
+  { id: 'kraft', name: 'Kräftskivan', speed: 6 * FP, wind: false, radius: 0, damage: 10, force: 0, aim: true, ammo: 1 },
+  // Snöbollen: rolls downhill and grows; knocks over, and becomes a heap of snow where it stops.
+  { id: 'sno', name: 'Snöbollen', speed: 7 * FP, wind: false, radius: 0, damage: 5, force: 0, aim: true, ammo: 2 }
+);
+export const WASH_MAX = 15, NIP_DAMAGE = 10, MINE_ARM = 60;
 export const FIRE_DAMAGE = 10, FIRE_RADIUS = 16, FIRE_TURNS = 4;
 export const TICKET_TURNS = 2, TICKET_DAMAGE = 10;
 // Crates: one every second round; a post parcel with a weapon or a fika basket with life.
@@ -79,5 +89,5 @@ export const TEAMS = [
 
 // Settings for a match (eget spel). Everything that changes the match is here,
 // so every browser in an online room builds the same match from the same settings.
-export const DEFAULT_SETTINGS = { map: 'midsommar', night: true, units: UNITS_PER_TEAM, turn: 45, flood: FLOOD_ROUND, weapons: ['gurra', 'strom', 'dyn', 'bullar', 'korv', 'hast', 'alg', 'jas', 'tarta', 'platt', 'halm', 'biljett'], crates: true };
+export const DEFAULT_SETTINGS = { map: 'midsommar', night: true, units: UNITS_PER_TEAM, turn: 45, flood: FLOOD_ROUND, weapons: ['gurra', 'strom', 'dyn', 'bullar', 'korv', 'hast', 'alg', 'jas', 'tarta', 'platt', 'halm', 'biljett', 'hink', 'kraft', 'sno'], crates: true };
 export const MAX_UNITS = 5;

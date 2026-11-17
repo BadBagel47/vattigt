@@ -80,7 +80,7 @@ input[type=text]:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 .qr{width:112px;height:112px;background:#fff;padding:4px;flex:none}
 .qr svg{width:100%;height:100%;display:block}
 .lobbyside,.lobbymain{display:flex;flex-direction:column;gap:10px;min-width:0}
-#netMoods button,#netMaps button,#netUnits button,#netTurn button,#netFlood button,#netWeapons button{font-size:14px;min-height:40px;padding:4px 8px}
+#netMoods button,#netCrates button,#netMaps button,#netUnits button,#netTurn button,#netFlood button,#netWeapons button{font-size:14px;min-height:40px;padding:4px 8px}
 #ownerBox{display:flex;flex-direction:column;gap:8px;border:2px solid var(--line);padding:8px 10px}
 #ownerBox summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
 #ownerBox[open]{gap:8px}
@@ -175,6 +175,7 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
         <div><span class="label" id="l-cunits">Vättar per lag</span><div class="choices" role="group" aria-labelledby="l-cunits" data-opt="units"></div></div>
         <div><span class="label" id="l-cturn">Turtid</span><div class="choices" role="group" aria-labelledby="l-cturn" data-opt="turn"></div></div>
         <div><span class="label" id="l-cflood">Vårflod</span><div class="choices" role="group" aria-labelledby="l-cflood" data-opt="flood"></div></div>
+        <div><span class="label" id="l-ccrates">Lådor</span><div class="choices" role="group" aria-labelledby="l-ccrates" data-opt="crates"></div></div>
         <div><span class="label" id="l-cweap">Vapen</span><div class="choices" role="group" aria-labelledby="l-cweap" data-opt="weapons"></div></div>
         <p class="small" id="cNote"></p>
       </div>
@@ -248,6 +249,7 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
       <span class="label" id="l-netunits">Vättar per lag</span><div class="choices" role="group" aria-labelledby="l-netunits" id="netUnits"></div>
       <span class="label" id="l-netturn">Turtid</span><div class="choices" role="group" aria-labelledby="l-netturn" id="netTurn"></div>
       <span class="label" id="l-netflood">Vårflod</span><div class="choices" role="group" aria-labelledby="l-netflood" id="netFlood"></div>
+      <span class="label" id="l-netcrates">Lådor</span><div class="choices" role="group" aria-labelledby="l-netcrates" id="netCrates"></div>
       <span class="label" id="l-netweap">Vapen</span><div class="choices" role="group" aria-labelledby="l-netweap" id="netWeapons"></div>
     </details>
     <button type="button" class="primary" id="startNet">Starta matchen</button>

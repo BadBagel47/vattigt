@@ -38,6 +38,9 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 | Plattpaketet | Tryck där plankan ska ligga. En planka av trä hamnar där, lite sned. | – | – | 2 |
 | Halmbocken | Ställs ut där vätten står och brinner i två rundor. En vätte nära elden när det egna lagets tur börjar tar 10 skada. | 10 per tur | – | 1 |
 | Enkel biljett till Borås | Tryck på en vätte. Den är borta en runda och kommer tillbaka blöt, med paraply och 10 liv mindre, någonstans på sitt lags sida. | 10 | – | 1 |
+| Skurhinken | Tryck där hinken ska tömmas. Vattnet rinner längs marken, spolar med sig vättar (högst 15 skada per tur) och släcker eld. Tar ingen terräng. | upp till 15 | – | 1 |
+| Kräftskivan | Dra för att sikta. Där den landar blir fyra kräftor kvar som nyper den som går förbi. | 10 per nyp | – | 1 |
+| Snöbollen | Dra för att sikta. Rullar nedför och växer, välter den som står i vägen och blir en snöhög där den stannar. | 5–14 | – | 2 |
 | Älgtestet | Släpps lös och rusar rakt fram. Den välter vättar den springer på (10 skada och en knuff) och smäller mot första branta väggen, eller efter 8 sekunder. | upp till 60 | medelstor | 1 |
 
 - Skadan är störst mitt i smällen och minskar utåt. Smällen kastar iväg vättar som står nära.
@@ -48,7 +51,7 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 - Varannan runda faller en låda med fallskärm, i Gruvan i en av orterna.
 - **Postpaket:** ett vapen till laget som tar lådan. **Fikakorg:** 25 liv till vätten som tar den, högst 150.
 - En smäll förstör lådor i närheten; ett postpaket smäller då självt (upp till 20 skada).
-- Lådor går att stänga av i koden (inställningen finns ännu inte på skärmen).
+- Lådor går att stänga av i eget spel och online.
 
 ## Bara i Borås
 
@@ -64,8 +67,9 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 - **Midsommarängen:** jord, två bon under jord.
 - **Kobbarna:** granitkobbar med mycket vatten emellan, en brygga och sjöbodens golv av trä.
 - **Trollskogen:** jord med hårda flyttblock och en stenmur. Ett flyttblock som tappar marken under sig faller, och rullar åt det håll där det saknar stöd. Den som står i vägen tar 30 skada. Dimman i sänkorna döljer motståndarlagets vättar medan en tur pågår. Det största blocket är ett troll. På natten (stämningarna Midsommarnatt och Vinternatt) vaknar trollet om en smäll når det, och kastar en sten mot den vars tur det är (skada upp till 40), högst en gång per tur.
+- **Borås:** parkeringshus, ån med en bro, betongklossar och en bronsstaty. Det regnar alltid, så eld slocknar direkt. Mellan rundorna öppnar sig ibland ett slukhål. En låda kommer varje runda, men ett postpaket kan innehålla fel vara. Knallen vandrar omkring och byter: den vars tur det är får ett vapen av honom och lämnar ett annat, en gång per lag och runda.
 - **Gruvan:** orter under jord. Gruvvagnen rullar längs gången när en smäll knuffar den, och den som träffas av den i fart tar 25 skada. Det är mörkt utom där lyktorna och vättarnas pannlampor lyser. En smäll som når en lykta släcker den för resten av matchen.
 
 ## Inte med än
 
-Knallen, Skurhinken, Metspöt, resten av vapnen ur designförslaget och datormotståndare.
+Metspöt, resten av vapnen ur designförslaget och datormotståndare.

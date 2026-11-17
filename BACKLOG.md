@@ -9,24 +9,23 @@ Prioritet: Hög, Medel, Låg.
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
 | D-006 | Låg | Förslag | Bestäm hur typsnitt ska levereras (egen fil i stället för Google Fonts) inför publicering. |
-| D-026 | Låg | Pågår (2026-11-17, session Vättigt, main) | Resten av Borås: banan Borås (regn, parkeringshus, slukhål) och Knallen som byter vapen. |
-| F-027 | Låg | Pågår (2026-11-17, session Vättigt, main) | Vapen som kräver mer: Skurhinken (vatten som rinner), Metspöt (svingrep), Kräftskivan, Snöbollen. |
-| F-028 | Medel | Pågår (2026-11-17, session Vättigt, main) | Inställning på skärmen för lådor av/på i eget spel och online. |
+| F-029 | Låg | Förslag | Metspöt: kasta, haka fast och svinga sig vidare. Kräver ny styrning på telefonen. |
+| F-030 | Medel | Förslag | Datormotståndare, så att man kan spela ensam (övningsmatch mot datorn). |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
 
 Prioriterat för: att det som finns fungerar bra på riktiga telefoner, innan mer läggs till.
 
-- **A** – standardmodell, medelnivå – Små tillägg
-  - F-028 – Lådor av/på i eget spel och online, så att man kan spela utan slump
-- **B** – stark modell, hög nivå – Svårare vapen
-  - F-027 – Skurhinken, Metspöt, Kräftskivan och Snöbollen, så att det finns mer att välja på
-  - Fråga: Metspöt (svingrep) kräver ny styrning på telefonen. Rekommendation: vänta med Metspöt och ta de tre andra först.
-- **C** – standardmodell, medelnivå – Borås som bana
-  - D-026 – Banan Borås med regn, parkeringshus och slukhål, och Knallen
+- **A** – standardmodell, medelnivå – Typsnitt i spelet
+  - D-006 – Lägg typsnitten i spelet i stället för att hämta dem från Google, så att spelarnas webbläsare inte kontaktar Google och spelet laddar snabbare
+- **B** – stark modell, hög nivå – Spela ensam
+  - F-030 – En datormotståndare, så att man kan öva och spela utan vänner
+  - Fråga: Hur svår? Rekommendation: tre nivåer (lätt, lagom, svår) där den lätta missar ofta.
+- **C** – stark modell, hög nivå – Metspöt
+  - F-029 – Svingrep för att ta sig fram, med en egen styrning på telefonen
 
-Användarens provspel kan ge punkter som går före. D-006 (typsnitt) tas inför bredare publicering.
+Användarens provspel kan ge punkter som går före.
 
 Parkerat: D-012 (musik).
 
@@ -35,6 +34,9 @@ Parkerat: D-012 (musik).
 | ID | Klart | Beskrivning |
 |---|---|---|
 | D-001 | 2026-11-13 | Första designförslaget: stil, banor, arsenal, väsen, spelidéer (docs/DESIGN.md). |
+| F-028 | 2026-11-17 | Lådor av/på i eget spel och online. |
+| F-027 | 2026-11-17 | Skurhinken, Kräftskivan och Snöbollen. Metspöt väntar (F-029). |
+| D-026 | 2026-11-17 | Banan Borås (parkeringshus, ån, regn, slukhål, fel vara i lådor, bronsstaty) och Knallen som byter vapen. |
 | F-024 | 2026-11-17 | Lådor varannan runda: postpaket med vapen, fikakorg med liv, fallskärm, förstörs av smällar. |
 | F-025 | 2026-11-17 | Fem till: Jasså 39, Prinsesstårtan, Plattpaketet, Halmbocken och Enkel biljett till Borås. Vapnen väljs nu i en meny (tolv får inte plats i panelen). |
 | D-010 | 2026-11-17 | Borås: stämpeln Bara i Borås med dansbandsslinga och verktyget Enkel biljett till Borås. Banan och Knallen är kvar (D-026). |
