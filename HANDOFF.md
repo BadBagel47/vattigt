@@ -3,7 +3,7 @@
 Rules version: 1.9 (uppdaterad 2026-11-16, inga ändringar behövdes)
 Inventory: 2026-11-13
 Project language: svenska (beslut 2026-11-17), både i spelet och i README. Kod, kodkommentarer och commits på engelska.
-Publishing method: GitHub Pages från main, roten. Spelet: https://badbagel47.github.io/vattigt/ (igång och kontrollerat 2026-11-17). Varje push till main publiceras av sig själv. Mockuper och musikverkstad är fristående HTML-filer under docs/.
+Publishing method: just nu GitHub Pages från main, roten: https://badbagel47.github.io/vattigt/ (igång och kontrollerat 2026-11-17). Ska ersättas av en Cloudflare Worker som också kör rummen (beslut 2026-11-17, F-014). Mockuper och musikverkstad är fristående HTML-filer under docs/.
 
 ## Mål
 
@@ -47,9 +47,11 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - 2026-11-16: Musiken är chiptune som möter svensk folkmusik. Agenten komponerar och producerar allt (ljudet skapas i webbläsaren, inga riktiga instrument); användaren lyssnar och styr.
 - 2026-11-17: Mobil först: spelet byggs för pekskärm och liggande läge; tangentbord och mus kommer sedan.
 - 2026-11-17: Spelet är på svenska.
-- 2026-11-17: Spelet publiceras med GitHub Pages.
+- 2026-11-17: Spelet publiceras med GitHub Pages. (Ersatt samma dag, se nedan.)
 - 2026-11-17: Riktningen i D-011 är godkänd: fysiken räknar exakt likadant i alla webbläsare, från första raden kod, så att online kan läggas till med network-kit.
-- 2026-11-17: Fokus är att komma till något spelbart. Musiken (utkast 1) används tills vidare och tas upp senare.
+- 2026-11-17: Fokus är att komma till något spelbart.
+- 2026-11-17: Vättigt är första spelet på network-kit (före Critical ST8, som fortsätter parallellt). Beslutat i network-kit-sessionen, bekräftat här.
+- 2026-11-17: Vättigt ska ligga på Cloudflare: spelets sidor och rummen kommer från samma Worker, på en adress. Ersätter GitHub Pages, som ligger kvar tills Cloudflare-versionen är på plats och kontrollerad (F-014). Musiken (utkast 1) används tills vidare och tas upp senare.
 - 2026-11-16: Spelet heter **Vättigt** (efter vättarna). Repot heter `vattigt`, utan svenska tecken.
 
 ## Lagar och regler (kort genomgång 2026-11-13)
@@ -69,7 +71,8 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 
 - Klar (2026-11-16): repot heter `vattigt` på GitHub (tidigare `vettigt`; gamla länkar leds vidare av GitHub).
 
-- Klar (2026-11-17): GitHub Pages påslaget av användaren (main, roten). Agenten får inte göra det själv: GitHubs API för Pages är spärrat i agentens miljö.
+- Klar (2026-11-17): GitHub Pages påslaget av användaren (main, roten).
+- Väntar (F-014): användaren lägger in en Cloudflare-nyckel som hemlighet i repot (`CLOUDFLARE_API_TOKEN`, samma sort som network-kits demo), så att spelet kan publiceras till Cloudflare automatiskt. Agenten får inte göra det själv: GitHubs API för Pages är spärrat i agentens miljö.
 
 ## Dokumentationskarta
 
