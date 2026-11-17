@@ -49,6 +49,8 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - 2026-11-17: Lagnamnet Vätternrundan byts mot Vättrundan (D-017), eftersom Vätternrundan är namnet på ett känt cykellopp.
 - 2026-11-17: Vättarna behåller sin storlek ute på banan tills vidare; det stora formatet (16 × 22) används i menyer och lagbyggaren (D-020).
 - 2026-11-17: Nästa vapen i spelet: Fallukorv, Dalahästen, Älgtestet och Köttbullar (F-023).
+- 2026-11-17: Lådor: postpaket med vapen och fikakorg med liv, en låda varannan runda (F-024).
+- 2026-11-17: Borås först med stämpeln "Bara i Borås" och verktyget Enkel biljett till Borås; Knallen senare (D-010).
 - 2026-11-16: Musiken är chiptune som möter svensk folkmusik. Agenten komponerar och producerar allt (ljudet skapas i webbläsaren, inga riktiga instrument); användaren lyssnar och styr.
 - 2026-11-17: Mobil först: spelet byggs för pekskärm och liggande läge; tangentbord och mus kommer sedan.
 - 2026-11-17: Spelet är på svenska.

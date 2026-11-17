@@ -9,9 +9,9 @@ Prioritet: Hög, Medel, Låg.
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
 | D-006 | Låg | Förslag | Bestäm hur typsnitt ska levereras (egen fil i stället för Google Fonts) inför publicering. |
-| D-010 | Medel | Väntar på användaren | Borås i spelet: bana, verktyget Enkel biljett till Borås, stämpeln Bara i Borås och Knallen. Förslag i docs/DESIGN.md; användaren väljer vilka delar som ska med. |
-| F-024 | Medel | Förslag | Lådor som faller ner under matchen (postpaket med vapen, fikakorg med liv). |
-| F-025 | Låg | Förslag | Fler vapen ur designförslaget: Jasså 39, Surströmmingens moln i fler varianter, Skurhinken, Halmbocken, Prinsesstårtan, Metspöt, Plattpaketet. |
+| D-010 | Medel | Pågår (2026-11-17, session Vättigt, main) | Borås i spelet: bana, verktyget Enkel biljett till Borås, stämpeln Bara i Borås och Knallen. Förslag i docs/DESIGN.md; användaren väljer vilka delar som ska med. |
+| F-024 | Medel | Pågår (2026-11-17, session Vättigt, main) | Lådor som faller ner under matchen (postpaket med vapen, fikakorg med liv). |
+| F-025 | Låg | Pågår (2026-11-17, session Vättigt, main) | Fler vapen ur designförslaget: Jasså 39, Surströmmingens moln i fler varianter, Skurhinken, Halmbocken, Prinsesstårtan, Metspöt, Plattpaketet. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
