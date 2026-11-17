@@ -15,9 +15,8 @@ Prioritet: Hög, Medel, Låg.
 | D-008 | Medel | Förslag | Skärmar utanför matchen: startmeny, eget spel med reglage för stämning, lagbyggare. |
 | D-009 | Låg | Förslag | Regelbeskrivning för grundspelet: turordning, skada, vind, lådor, vårflod. |
 | D-010 | Medel | Väntar på användaren | Borås i spelet: bana, verktyget Enkel biljett till Borås, stämpeln Bara i Borås och Knallen. Förslag i docs/DESIGN.md; användaren väljer vilka delar som ska med. |
-| D-011 | Hög | Väntar på användaren | Hur Vättigt använder network-kit: värdstyrda rum, alla räknar samma fysik, lag som places. Förslag i docs/NETWORK.md. Användaren godkänner riktningen. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
-| F-013 | Hög | Förslag | Första spelbara versionen, lokalt på samma skärm: Midsommarängen, två lag med tre vättar, gå och hoppa, sikta och skjuta med Kalle Gurra, Dynamit-Alfred och Surströmming, sprängbar terräng, vatten som dödar, vind, turtid och vinst. Fysiken räknar exakt likadant varje gång, så att online kan läggas till sedan (D-011). Publiceras så att den kan spelas via en länk. |
+| F-013 | Hög | Förslag | Första spelbara versionen, lokalt på samma skärm, mobil först (pekskärm, liggande läge, på svenska): Midsommarängen, två lag med tre vättar, gå och hoppa, sikta och skjuta med Kalle Gurra, Dynamit-Alfred och Surströmming, sprängbar terräng, vatten som dödar, vind, turtid och vinst. Fysiken räknar exakt likadant varje gång, så att online kan läggas till sedan (D-011). Publiceras så att den kan spelas via en länk. |
 
 ## Proposed runs
 
@@ -32,7 +31,7 @@ Prioritet: Hög, Medel, Låg.
 - **D** – standardmodell, medelnivå – Namn
   - D-005 – Kontrollera namnen mot varumärken, så att inget behöver döpas om senare
 
-A behöver svar på plattform, språk och publicering (HANDOFF.md, öppna frågor) samt att D-011 godkänns. D-006 (typsnitt) tas inför publicering.
+A väntar på användarens klartecken. GitHub Pages behöver slås på av användaren för att versionen ska få en länk. D-006 (typsnitt) tas inför publicering.
 
 Parkerat: D-012 (musik).
 
@@ -41,4 +40,5 @@ Parkerat: D-012 (musik).
 | ID | Klart | Beskrivning |
 |---|---|---|
 | D-001 | 2026-11-13 | Första designförslaget: stil, banor, arsenal, väsen, spelidéer (docs/DESIGN.md). |
+| D-011 | 2026-11-17 | Hur Vättigt använder network-kit: riktningen godkänd (alla räknar samma fysik, värdstyrda rum). docs/NETWORK.md. |
 | D-002 | 2026-11-13 | Mockup av spelscen: Midsommarängen med fyra stämningar och sprängbar terräng (docs/mockup/index.html). |

@@ -1,6 +1,6 @@
-# Vättigt och network-kit (förslag, D-011)
+# Vättigt och network-kit (D-011)
 
-Status: förslag. Bygger på network-kit v0.2.3 (`BadBagel47/network-kit`, se dess `docs/INTEGRATION.md`). Inget här är beslutat förrän det står under Decisions i [HANDOFF.md](../HANDOFF.md).
+Status: riktningen godkänd 2026-11-17 (alla räknar samma fysik). Detaljerna nedan är förslag. Bygger på network-kit v0.2.3 (`BadBagel47/network-kit`, se dess `docs/INTEGRATION.md`). Inget här är beslutat förrän det står under Decisions i [HANDOFF.md](../HANDOFF.md).
 
 ## Kort
 

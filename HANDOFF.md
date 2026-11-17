@@ -2,8 +2,8 @@
 
 Rules version: 1.9 (uppdaterad 2026-11-16, inga ändringar behövdes)
 Inventory: 2026-11-13
-Project language: inte bestämt (se Öppna frågor). Designunderlaget skrivs på svenska eftersom namn och ordvitsar är svenska.
-Publishing method: ingen ännu. Repot är publikt och saknar GitHub Pages. Mockupen är en fristående HTML-fil.
+Project language: svenska (beslut 2026-11-17), både i spelet och i README. Kod, kodkommentarer och commits på engelska.
+Publishing method: GitHub Pages från main, roten (godkänt 2026-11-17, väntar på att användaren slår på det, se Engångsåtgärder). Mockuper och musikverkstad är fristående HTML-filer under docs/.
 
 ## Mål
 
@@ -22,11 +22,8 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 
 ## Öppna frågor till användaren
 
-1. Språk i spelet: svenska, eller svenska och engelska?
-2. Mobil först eller dator först?
-3. Ton: mysig och skämtsam, eller mörkare sagoskog?
-4. Vilken bana ska ritas härnäst?
-5. Ska mockuperna publiceras med GitHub Pages?
+1. Ton: mysig och skämtsam, eller mörkare sagoskog?
+2. Vilken bana ska ritas härnäst?
 
 ## Arbetssätt
 
@@ -46,6 +43,10 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - 2026-11-16: Inget brevspel. Spelet spelas bara lokalt (samma skärm) och online.
 - 2026-11-16: Ordvitsar görs på både vett och vätt.
 - 2026-11-16: Musiken är chiptune som möter svensk folkmusik. Agenten komponerar och producerar allt (ljudet skapas i webbläsaren, inga riktiga instrument); användaren lyssnar och styr.
+- 2026-11-17: Mobil först: spelet byggs för pekskärm och liggande läge; tangentbord och mus kommer sedan.
+- 2026-11-17: Spelet är på svenska.
+- 2026-11-17: Spelet publiceras med GitHub Pages.
+- 2026-11-17: Riktningen i D-011 är godkänd: fysiken räknar exakt likadant i alla webbläsare, från första raden kod, så att online kan läggas till med network-kit.
 - 2026-11-17: Fokus är att komma till något spelbart. Musiken (utkast 1) används tills vidare och tas upp senare.
 - 2026-11-16: Spelet heter **Vättigt** (efter vättarna). Repot heter `vattigt`, utan svenska tecken.
 
@@ -60,12 +61,13 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 
 - Agenten kan pusha direkt till main.
 - GitHubs GraphQL-API är inte tillgängligt i agentens miljö; REST fungerar.
+- 2026-11-17: API-anropet som slår på GitHub Pages spärras av agentens miljö.
 
 ## Engångsåtgärder
 
 - Klar (2026-11-16): repot heter `vattigt` på GitHub (tidigare `vettigt`; gamla länkar leds vidare av GitHub).
 
-- GitHub Pages: föreslagen, väntar på svar (öppen fråga 5).
+- Väntar (2026-11-17): användaren slår på GitHub Pages (Settings → Pages → Deploy from a branch, main, / (root)). Agenten får inte göra det själv: GitHubs API för Pages är spärrat i agentens miljö.
 
 ## Dokumentationskarta
 
