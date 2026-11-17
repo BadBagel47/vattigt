@@ -2,7 +2,7 @@
 
 Turbaserat artillerispel med vättar ur svensk folktro. Två lag på samma telefon turas om att gå, hoppa, sikta och skjuta på en bana som går att spränga sönder.
 
-**Spela:** https://badbagel47.github.io/vattigt/ (telefonen liggande; fungerar också på dator). Spel över nätet kommer på Cloudflare, där spelet och rummen ligger på samma adress.
+**Spela:** https://vattigt.l8p1.workers.dev (telefonen liggande; fungerar också på dator). Där finns både spel på en telefon och spel över nätet.
 
 - Regler: [docs/RULES.md](docs/RULES.md)
 - Designförslag: [docs/DESIGN.md](docs/DESIGN.md)

@@ -14,7 +14,6 @@ Prioritet: Hög, Medel, Låg.
 | D-007 | Medel | Förslag | Rita vättarna i större format: lagfärger, luvor, skägg, rörelser (gå, sikta, falla, fika). |
 | D-008 | Medel | Förslag | Skärmar utanför matchen: startmeny, eget spel med reglage för stämning, lagbyggare. |
 | D-010 | Medel | Väntar på användaren | Borås i spelet: bana, verktyget Enkel biljett till Borås, stämpeln Bara i Borås och Knallen. Förslag i docs/DESIGN.md; användaren väljer vilka delar som ska med. |
-| F-014 | Hög | Väntar på användaren | Vättigt på Cloudflare: Worker, rumsinställningar, kopia av network-kit v0.5.0 och publiceringsflöde är klara. Väntar på hemligheten CLOUDFLARE_API_TOKEN i repot; därefter kontroll på Cloudflare och avstängning av GitHub Pages. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
@@ -29,7 +28,7 @@ Prioriterat för: spela med vänner på var sin telefon så snabbt som möjligt.
 - **C** – standardmodell, medelnivå – Namn
   - D-005 – Kontrollera namnen mot varumärken, så att inget behöver döpas om senare
 
-F-014 väntar på Cloudflare-nyckeln (användaren). D-006 (typsnitt) tas inför bredare publicering.
+D-006 (typsnitt) tas inför bredare publicering.
 
 Parkerat: D-012 (musik).
 
@@ -38,6 +37,7 @@ Parkerat: D-012 (musik).
 | ID | Klart | Beskrivning |
 |---|---|---|
 | D-001 | 2026-11-13 | Första designförslaget: stil, banor, arsenal, väsen, spelidéer (docs/DESIGN.md). |
+| F-014 | 2026-11-17 | Vättigt på Cloudflare: spelet och rummen från samma Worker, publiceras från main. Kontrollerat av publiceringsflödet (spelet visas, rum kan skapas); inte provat av användaren. GitHub Pages stängs av användaren. |
 | F-015 | 2026-11-17 | Spel över nätet: rum, länk, QR-kod och rumskod, lobby med lag, samma match hos alla via inmatningslogg, omladdning och värdbyte, integritetstext. Provat mellan två emulerade telefoner mot lokal rumsserver; inte på Cloudflare eller riktiga telefoner. |
 | F-016 | 2026-11-17 | Hoppknappen flyttad till höger sida, så att man styr med vänster hand och hoppar med höger. Vapenknapparna blev kompakta ikoner; valt vapen står i bilden. |
 | F-013 | 2026-11-17 | Första spelbara versionen: match på samma skärm för mobil, Midsommarängen, tre vapen, sprängbar terräng, vind, turtid, vårflod, musik och ljud. Provad i telefonsimulering, inte på riktig telefon. |
