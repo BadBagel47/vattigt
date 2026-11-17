@@ -3,7 +3,7 @@
 Rules version: 1.12 (uppdaterad 2026-11-17: körförslagets format och frågor, Pågår-markeringar)
 Inventory: 2026-11-13
 Project language: svenska (beslut 2026-11-17), både i spelet och i README. Kod, kodkommentarer och commits på engelska.
-Publishing method: Cloudflare Worker från main (arbetsflödet deploy.yml, hemligheten CLOUDFLARE_API_TOKEN, samma nyckel som network-kits demo enligt användarens beslut). Spelet: https://vattigt.l8p1.workers.dev (publicerat 2026-11-17; arbetsflödet kontrollerar att spelet visas och att rum kan skapas). Agentens miljö når inte workers.dev, så sidan kontrolleras genom arbetsflödet. GitHub Pages (https://badbagel47.github.io/vattigt/) ska stängas av; tills dess har den bara spel på en telefon.
+Publishing method: Cloudflare Worker från main (arbetsflödet deploy.yml, hemligheten CLOUDFLARE_API_TOKEN, samma nyckel som network-kits demo enligt användarens beslut). Spelet: https://vattigt.l8p1.workers.dev. Arbetsflödet kontrollerar att spelet visas och att rum kan skapas; agentens miljö når inte workers.dev. GitHub Pages är avstängt (2026-11-17).
 
 ## Mål
 
@@ -13,13 +13,13 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 
 - Spelbar match på samma telefon (F-013) och över nätet (F-015, 2026-11-17). Online: skapa rum, bjud in med länk, QR-kod eller rumskod, välj lag i lobbyn, rumsägaren väljer stämning och startar. Den som skapade rummet kör matchen; de andra följer samma match från dennes inmatning. Laddar man om kommer man tillbaka in; försvinner den som kör matchen tar en annan spelare över efter 15 sekunder.
 - Cloudflare (F-014): en Worker serverar spelet och kör rummen (network-kit v0.5.0, kopia i `vendor/network-kit`, rum i EU) på https://vattigt.l8p1.workers.dev. Publiceras från main av arbetsflödet `deploy.yml`.
-- Provat: spel över nätet mellan två emulerade telefoner mot en lokal rumsserver (samma match hos båda, omladdning, värdbyte). Inte provat på Cloudflare eller riktiga telefoner.
+- Provat: spel över nätet mellan två emulerade telefoner mot en lokal rumsserver (samma match hos båda, omladdning, värdbyte), och av användaren på Cloudflare 2026-11-17: multiplayer fungerar.
 - Känd begränsning: har ett lag ingen ansluten spelare går dess tur ut av sig själv (45 sekunder).
 - Grundreglerna står i [docs/RULES.md](docs/RULES.md) (D-009). Hur onlinedelen fungerar står i [docs/NETWORK.md](docs/NETWORK.md).
 
 ## Nästa steg
 
-- Användaren provar spelet på Cloudflare och stänger sedan av GitHub Pages (beslut 2026-11-17).
+- Användaren provspelar och säger vad som ska ändras.
 - Användaren provspelar online på två telefoner.
 - Därefter: se "Proposed runs" i [BACKLOG.md](BACKLOG.md).
 
@@ -75,7 +75,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 
 - Klar (2026-11-17): GitHub Pages påslaget av användaren (main, roten).
 - Klar (2026-11-17): Cloudflare-nyckeln `CLOUDFLARE_API_TOKEN` inlagd i repot av användaren (samma nyckel som network-kits demo; beslut: en publiceringsnyckel för alla spel).
-- Väntar: användaren stänger av GitHub Pages (Settings → Pages → Source: None / Unpublish site) när spelet fungerar på Cloudflare. Agenten får inte göra det själv: GitHubs API för Pages är spärrat i agentens miljö.
+- Klar (2026-11-17): GitHub Pages avstängt av användaren. Agenten får inte göra det själv: GitHubs API för Pages är spärrat i agentens miljö.
 
 ## Dokumentationskarta
 
