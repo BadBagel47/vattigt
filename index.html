@@ -38,7 +38,7 @@ button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:
 .weapon{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;font-size:13px;line-height:1.1;padding:5px 4px;overflow-wrap:anywhere;hyphens:auto}
 .weapon canvas{width:30px;height:27px;image-rendering:pixelated;flex:none}
 .weapon small{display:block;font-family:var(--body);font-size:11px;opacity:.85}
-#drop{background:var(--team);border-color:var(--team);color:#fff;font-size:14px;overflow-wrap:anywhere}
+#drop{background:var(--team);border-color:var(--team);color:#fff;font-size:18px;min-height:56px}
 .stagewrap{display:flex;align-items:center;justify-content:center;min-width:0}
 #stage{position:relative;touch-action:none;border-left:3px solid var(--team);border-right:3px solid var(--team)}
 #stage canvas{position:absolute;inset:0;width:100%;height:100%}
@@ -89,7 +89,7 @@ button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:
   <div class="pad" id="right">
     <div class="top" role="group" aria-label="Vapen" id="weapons"></div>
     <div class="bottom">
-      <button type="button" id="drop" hidden>Lägg dynamiten</button>
+      <button type="button" id="drop" hidden>Lägg ut</button>
     </div>
   </div>
 </div>
