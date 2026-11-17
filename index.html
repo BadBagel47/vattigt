@@ -33,11 +33,11 @@ button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:
 .pad .top,.pad .bottom{display:flex;flex-direction:column;gap:8px}
 .row{display:flex;gap:8px}
 .row > button{flex:1}
-.big{min-height:64px;font-size:28px}
-#jump{min-height:56px}
-.weapon{display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;font-size:13px;line-height:1.1;padding:5px 4px;overflow-wrap:anywhere;hyphens:auto}
+.big{min-height:88px;font-size:30px}
+#jump{min-height:72px;font-size:20px}
+.weapon{display:flex;align-items:center;justify-content:center;gap:6px;padding:4px;min-height:48px}
 .weapon canvas{width:30px;height:27px;image-rendering:pixelated;flex:none}
-.weapon small{display:block;font-family:var(--body);font-size:11px;opacity:.85}
+.weapon small{font-family:var(--display);font-size:15px;min-width:1ch}
 #drop{background:var(--team);border-color:var(--team);color:#fff;font-size:18px;min-height:56px}
 .stagewrap{display:flex;align-items:center;justify-content:center;min-width:0}
 #stage{position:relative;touch-action:none;border-left:3px solid var(--team);border-right:3px solid var(--team)}
@@ -74,7 +74,6 @@ button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:
         <button type="button" class="big" id="walkL" aria-label="Gå vänster">◀</button>
         <button type="button" class="big" id="walkR" aria-label="Gå höger">▶</button>
       </div>
-      <button type="button" id="jump">Hoppa</button>
     </div>
   </div>
 
@@ -90,6 +89,7 @@ button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:
     <div class="top" role="group" aria-label="Vapen" id="weapons"></div>
     <div class="bottom">
       <button type="button" id="drop" hidden>Lägg ut</button>
+      <button type="button" id="jump">Hoppa</button>
     </div>
   </div>
 </div>

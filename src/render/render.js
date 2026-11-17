@@ -356,6 +356,8 @@ export function createRenderer(scene, glow) {
       const s = Math.ceil(tr.timer / 60);
       text(P, String(s), W / 2, 6, s <= 10 && (t & 4) ? 0xff6a5a : 0xffffff, 2, 1);
       if (u) text(P, possessive(u.name) + ' TUR', W / 2, 24, TEAM_COLORS[u.team].c, 1, 1);
+      const wn = WEAPONS[tr.weapon], am = w.teams[u ? u.team : 0].ammo[tr.weapon];
+      text(P, wn.name.toUpperCase() + (am >= 0 ? ' (' + am + ')' : ''), W / 2, 33, 0xd8dde8, 1, 1);
     } else if (tr.phase === 'retreat') {
       text(P, String(Math.ceil(tr.retreat / 60)), W / 2, 6, 0xffe38a, 2, 1);
       text(P, 'SPRING!', W / 2, 24, 0xffe38a, 1, 1);

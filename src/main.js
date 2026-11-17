@@ -41,9 +41,7 @@ const weaponButtons = WEAPONS.map((wp, i) => {
   const b = document.createElement('button');
   b.type = 'button'; b.className = 'weapon'; b.setAttribute('aria-pressed', 'false');
   const c = document.createElement('canvas'); drawIcon(c, i);
-  const label = document.createElement('span');
-  label.innerHTML = `${wp.name}<small></small>`;
-  b.append(c, label);
+  b.append(c, document.createElement('small'));
   b.addEventListener('click', () => { queued.weapon = i; sound.unlock(); });
   $('weapons').append(b);
   return b;
@@ -57,7 +55,8 @@ function updatePanels() {
     const ammo = world.teams[team].ammo[i];
     b.setAttribute('aria-pressed', String(t.weapon === i));
     b.disabled = !canAct || ammo === 0;
-    b.querySelector('small').textContent = ammo < 0 ? 'obegränsad' : ammo + ' kvar';
+    b.querySelector('small').textContent = ammo < 0 ? '' : String(ammo);
+    b.setAttribute('aria-label', `${WEAPONS[i].name}, ${ammo < 0 ? 'obegränsad' : ammo + ' kvar'}`);
   });
   const dyn = !WEAPONS[t.weapon].aim;
   $('drop').hidden = !dyn;
