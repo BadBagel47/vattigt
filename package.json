@@ -4,6 +4,12 @@
   "type": "module",
   "description": "Vättigt: turbaserat artillerispel med vättar ur svensk folktro",
   "scripts": {
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "smoke": "node vendor/network-kit/smoke.mjs --options rooms-options.js",
+    "dev": "wrangler dev --var ROOM_JURISDICTION:",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.162.0"
   }
 }

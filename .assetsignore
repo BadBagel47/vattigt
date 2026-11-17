@@ -1,0 +1,17 @@
+# Files the Worker must not serve as pages (gitignore syntax).
+.git
+.github
+.wrangler
+node_modules
+worker
+tests
+vendor/network-kit/server
+vendor/network-kit/smoke.mjs
+wrangler.jsonc
+package.json
+package-lock.json
+rooms-options.js
+*.md
+.assetsignore
+.gitignore
+.nojekyll

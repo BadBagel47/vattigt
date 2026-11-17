@@ -1,0 +1,15 @@
+// Vättigt on Cloudflare: one Worker serves the game and runs the rooms.
+// Deployed from main by .github/workflows/deploy.yml (needs CLOUDFLARE_API_TOKEN).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vattigt",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-11-01",
+  // The repository root is the site; .assetsignore keeps everything else out.
+  "assets": { "directory": "." },
+  "durable_objects": { "bindings": [{ "name": "ROOMS", "class_name": "Room" }] },
+  // Free plan: SQLite-backed Durable Objects only.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "vars": { "ROOM_JURISDICTION": "eu" },
+  "observability": { "enabled": false }
+}

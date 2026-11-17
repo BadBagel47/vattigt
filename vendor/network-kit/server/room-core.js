@@ -1,0 +1,1477 @@
+// One room's logic, independent of Cloudflare so it can be tested in Node.
+// The Durable Object glue (worker.js) feeds it sockets, messages and alarms
+// through a small "host" interface:
+//
+//   host.now()                          current time in ms
+//   host.storage.get/put/delete/deleteAll
+//   host.setAlarm(atMs | null)
+//   host.defer(ms, fn) → cancel()       short in-memory timer (keeps the room awake)
+//   host.sockets()                      all accepted sockets of this room
+//   host.getAttachment(ws) / host.setAttachment(ws, value)
+//   host.send(ws, text) / host.close(ws, code, reason)
+//   host.env                            the Worker's environment (for rules)
+//
+// Everything that must survive hibernation lives in `this.state` (stored
+// under the key "room") or in socket attachments. The latest full game state
+// sent by the host (snapshot) is kept in memory and stored at most every
+// `snapshotSaveMs`, with a trailing save so the newest one is never lost when
+// the room goes to sleep.
+//
+// Words used here:
+//   participant  anyone in the room (a "player" record), whatever the role
+//   owner        the creator: keeps the rights and the invitation keys
+//   host         host-run rooms: the participant whose browser runs the game
+
+import {
+  PROTOCOL, CLOSE, CLOSE_UNRESPONSIVE, PART_CHARS, splitIntoParts, PartJoiner,
+} from '../shared/protocol.js';
+import { newPlayerId, newSecret, randomSeed, sha256, sameSecret } from './random.js';
+
+const STATE_VERSION = 2;
+const KNOWN_MAX = 100;
+const USAGE_SAVE_EVERY = 500;
+const USAGE_SAVE_SOON = 50; // unsaved messages that are worth a write before the room sleeps
+
+export const DEFAULT_ROLES = Object.freeze({
+  player: Object.freeze({ seats: 8, plays: true }),
+  viewer: Object.freeze({ seats: 4, plays: false }),
+});
+
+export const DEFAULT_OPTIONS = Object.freeze({
+  mode: 'host', // 'host': a participant's browser runs the game; 'server': rules run here
+  roles: null, // name → { seats, plays, canPause, canHost, sends, needsKey }; null = player + viewer
+  ownerRole: 'player', // the role the room's creator joins in
+  places: {}, // named spots a playing participant can take: { name: capacity } or [names]
+  access: 'open', // default room access: 'open' (code is enough) or 'private' (key needed)
+  lateJoin: 'now', // default: 'now', 'next' (wait for the next safe point) or 'never'
+  lateJoinChoices: ['now', 'next', 'never'], // what an owner may choose for this game
+  pauseBy: 'anyone', // 'anyone' (whose role may pause), 'host' (host and owner) or 'nobody'
+  graceMs: 60_000, // how long a dropped participant keeps the seat
+  autoPauseMs: null, // pause automatically when a playing participant has been away this long
+  takeover: false, // host-run rooms: may another participant take over a lost host's game?
+  takeoverMs: 5_000, // ... after waiting this long for the host
+  hostCheckMs: 3_000, // how long a host has to answer when others report it silent
+  closeAfterHostAwayMs: null, // without takeover: close the room after waiting this long
+  passOwnerAfterMs: null, // ownership passes on when the owner has been away this long
+  ownerLeave: 'close', // owner leaving on purpose: 'close' the room or 'pass' ownership on
+  countdownMs: 3_000,
+  cleanupMs: 24 * 60 * 60_000, // delete a room this long after the last participant left
+  closedKeepMs: 60 * 60_000, // keep a closed room's "closed" note this long
+  snapshotSaveMs: 5_000,
+  maxMessageBytes: 256 * 1024, // larger messages travel in parts (F-036)
+  maxSnapshotBytes: 1024 * 1024,
+  maxDataBytes: 4 * 1024, // the room's shared data (see the "data" command)
+  maxMessagesPerSecond: 40, // per connection (short bursts of twice this are fine)
+  maxMessagesPerDay: 600_000, // per room and UTC day
+  maxActiveMinutesPerDay: 12 * 60, // per room and UTC day: minutes in which messages arrived
+  maxPendingSockets: 8, // connections that have not said hello yet
+  nameMaxLength: 24,
+  rules: null, // server mode: the game's rules (see docs/INTEGRATION.md)
+});
+
+const OWNER_COMMANDS = new Set(['kick', 'renew', 'settings', 'close', 'owner']);
+const HOST_COMMANDS = new Set(['start', 'cancel', 'end', 'admit', 'assign', 'handover', 'data']);
+
+const own = (obj, key) => typeof key === 'string' && Object.hasOwn(obj, key);
+
+function resolveRoles(roles) {
+  const out = {};
+  for (const [name, def] of Object.entries(roles ?? DEFAULT_ROLES)) {
+    if (!/^[a-z][a-z0-9-]{0,23}$/.test(name)) throw new Error(`network-kit: bad role name "${name}"`);
+    const merged = { ...(DEFAULT_ROLES[name] ?? { seats: 1, plays: false }), ...def };
+    const plays = Boolean(merged.plays);
+    out[name] = {
+      seats: Math.max(0, Math.floor(Number(merged.seats) || 0)),
+      plays,
+      canPause: Boolean(merged.canPause ?? plays),
+      canHost: Boolean(merged.canHost ?? plays),
+      sends: Boolean(merged.sends ?? plays),
+      needsKey: Boolean(merged.needsKey ?? !own(DEFAULT_ROLES, name)),
+    };
+  }
+  if (Object.keys(out).length === 0) throw new Error('network-kit: at least one role is needed');
+  return out;
+}
+
+function resolvePlaces(places) {
+  const out = {};
+  const entries = Array.isArray(places) ? places.map((name) => [name, 1]) : Object.entries(places ?? {});
+  for (const [name, capacity] of entries) {
+    if (typeof name !== 'string' || !/^[a-z0-9][a-z0-9-]{0,23}$/i.test(name)) {
+      throw new Error(`network-kit: bad place name "${name}"`);
+    }
+    out[name] = Math.max(1, Math.floor(Number(capacity) || 1));
+  }
+  return out;
+}
+
+export function resolveOptions(options = {}) {
+  const merged = { ...DEFAULT_OPTIONS, ...options };
+  if (!['host', 'server'].includes(merged.mode)) throw new Error(`network-kit: unknown mode "${merged.mode}"`);
+  if (merged.mode === 'server' && !merged.rules) throw new Error('network-kit: server mode needs rules');
+  merged.roles = resolveRoles(options.roles);
+  merged.places = resolvePlaces(options.places);
+  if (!own(merged.roles, merged.ownerRole)) {
+    throw new Error(`network-kit: ownerRole "${merged.ownerRole}" is not one of the roles`);
+  }
+  // The owner runs the game from the start, so the owner's role can host unless the game says no.
+  if (options.roles?.[merged.ownerRole]?.canHost === undefined) merged.roles[merged.ownerRole].canHost = true;
+  // The role someone gets when joining an open room without a key.
+  const open = Object.entries(merged.roles).filter(([, r]) => !r.needsKey);
+  merged.defaultRole = (open.find(([, r]) => r.plays) ?? open[0] ?? [null])[0];
+  return merged;
+}
+
+function cleanName(name, max) {
+  const text = String(name ?? '').replace(/[\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim();
+  return text.slice(0, max) || 'Player';
+}
+
+function byteLength(text) {
+  return typeof text === 'string' ? new TextEncoder().encode(text).length : text.byteLength;
+}
+
+const utcDay = (ms) => new Date(ms).toISOString().slice(0, 10);
+
+export class RoomCore {
+  constructor(host, options) {
+    this.host = host;
+    this.options = resolveOptions(options);
+    this.state = null;
+    this.snapshot = null; // { d, at }
+    this.snapshotLoaded = false;
+    this.snapshotDirty = false;
+    this.snapshotSavedAt = 0;
+    this.cancelSave = null;
+    this.buckets = new WeakMap(); // per-connection rate limit
+    this.joiners = new WeakMap(); // per-connection parts of a large message
+    this.partSeq = 0;
+    this.hostCheck = null; // { id, cancel }: the host has been asked to show it is alive
+    this.lastHostCheck = 0;
+    this.uncounted = 0; // messages counted since the usage was last stored
+    this.cancelUsageSave = null;
+    this.dirty = false;
+    this.alarmAt = null;
+  }
+
+  // ---------------------------------------------------------------- storage
+
+  async load() {
+    this.state = (await this.host.storage.get('room')) ?? null;
+    if (this.state && this.state.v !== STATE_VERSION) {
+      // Stored by another network-kit version: start clean rather than guess.
+      await this.deleteRoom();
+      return;
+    }
+    this.alarmAt = this.state ? this.nextTimerAt() : null;
+  }
+
+  async flush() {
+    if (this.state && !this.state.closed) {
+      this.syncHostPause();
+      // A room nobody is connected to must always be on its way to being deleted.
+      if (this.identifiedSockets().length === 0 && !this.hasTimer('cleanup')) {
+        this.setTimer('cleanup', this.options.cleanupMs);
+      }
+    }
+    if (this.dirty && this.state) {
+      this.uncounted = 0;
+      this.dirty = false;
+      await this.host.storage.put('room', this.state);
+    }
+    const next = this.state ? this.nextTimerAt() : null;
+    if (next !== this.alarmAt) {
+      this.alarmAt = next;
+      await this.host.setAlarm(next);
+    }
+  }
+
+  touch() {
+    this.dirty = true;
+  }
+
+  // The snapshot is stored as text in parts (F-036), so a large game state
+  // never meets the platform's limit on one stored value:
+  //   snapshot      { at, parts }      snapshot:0 … snapshot:N-1  text parts
+  async getSnapshot() {
+    if (!this.snapshotLoaded) {
+      const record = (await this.host.storage.get('snapshot')) ?? null;
+      if (record && 'd' in record) {
+        this.snapshot = record; // stored whole by an earlier 0.x version
+      } else if (record) {
+        const texts = [];
+        for (let i = 0; i < record.parts; i++) texts.push((await this.host.storage.get(`snapshot:${i}`)) ?? '');
+        try {
+          this.snapshot = { d: JSON.parse(texts.join('')), at: record.at };
+        } catch {
+          this.snapshot = null; // an incomplete save: better nothing than a broken state
+        }
+      }
+      this.storedParts = record?.parts ?? 0;
+      this.snapshotLoaded = true;
+    }
+    return this.snapshot;
+  }
+
+  async saveSnapshot() {
+    this.cancelSave?.();
+    this.cancelSave = null;
+    if (!this.snapshotDirty || !this.snapshot || !this.state) return;
+    this.snapshotDirty = false;
+    this.snapshotSavedAt = this.host.now();
+    const text = JSON.stringify(this.snapshot.d) ?? 'null';
+    const parts = Math.max(1, Math.ceil(text.length / PART_CHARS));
+    for (let i = 0; i < parts; i++) {
+      await this.host.storage.put(`snapshot:${i}`, text.slice(i * PART_CHARS, (i + 1) * PART_CHARS));
+    }
+    await this.host.storage.put('snapshot', { at: this.snapshot.at, parts });
+    for (let i = parts; i < (this.storedParts ?? 0); i++) await this.host.storage.delete(`snapshot:${i}`);
+    this.storedParts = parts;
+  }
+
+  async dropSnapshot() {
+    this.cancelSave?.();
+    this.cancelSave = null;
+    if (!this.snapshotLoaded) await this.getSnapshot(); // to know how many parts to remove
+    this.snapshot = null;
+    this.snapshotLoaded = true;
+    this.snapshotDirty = false;
+    await this.host.storage.delete('snapshot');
+    for (let i = 0; i < (this.storedParts ?? 0); i++) await this.host.storage.delete(`snapshot:${i}`);
+    this.storedParts = 0;
+  }
+
+  // ----------------------------------------------------------------- timers
+
+  nextTimerAt() {
+    let next = null;
+    for (const t of this.state.timers) if (next === null || t.at < next) next = t.at;
+    return next;
+  }
+
+  hasTimer(kind) {
+    return this.state.timers.some((t) => t.kind === kind);
+  }
+
+  /** Set a timer; replaces one of the same kind (and the same key, if it has one). */
+  setTimer(kind, delayMs, key = null) {
+    this.clearTimer(kind, key);
+    this.state.timers.push({ kind, key, at: this.host.now() + delayMs });
+    this.touch();
+  }
+
+  /** Clear timers of a kind; `key` null clears every timer of that kind. */
+  clearTimer(kind, key = null) {
+    const before = this.state.timers.length;
+    this.state.timers = this.state.timers.filter((t) => !(t.kind === kind && (key === null || t.key === key)));
+    if (this.state.timers.length !== before) this.touch();
+  }
+
+  async alarm() {
+    if (!this.state) return;
+    const now = this.host.now();
+    const due = this.state.timers.filter((t) => t.at <= now);
+    this.state.timers = this.state.timers.filter((t) => t.at > now);
+    this.alarmAt = null; // the platform cleared it by firing
+    this.touch();
+    if (this.state.closed) {
+      // A closed room only waits to be forgotten.
+      if (due.some((t) => t.kind === 'cleanup')) await this.deleteRoom();
+    } else {
+      for (const timer of due) {
+        if (!this.state || this.state.closed) break; // closed or deleted by an earlier timer
+        await this.runTimer(timer);
+      }
+    }
+    if (this.state) await this.flush();
+  }
+
+  async runTimer(timer) {
+    const s = this.state;
+    switch (timer.kind) {
+      case 'grace': {
+        const p = this.player(timer.key);
+        if (p && p.status === 'away') await this.removePlayer(p, 'gone');
+        break;
+      }
+      case 'autopause': {
+        const p = this.player(timer.key);
+        if (p && p.status === 'away' && !s.paused && this.inGame()) {
+          s.paused = { reason: 'player-away', id: p.id, at: this.host.now() };
+          this.broadcastRoom();
+        }
+        break;
+      }
+      case 'takeover': {
+        const hostPlayer = this.player(s.hostId);
+        if (!hostPlayer || hostPlayer.status === 'away') await this.takeOver();
+        break;
+      }
+      case 'hostaway': {
+        const hostPlayer = this.player(s.hostId);
+        if (!hostPlayer || hostPlayer.status === 'away') await this.closeRoom('host-away');
+        break;
+      }
+      case 'ownerpass': {
+        const owner = this.player(s.ownerId);
+        if (!owner || owner.status === 'away') await this.passOwner();
+        break;
+      }
+      case 'cleanup': {
+        if (this.identifiedSockets().length === 0) await this.deleteRoom();
+        break;
+      }
+      case 'rules': {
+        await this.callRules('onTimer', timer.key);
+        break;
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------ rooms
+
+  async create(settings = {}, code) {
+    if (this.state && !this.state.closed) return { error: 'exists' };
+    const o = this.options;
+    const access = settings?.access === 'private' || settings?.access === 'open' ? settings.access : o.access;
+    const lateJoin = o.lateJoinChoices.includes(settings?.lateJoin) ? settings.lateJoin : o.lateJoin;
+    const now = this.host.now();
+    const keys = {};
+    for (const role of Object.keys(o.roles)) keys[role] = { k: newSecret(), exp: null };
+    this.state = {
+      v: STATE_VERSION,
+      code,
+      createdAt: now,
+      closed: null,
+      settings: { access, lateJoin },
+      ownerKey: newSecret(),
+      ownerId: null,
+      ownerOpen: false, // true: ownership is free for the next eligible participant
+      hostId: null,
+      hostEver: false,
+      hostPending: o.mode === 'host', // the host has not confirmed that it runs the game
+      keys,
+      phase: 'lobby',
+      round: 0,
+      seed: null,
+      startsAt: null,
+      paused: null,
+      players: {},
+      known: {}, // player-key hash → { id, sid, lastN, role, admitted, at }
+      bans: [],
+      timers: [],
+      usage: { day: utcDay(now), n: 0 },
+      data: null, // small shared data set by the host, the owner or the rules; everyone sees it
+      game: null,
+    };
+    await this.dropSnapshot();
+    this.setTimer('cleanup', o.cleanupMs);
+    if (o.mode === 'server') this.state.game = (await this.callRules('init')) ?? null;
+    this.touch();
+    await this.flush();
+    return { code, ownerKey: this.state.ownerKey, keys: this.publicKeys() };
+  }
+
+  info() {
+    if (!this.state) return null;
+    const counts = {};
+    for (const role of Object.keys(this.options.roles)) counts[role] = 0;
+    for (const p of Object.values(this.state.players)) counts[p.role] = (counts[p.role] ?? 0) + 1;
+    return {
+      code: this.state.code,
+      closed: Boolean(this.state.closed),
+      phase: this.currentPhase(),
+      access: this.state.settings.access,
+      participants: counts,
+    };
+  }
+
+  currentPhase() {
+    const s = this.state;
+    if (s.phase === 'countdown' && s.startsAt !== null && this.host.now() >= s.startsAt) s.phase = 'playing';
+    return s.phase;
+  }
+
+  inGame() {
+    const phase = this.currentPhase();
+    return phase === 'countdown' || phase === 'playing';
+  }
+
+  publicKeys() {
+    const out = {};
+    for (const [role, key] of Object.entries(this.state.keys)) out[role] = { ...key };
+    return out;
+  }
+
+  async closeRoom(reason, code = CLOSE.ROOM_CLOSED) {
+    const s = this.state;
+    s.closed = { reason, at: this.host.now() };
+    s.timers = [];
+    this.cancelHostCheck();
+    this.touch();
+    const text = JSON.stringify({ t: 'closed', reason });
+    for (const ws of this.liveSockets()) {
+      this.host.send(ws, text);
+      this.shut(ws, code, reason);
+    }
+    await this.dropSnapshot();
+    this.setTimer('cleanup', this.options.closedKeepMs);
+  }
+
+  async deleteRoom() {
+    for (const ws of this.liveSockets()) this.shut(ws, CLOSE.ROOM_CLOSED, 'expired');
+    this.cancelHostCheck();
+    this.cancelUsageSave?.();
+    this.cancelUsageSave = null;
+    this.cancelSave?.();
+    this.cancelSave = null;
+    this.state = null;
+    this.snapshot = null;
+    this.snapshotLoaded = true;
+    this.snapshotDirty = false;
+    this.dirty = false;
+    this.alarmAt = null;
+    await this.host.storage.deleteAll();
+    await this.host.setAlarm(null);
+  }
+
+  // ---------------------------------------------------------------- sockets
+
+  liveSockets() {
+    return this.host.sockets().filter((ws) => {
+      const att = this.host.getAttachment(ws);
+      return att && !att.closed;
+    });
+  }
+
+  identifiedSockets() {
+    return this.liveSockets().filter((ws) => this.host.getAttachment(ws).id);
+  }
+
+  socketsOf(id) {
+    return this.liveSockets().filter((ws) => this.host.getAttachment(ws).id === id);
+  }
+
+  player(id) {
+    return own(this.state.players, id) ? this.state.players[id] : null;
+  }
+
+  role(p) {
+    return this.options.roles[p.role] ?? { seats: 0, plays: false, canPause: false, canHost: false, sends: false };
+  }
+
+  /** Send a text, in parts if it is large (F-036). */
+  deliver(ws, text) {
+    if (text.length <= PART_CHARS) {
+      this.host.send(ws, text);
+      return;
+    }
+    this.partSeq += 1;
+    for (const part of splitIntoParts(text, this.partSeq)) this.host.send(ws, part);
+  }
+
+  sendTo(id, text) {
+    for (const ws of this.socketsOf(id)) this.deliver(ws, text);
+  }
+
+  sendJson(ws, msg) {
+    this.deliver(ws, JSON.stringify(msg));
+  }
+
+  /** Close a socket from our side and remember that it no longer counts. */
+  shut(ws, code, reason) {
+    this.host.setAttachment(ws, { ...(this.host.getAttachment(ws) || {}), closed: true });
+    this.host.close(ws, code, reason);
+  }
+
+  reject(ws, code, reason) {
+    this.sendJson(ws, { t: 'denied', code, reason });
+    this.shut(ws, code, reason);
+  }
+
+  /** A new WebSocket was accepted; it must send "hello" first. */
+  opened(ws) {
+    this.host.setAttachment(ws, { id: null, n: 0, at: this.host.now() });
+    if (!this.state || this.state.closed) {
+      const closed = this.state?.closed;
+      if (closed) this.sendJson(ws, { t: 'closed', reason: closed.reason });
+      this.shut(ws, closed ? CLOSE.ROOM_CLOSED : CLOSE.NOT_FOUND, closed ? closed.reason : 'not-found');
+      return;
+    }
+    // Connections that never introduce themselves must not pile up.
+    const pending = this.liveSockets()
+      .filter((other) => !this.host.getAttachment(other).id)
+      .sort((a, b) => this.host.getAttachment(a).at - this.host.getAttachment(b).at);
+    while (pending.length > this.options.maxPendingSockets) {
+      this.shut(pending.shift(), CLOSE.BAD_REQUEST, 'too-many-connections');
+    }
+  }
+
+  /** Per-connection rate limit; false when the connection sends too fast. */
+  allow(ws) {
+    const rate = this.options.maxMessagesPerSecond;
+    if (!rate) return true;
+    const now = this.host.now();
+    let bucket = this.buckets.get(ws);
+    if (!bucket) {
+      bucket = { tokens: rate * 2, at: now };
+      this.buckets.set(ws, bucket);
+    }
+    bucket.tokens = Math.min(rate * 2, bucket.tokens + ((now - bucket.at) / 1000) * rate);
+    bucket.at = now;
+    if (bucket.tokens < 1) return false;
+    bucket.tokens -= 1;
+    return true;
+  }
+
+  /**
+   * Messages that are refused or ignored cost the connection extra, so that
+   * sending them in bulk closes that connection instead of using up the room.
+   */
+  penalize(ws, cost) {
+    const bucket = this.buckets.get(ws);
+    if (bucket) bucket.tokens -= cost;
+  }
+
+  /** Count a message against the room's daily budget; false when it is used up. */
+  count() {
+    const s = this.state;
+    const o = this.options;
+    const now = this.host.now();
+    const day = utcDay(now);
+    if (s.usage.day !== day) s.usage = { day, n: 0, minutes: 0, minute: 0 };
+    s.usage.n += 1;
+    const minute = Math.floor(now / 60_000);
+    if (s.usage.minute !== minute) {
+      s.usage.minute = minute;
+      s.usage.minutes = (s.usage.minutes ?? 0) + 1;
+    }
+    // Stored now and then, and once more before a room that goes quiet sleeps.
+    this.uncounted += 1;
+    if (this.uncounted >= USAGE_SAVE_EVERY) {
+      this.touch();
+    } else if (this.uncounted >= USAGE_SAVE_SOON && !this.cancelUsageSave) {
+      this.cancelUsageSave = this.host.defer(10_000, async () => {
+        this.cancelUsageSave = null;
+        if (!this.state || this.uncounted === 0) return;
+        this.touch();
+        await this.flush();
+      });
+    }
+    if (o.maxMessagesPerDay && s.usage.n > o.maxMessagesPerDay) return false;
+    if (o.maxActiveMinutesPerDay && s.usage.minutes > o.maxActiveMinutesPerDay) return false;
+    return true;
+  }
+
+  /** May this participant's game messages reach the host or the rules? */
+  maySend(p) {
+    return p.id === this.state.hostId || (!p.waiting && this.role(p).sends);
+  }
+
+  async message(ws, raw, joined = false) {
+    if (!this.state || this.state.closed) return;
+    const att = this.host.getAttachment(ws);
+    if (!att || att.closed) return;
+    const size = byteLength(raw);
+    let msg = null;
+    if (size <= this.options.maxSnapshotBytes) {
+      try {
+        msg = JSON.parse(typeof raw === 'string' ? raw : new TextDecoder().decode(raw));
+      } catch {
+        msg = null;
+      }
+    }
+    const valid = msg !== null && typeof msg === 'object' && !Array.isArray(msg);
+
+    if (!att.id) {
+      // Not introduced yet: the only thing accepted is a proper hello.
+      if (!valid || msg.t !== 'hello') return this.reject(ws, CLOSE.BAD_REQUEST, 'hello-first');
+      await this.hello(ws, msg);
+      if (this.state) await this.flush();
+      return;
+    }
+
+    // A joined large message was paid for part by part.
+    if (!joined && !this.allow(ws)) {
+      this.reject(ws, CLOSE.RATE, 'too-many-messages');
+      await this.closed(ws, true);
+      return;
+    }
+    if (valid && msg.t === 'part' && !joined) {
+      // Parts of a large message (F-036): joined here, then handled as one message.
+      let joiner = this.joiners.get(ws);
+      if (!joiner) {
+        joiner = new PartJoiner(this.options.maxSnapshotBytes);
+        this.joiners.set(ws, joiner);
+      }
+      let text;
+      try {
+        text = joiner.add(msg);
+      } catch (err) {
+        this.penalize(ws, 5);
+        return this.sendJson(ws, { t: 'err', code: err.message === 'too large' ? 'too-large' : 'bad-part' });
+      }
+      if (text !== null) await this.message(ws, text, true);
+      return;
+    }
+    if (!valid) {
+      this.penalize(ws, 5);
+      return this.sendJson(ws, { t: 'err', code: size > this.options.maxSnapshotBytes ? 'too-large' : 'bad-json' });
+    }
+
+    const player = this.player(att.id);
+    if (!player) return this.reject(ws, CLOSE.KICKED, 'not-in-room');
+
+    // Duplicate protection: a numbered message resent after a glitch counts once.
+    if (msg.n !== undefined) {
+      if (!Number.isSafeInteger(msg.n) || msg.n <= att.n) return;
+      att.n = msg.n;
+      player.lastN = msg.n;
+      this.host.setAttachment(ws, att);
+    }
+
+    // Any sign of life from a host that was asked to answer is an answer.
+    if (this.hostCheck && player.id === this.hostCheck.id) this.cancelHostCheck();
+
+    const isSnap = msg.t === 'snap' && this.options.mode === 'host' && player.id === this.state.hostId;
+    if (msg.t === 'msg' && size > this.options.maxMessageBytes) {
+      this.penalize(ws, 5);
+      this.sendJson(ws, { t: 'err', code: 'too-large', n: msg.n });
+    } else if ((msg.t === 'msg' && this.maySend(player)) || isSnap || msg.t === 'cmd') {
+      if (!this.count()) {
+        await this.closeRoom('room-budget', CLOSE.BUDGET);
+        await this.flush();
+        return;
+      }
+      if (msg.t === 'msg') await this.relay(player, msg);
+      else if (isSnap) await this.storeSnapshot(player, msg);
+      else await this.command(ws, player, msg);
+    } else {
+      // Not something this participant may send: it costs them, not the room.
+      this.penalize(ws, 10);
+    }
+    if (this.state) await this.flush();
+  }
+
+  /** A socket closed (or was closed by us with `force`). */
+  async closed(ws, force = false) {
+    const att = this.host.getAttachment(ws);
+    if (!att || (att.closed && !force)) return;
+    att.closed = true;
+    this.host.setAttachment(ws, att);
+    if (!this.state || this.state.closed || !att.id) return;
+    const p = this.player(att.id);
+    if (p && att.sid === p.sid && att.n > p.lastN) {
+      p.lastN = att.n; // keep duplicate protection across hibernation
+      this.touch();
+    }
+    if (p && this.socketsOf(p.id).length === 0) await this.dropped(p);
+    if (this.state && this.identifiedSockets().length === 0) this.setTimer('cleanup', this.options.cleanupMs);
+    if (this.state) await this.flush();
+  }
+
+  // ------------------------------------------------------------------ hello
+
+  async hello(ws, msg) {
+    const s = this.state;
+    const o = this.options;
+    if (msg.v !== PROTOCOL) return this.reject(ws, CLOSE.VERSION, 'version');
+    if (typeof msg.pk !== 'string' || msg.pk.length < 16 || msg.pk.length > 128) {
+      return this.reject(ws, CLOSE.BAD_REQUEST, 'player-key');
+    }
+    if (typeof msg.sid !== 'string' || msg.sid.length < 1 || msg.sid.length > 64) {
+      return this.reject(ws, CLOSE.BAD_REQUEST, 'session');
+    }
+    const pkh = await sha256(msg.pk);
+    if (s.bans.includes(pkh)) return this.reject(ws, CLOSE.BANNED, 'banned');
+
+    const now = this.host.now();
+    const name = cleanName(msg.name, o.nameMaxLength);
+    const known = own(s.known, pkh) ? s.known[pkh] : null;
+    let player = known ? this.player(known.id) : null;
+
+    // The owner key makes its holder the owner, unless the owner's seat is in
+    // use by another connected identity: then this is a second window of the
+    // owner's own browser, and it joins like anyone else.
+    const ownerSeat = this.player(s.ownerId);
+    const isOwner = sameSecret(msg.owner, s.ownerKey)
+      && (!ownerSeat || ownerSeat === player || ownerSeat.status === 'away');
+    if (isOwner && ownerSeat && !player) {
+      // The owner came back on another device while the old seat was still
+      // held: the seat (id, place, host role) is theirs, under the new identity.
+      delete s.known[ownerSeat.pkh];
+      ownerSeat.pkh = pkh;
+      ownerSeat.sid = null; // this device does not have the game: like a reloaded page
+      player = ownerSeat;
+    }
+    // The owner had another seat already and now claims the room from this one.
+    const oldOwnerSeat = isOwner && ownerSeat && ownerSeat !== player ? ownerSeat : null;
+    const isNew = !player;
+    let reloaded = false;
+
+    if (isNew) {
+      // Which role? The owner key first, then a valid invitation key, then a
+      // seat held before, then (open rooms only) what the client asks for.
+      const standing = known && !known.out && own(o.roles, known.role) ? known : null;
+      let role = null;
+      let admitted = false;
+      if (isOwner) {
+        role = o.ownerRole;
+        admitted = true;
+      } else {
+        let expired = false;
+        for (const [keyRole, key] of Object.entries(s.keys)) {
+          if (!sameSecret(msg.key, key.k)) continue;
+          if (key.exp !== null && key.exp <= now) expired = true;
+          else role = keyRole;
+        }
+        const open = s.settings.access === 'open';
+        const wanted = own(o.roles, msg.role) ? msg.role : null;
+        const asked = open && wanted && !o.roles[wanted].needsKey ? wanted : null;
+        if (!role && standing) role = asked ?? standing.role; // was here before: no key needed
+        if (!role && expired) return this.reject(ws, CLOSE.KEY, 'key-expired');
+        if (!role) {
+          if (!open) {
+            return this.reject(ws, CLOSE.KEY, typeof msg.key === 'string' && msg.key ? 'key-invalid' : 'key-required');
+          }
+          // A role with its own link cannot be picked by name.
+          if (wanted && o.roles[wanted].needsKey) return this.reject(ws, CLOSE.KEY, 'key-required');
+          role = asked ?? o.defaultRole;
+          if (!role) return this.reject(ws, CLOSE.KEY, 'key-required');
+        }
+        // Back in the round they were part of: not a late joiner.
+        admitted = Boolean(standing && standing.role === role && standing.admitted && standing.round === s.round);
+      }
+      const def = o.roles[role];
+      const taken = Object.values(s.players).filter((p) => p.role === role).length;
+      if (!isOwner && taken >= def.seats) return this.reject(ws, CLOSE.FULL, 'full');
+      let waiting = false;
+      if (def.plays && this.inGame() && !admitted) {
+        if (s.settings.lateJoin === 'never') return this.reject(ws, CLOSE.IN_PROGRESS, 'in-progress');
+        waiting = s.settings.lateJoin === 'next';
+      }
+      let id = known?.id;
+      const usedIds = new Set(Object.values(s.known).map((k) => k.id));
+      if (!id || this.player(id)) {
+        do id = newPlayerId();
+        while (this.player(id) || usedIds.has(id));
+      }
+      player = {
+        id, pkh, name, role, waiting, status: 'online', place: null, joinedAt: now, awaySince: null,
+        sid: msg.sid, lastN: known && known.sid === msg.sid ? known.lastN : 0,
+      };
+      s.players[id] = player;
+    } else {
+      // The same participant connected again: the newest connection wins.
+      let lastN = player.lastN;
+      for (const other of this.socketsOf(player.id)) {
+        if (other === ws) continue;
+        const oatt = this.host.getAttachment(other);
+        if (oatt.sid === player.sid && oatt.n > lastN) lastN = oatt.n;
+        this.shut(other, CLOSE.REPLACED, 'replaced');
+      }
+      player.status = 'online';
+      player.awaySince = null;
+      player.name = name;
+      if (player.sid === msg.sid) {
+        player.lastN = lastN;
+      } else {
+        player.sid = msg.sid; // the page was reloaded: its numbering starts again
+        player.lastN = 0;
+        reloaded = true;
+      }
+      this.clearTimer('grace', player.id);
+      this.clearTimer('autopause', player.id);
+    }
+
+    this.remember(player);
+    this.host.setAttachment(ws, { id: player.id, n: player.lastN, sid: player.sid, at: now });
+    this.clearTimer('cleanup');
+    this.touch();
+
+    // Ownership: the owner key wins; otherwise ownership may be free.
+    if (isOwner) {
+      if (oldOwnerSeat && s.hostId === oldOwnerSeat.id) {
+        s.hostId = player.id;
+        s.hostPending = true; // this seat does not have the game yet
+      }
+      s.ownerId = player.id;
+      s.ownerOpen = false;
+    } else if (s.ownerOpen && !this.player(s.ownerId) && this.canLead(player)) {
+      await this.giveOwner(player, true);
+    } else if (player.id === s.ownerId) {
+      // The owner without the current key (it was renewed and may not have arrived).
+      this.sendJson(ws, { t: 'owner', key: s.ownerKey });
+    }
+    if (player.id === s.ownerId) this.clearTimer('ownerpass');
+    if (o.mode === 'server') s.hostId = s.ownerId;
+
+    // Host seat (host-run rooms).
+    let tookOver = false;
+    if (o.mode === 'host') {
+      const hostPlayer = this.player(s.hostId);
+      if (!hostPlayer && player.id === s.ownerId) {
+        s.hostId = player.id; // the owner runs the game until someone else does
+        s.hostEver = true;
+        s.hostPending = true;
+      } else if (o.takeover && s.hostEver && this.inGame() && this.canHost(player) && !this.hasTimer('takeover')
+        && (!hostPlayer || hostPlayer.status === 'away')) {
+        tookOver = true; // a game is running, the host is missing and nobody is waiting to take over
+      } else if (player.id === s.ownerId && hostPlayer && hostPlayer.id !== player.id && !this.inGame()
+        && this.canHost(player)) {
+        // The owner is back between games: the owner's browser runs the next one (B-034).
+        tookOver = true;
+      }
+      if (player.id === s.hostId) {
+        this.clearTimer('takeover');
+        this.clearTimer('hostaway');
+        if (reloaded) s.hostPending = true; // a reloaded page has lost the game it was running
+        if (s.paused?.reason === 'host-away') {
+          if (s.hostPending) s.paused = { ...s.paused, reason: 'host-change' };
+          else s.paused = null;
+        }
+      }
+    }
+    this.liftAutoPause();
+
+    this.sendJson(ws, {
+      t: 'welcome',
+      you: { id: player.id, role: player.role },
+      lastN: player.lastN,
+      room: this.view(player.id),
+    });
+    if (isNew) this.event(player.waiting ? 'waiting' : 'join', player.id);
+    else this.event('back', player.id);
+
+    if (tookOver) {
+      await this.takeOver(player.id);
+    } else {
+      this.broadcastRoom();
+      // Repeated on every hello until the host confirms with host-ready.
+      if (o.mode === 'host' && player.id === s.hostId && s.hostPending) await this.sendHost(player.id);
+    }
+
+    if (oldOwnerSeat) await this.removePlayer(oldOwnerSeat, 'moved');
+
+    if (o.mode === 'server') {
+      if (isNew && !player.waiting) await this.callRules('onJoin', this.rulesPlayer(player));
+      if (!isNew) await this.callRules('onBack', this.rulesPlayer(player));
+    }
+  }
+
+  /** Remember a participant so they can return after the grace period. */
+  remember(p) {
+    const s = this.state;
+    s.known[p.pkh] = {
+      id: p.id, sid: p.sid, lastN: p.lastN, role: p.role, admitted: !p.waiting, round: s.round, at: this.host.now(),
+    };
+    const entries = Object.entries(s.known);
+    if (entries.length > KNOWN_MAX) {
+      entries.sort((a, b) => a[1].at - b[1].at);
+      for (const [key, value] of entries) {
+        if (Object.keys(s.known).length <= KNOWN_MAX) break;
+        if (!this.player(value.id)) delete s.known[key];
+      }
+    }
+  }
+
+  canHost(p) {
+    return Boolean(p) && this.role(p).canHost && !p.waiting && p.status === 'online';
+  }
+
+  /** May this participant receive ownership when it is passed on? */
+  canLead(p) {
+    return this.canHost(p);
+  }
+
+  async dropped(p) {
+    const s = this.state;
+    const o = this.options;
+    if (p.status === 'away') return;
+    p.status = 'away';
+    p.awaySince = this.host.now();
+    this.remember(p);
+    this.setTimer('grace', o.graceMs, p.id);
+    if (o.autoPauseMs !== null && this.role(p).plays && !p.waiting && this.inGame()) {
+      this.setTimer('autopause', o.autoPauseMs, p.id);
+    }
+    if (p.id === s.ownerId && o.passOwnerAfterMs !== null) this.setTimer('ownerpass', o.passOwnerAfterMs);
+    if (o.mode === 'host' && p.id === s.hostId) {
+      await this.saveSnapshot();
+      this.cancelHostCheck();
+      if (this.inGame() && !s.paused) s.paused = { reason: 'host-away', id: p.id, at: this.host.now() };
+      // Only a running game needs someone to continue it; in the lobby and
+      // between rounds the room waits for the host (B-034).
+      if (o.takeover && this.inGame()) this.setTimer('takeover', o.takeoverMs);
+      else if (o.closeAfterHostAwayMs !== null) this.setTimer('hostaway', o.closeAfterHostAwayMs);
+    }
+    this.touch();
+    this.event('drop', p.id);
+    this.broadcastRoom();
+    if (o.mode === 'server') await this.callRules('onDrop', this.rulesPlayer(p));
+  }
+
+  async removePlayer(p, why) {
+    const s = this.state;
+    const o = this.options;
+    this.remember(p);
+    // Only someone whose connection was lost keeps their standing; the others
+    // get the same id if they are let in again, but need a way in like anyone.
+    if (why === 'banned') delete s.known[p.pkh];
+    else if (why !== 'gone') s.known[p.pkh].out = true;
+    delete s.players[p.id];
+    this.clearTimer('grace', p.id);
+    this.clearTimer('autopause', p.id);
+    this.touch();
+    this.event('gone', p.id, { why });
+    if (p.id === s.ownerId) {
+      s.ownerId = null; // the owner is absent; the owner key still brings them back
+      if (o.passOwnerAfterMs !== null && !this.hasTimer('ownerpass')) this.setTimer('ownerpass', o.passOwnerAfterMs);
+    }
+    if (o.mode === 'server') s.hostId = s.ownerId;
+    this.liftAutoPause();
+    if (o.mode === 'host' && p.id === s.hostId) {
+      s.hostId = null;
+      this.clearTimer('takeover');
+      this.cancelHostCheck();
+      const owner = this.player(s.ownerId);
+      if (o.takeover || this.canHost(owner)) {
+        // Without takeover only the owner may pick the game up again.
+        if (!(await this.takeOver(o.takeover ? null : owner.id))) this.broadcastRoom();
+      } else {
+        if (this.inGame() && !s.paused) s.paused = { reason: 'host-away', id: null, at: this.host.now() };
+        if (o.closeAfterHostAwayMs !== null && !this.hasTimer('hostaway')) {
+          this.setTimer('hostaway', o.closeAfterHostAwayMs);
+        }
+        this.broadcastRoom();
+      }
+    } else {
+      this.broadcastRoom();
+    }
+    if (o.mode === 'server') await this.callRules('onGone', this.rulesPlayer(p));
+  }
+
+  /**
+   * Give the host role to another participant: `preferId` if eligible, else
+   * the owner, else whoever has been here longest. Returns false when nobody
+   * can host now (the next eligible participant to connect will).
+   */
+  async takeOver(preferId = null) {
+    const s = this.state;
+    this.clearTimer('takeover');
+    const candidates = Object.values(s.players)
+      .filter((p) => p.id !== s.hostId && this.canHost(p))
+      .sort((a, b) => (b.id === s.ownerId) - (a.id === s.ownerId) || a.joinedAt - b.joinedAt);
+    const next = (preferId && candidates.find((p) => p.id === preferId)) || (preferId ? null : candidates[0]);
+    if (!next) return false;
+    await this.saveSnapshot();
+    s.hostId = next.id;
+    s.hostEver = true;
+    s.hostPending = true;
+    this.clearTimer('hostaway');
+    this.cancelHostCheck();
+    if (this.inGame() && (!s.paused || s.paused.reason === 'host-away')) {
+      s.paused = { reason: 'host-change', id: next.id, at: this.host.now() };
+    } else if (s.paused?.reason === 'host-away') {
+      s.paused = null;
+    }
+    this.touch();
+    this.event('host', next.id);
+    this.broadcastRoom();
+    await this.sendHost(next.id);
+    return true;
+  }
+
+  /**
+   * Tell the host that it runs the game, with the latest state to continue
+   * from, and ask it to show that it is there: a host that was picked while
+   * its phone was asleep must not leave everyone waiting.
+   */
+  async sendHost(id) {
+    const snapshot = await this.getSnapshot();
+    this.sendTo(id, JSON.stringify({ t: 'host', snapshot: snapshot?.d ?? null }));
+    this.startHostCheck(id);
+  }
+
+  /** Ask the host to answer within hostCheckMs. Kept in memory: no storage writes. */
+  startHostCheck(id) {
+    this.cancelHostCheck();
+    this.sendTo(id, JSON.stringify({ t: 'check' }));
+    const cancel = this.host.defer(this.options.hostCheckMs, () => this.hostUnresponsive(id));
+    this.hostCheck = { id, cancel };
+  }
+
+  cancelHostCheck() {
+    this.hostCheck?.cancel();
+    this.hostCheck = null;
+  }
+
+  /** The host did not answer in time: its connection is dead, whatever it looks like. */
+  async hostUnresponsive(id) {
+    this.hostCheck = null;
+    const s = this.state;
+    if (!s || s.closed) return;
+    const p = this.player(id);
+    if (!p || p.id !== s.hostId || p.status !== 'online') return;
+    for (const ws of this.socketsOf(id)) {
+      this.shut(ws, CLOSE_UNRESPONSIVE, 'unresponsive');
+      await this.closed(ws, true);
+    }
+    if (this.state && this.options.takeover) await this.takeOver();
+    if (this.state) await this.flush();
+  }
+
+  /**
+   * Give ownership (and a fresh owner key) to a participant. `auto`: not by
+   * the owner's own choice. Without takeover the game said that nobody else
+   * may continue its state, so the kept state does not pass on with the room.
+   */
+  async giveOwner(p, auto = false) {
+    const s = this.state;
+    if (auto && !this.options.takeover && this.options.mode === 'host') await this.dropSnapshot();
+    s.ownerKey = newSecret();
+    s.ownerId = p.id;
+    s.ownerOpen = false;
+    this.clearTimer('ownerpass');
+    if (this.options.mode === 'server') s.hostId = p.id;
+    this.touch();
+    this.sendTo(p.id, JSON.stringify({ t: 'owner', key: s.ownerKey }));
+    this.event('owner', p.id);
+  }
+
+  /** Pass ownership on: to the host if there is one, else to whoever has been here longest. */
+  async passOwner(exceptId = null) {
+    const s = this.state;
+    const hostPlayer = this.player(s.hostId);
+    const candidates = Object.values(s.players)
+      .filter((p) => p.id !== exceptId && p.id !== s.ownerId && this.canLead(p))
+      .sort((a, b) => a.joinedAt - b.joinedAt);
+    const next = (hostPlayer && candidates.find((p) => p.id === hostPlayer.id)) || candidates[0];
+    if (!next) {
+      s.ownerOpen = true; // the next eligible participant to connect becomes the owner
+      this.touch();
+      return false;
+    }
+    await this.giveOwner(next, true);
+    // A room without a host gets one in its new owner.
+    if (this.options.mode === 'host' && !this.player(s.hostId) && (await this.takeOver(next.id))) return true;
+    this.broadcastRoom();
+    return true;
+  }
+
+  /** A host-run game is never left "running" while nobody runs it. */
+  syncHostPause() {
+    const s = this.state;
+    if (this.options.mode !== 'host') return;
+    const hostPlayer = this.player(s.hostId);
+    const missing = !hostPlayer || hostPlayer.status === 'away';
+    if (this.inGame() && missing && !s.paused) {
+      s.paused = { reason: 'host-away', id: s.hostId, at: this.host.now() };
+      this.touch();
+    }
+  }
+
+  /** Lift an automatic "player away" pause when nobody is away that long any more. */
+  liftAutoPause() {
+    const s = this.state;
+    if (s.paused?.reason !== 'player-away') return;
+    const limit = this.options.autoPauseMs;
+    const now = this.host.now();
+    const still = Object.values(s.players).find(
+      (p) => p.status === 'away' && this.role(p).plays && !p.waiting && limit !== null && p.awaySince + limit <= now,
+    );
+    s.paused = still ? { ...s.paused, id: still.id } : null;
+    this.touch();
+  }
+
+  // ------------------------------------------------------------- broadcasts
+
+  view(forId) {
+    const s = this.state;
+    const o = this.options;
+    const places = {};
+    for (const place of Object.keys(o.places)) places[place] = [];
+    const players = Object.values(s.players)
+      .sort((a, b) => a.joinedAt - b.joinedAt)
+      .map((p) => {
+        if (p.place && own(places, p.place)) places[p.place].push(p.id);
+        return { id: p.id, name: p.name, role: p.role, status: p.status, waiting: p.waiting, place: p.place };
+      });
+    const roles = {};
+    for (const [name, def] of Object.entries(o.roles)) roles[name] = { seats: def.seats, plays: def.plays, sends: def.sends };
+    const room = {
+      code: s.code,
+      mode: o.mode,
+      phase: this.currentPhase(),
+      round: s.round,
+      startsAt: s.startsAt,
+      now: this.host.now(),
+      paused: s.paused,
+      ownerId: s.ownerId,
+      hostId: s.hostId,
+      settings: {
+        ...s.settings,
+        pauseBy: o.pauseBy,
+        takeover: o.takeover,
+        rate: o.maxMessagesPerSecond,
+        maxMessageBytes: o.maxMessageBytes,
+        maxSnapshotBytes: o.maxSnapshotBytes,
+      },
+      roles,
+      places,
+      placeSizes: { ...o.places },
+      data: s.data,
+      players,
+    };
+    // Host-run games start from a shared seed; server-run rules keep theirs secret.
+    if (o.mode === 'host') room.seed = s.seed;
+    if (forId && forId === s.ownerId) room.keys = this.publicKeys();
+    return room;
+  }
+
+  broadcastRoom() {
+    if (!this.state || this.state.closed) return;
+    this.syncHostPause();
+    const common = JSON.stringify({ t: 'room', room: this.view(null) });
+    let ownerText = null;
+    for (const ws of this.identifiedSockets()) {
+      const { id } = this.host.getAttachment(ws);
+      if (id === this.state.ownerId) {
+        ownerText ??= JSON.stringify({ t: 'room', room: this.view(id) });
+        this.deliver(ws, ownerText);
+      } else {
+        this.deliver(ws, common);
+      }
+    }
+  }
+
+  event(e, id, extra = {}) {
+    const text = JSON.stringify({ t: 'ev', e, id, ...extra });
+    for (const ws of this.identifiedSockets()) this.deliver(ws, text);
+  }
+
+  /**
+   * Resolve a `to` value into participant ids. The sender is never included.
+   *   undefined | 'all'      everyone admitted
+   *   [ids]                  exactly these (also participants still waiting)
+   *   { role } | { place }   everyone admitted with that role or in that place
+   */
+  targets(to, fromId) {
+    const online = Object.values(this.state.players).filter((p) => p.status === 'online' && p.id !== fromId);
+    if (Array.isArray(to)) {
+      const ids = new Set(to.slice(0, 64).filter((id) => typeof id === 'string'));
+      return online.filter((p) => ids.has(p.id)).map((p) => p.id);
+    }
+    const admitted = online.filter((p) => !p.waiting);
+    if (to === undefined || to === null || to === 'all') return admitted.map((p) => p.id);
+    if (typeof to === 'object') {
+      const byRole = typeof to.role === 'string';
+      const byPlace = typeof to.place === 'string';
+      if (!byRole && !byPlace) return [];
+      return admitted
+        .filter((p) => (!byRole || p.role === to.role) && (!byPlace || p.place === to.place))
+        .map((p) => p.id);
+    }
+    return [];
+  }
+
+  // ------------------------------------------------------- relay, snapshots
+
+  async relay(player, msg) {
+    const s = this.state;
+    if (this.options.mode === 'server') {
+      await this.callRules('onMessage', this.rulesPlayer(player), msg.d);
+      return;
+    }
+    const text = JSON.stringify({ t: 'msg', from: player.id, d: msg.d });
+    if (player.id === s.hostId) {
+      for (const id of this.targets(msg.to, player.id)) this.sendTo(id, text);
+    } else if (s.hostId) {
+      this.sendTo(s.hostId, text);
+    }
+  }
+
+  async storeSnapshot(player, msg) {
+    const now = this.host.now();
+    // The snapshot is the host's private state: it is only ever sent back to
+    // whoever runs the game. What joiners may see is sent as normal messages.
+    this.snapshot = { d: msg.d, at: now };
+    this.snapshotLoaded = true;
+    this.snapshotDirty = true;
+    // Stored at most every snapshotSaveMs; a short timer makes sure the newest
+    // one is stored even if nothing else arrives before the room sleeps.
+    const wait = this.snapshotSavedAt + this.options.snapshotSaveMs - now;
+    if (wait <= 0) await this.saveSnapshot();
+    else this.cancelSave ??= this.host.defer(wait, () => this.saveSnapshot());
+  }
+
+  // --------------------------------------------------------------- commands
+
+  mayPause(player) {
+    const o = this.options;
+    if (o.pauseBy === 'nobody') return false;
+    if (player.id === this.state.hostId || player.id === this.state.ownerId) return true;
+    return o.pauseBy === 'anyone' && this.role(player).canPause && !player.waiting;
+  }
+
+  async command(ws, player, msg) {
+    const s = this.state;
+    const o = this.options;
+    const c = msg.c;
+    const isOwner = player.id === s.ownerId;
+    const isHost = player.id === s.hostId;
+    const fail = (code) => {
+      this.penalize(ws, 5);
+      this.sendJson(ws, { t: 'err', code, c: typeof c === 'string' ? c.slice(0, 24) : null, n: msg.n });
+    };
+    const before = this.fingerprint();
+    if (OWNER_COMMANDS.has(c) && !isOwner) return fail('owner-only');
+    if (HOST_COMMANDS.has(c) && !isHost && !isOwner) return fail('host-only');
+
+    switch (c) {
+      case 'take': {
+        if (!this.role(player).plays || player.waiting) return fail('not-allowed');
+        if (!own(o.places, msg.place)) return fail('no-such-place');
+        const holders = Object.values(s.players).filter((p) => p.place === msg.place && p.id !== player.id);
+        if (holders.length >= o.places[msg.place]) return fail('place-taken');
+        player.place = msg.place;
+        break;
+      }
+      case 'leave-place':
+        player.place = null;
+        break;
+      case 'assign': {
+        const target = this.player(msg.id);
+        if (!target || !this.role(target).plays) return fail('no-such-participant');
+        if (msg.place !== null && !own(o.places, msg.place)) return fail('no-such-place');
+        if (msg.place !== null) {
+          const holders = Object.values(s.players).filter((p) => p.place === msg.place && p.id !== target.id);
+          if (holders.length >= o.places[msg.place]) {
+            if (o.places[msg.place] !== 1) return fail('place-taken');
+            holders[0].place = null; // a single spot changes hands
+          }
+        }
+        target.place = msg.place;
+        break;
+      }
+      case 'pause': {
+        if (!this.mayPause(player)) return fail('not-allowed');
+        if (s.paused) return;
+        s.paused = { reason: 'player', id: player.id, at: this.host.now() };
+        await this.saveSnapshot();
+        break;
+      }
+      case 'resume': {
+        if (!this.mayPause(player)) return fail('not-allowed');
+        // Waiting for a host cannot be resumed away: only the host can end it.
+        if (!s.paused || s.paused.reason === 'host-away' || s.paused.reason === 'host-change') return;
+        s.paused = null;
+        if (o.mode === 'host' && this.inGame()) {
+          const hostPlayer = this.player(s.hostId);
+          if (!hostPlayer || hostPlayer.status === 'away') {
+            s.paused = { reason: 'host-away', id: s.hostId, at: this.host.now() };
+          }
+        }
+        break;
+      }
+      case 'host-ready': {
+        if (!isHost) return; // a late answer from someone who is no longer the host
+        s.hostPending = false;
+        if (s.paused?.reason === 'host-change' || s.paused?.reason === 'host-away') s.paused = null;
+        break;
+      }
+      case 'host-check': {
+        // Others report that the host has gone silent: ask it to answer.
+        const hostPlayer = this.player(s.hostId);
+        if (o.mode !== 'host' || isHost || player.waiting || !hostPlayer || hostPlayer.status !== 'online') return;
+        if (this.hostCheck || this.host.now() - this.lastHostCheck < o.hostCheckMs * 2) return;
+        this.lastHostCheck = this.host.now(); // reports are acted on at most this often
+        this.startHostCheck(hostPlayer.id);
+        return;
+      }
+      case 'alive':
+        return; // the answer to a check; handled when the message arrived
+      case 'start': {
+        s.round += 1;
+        s.seed = randomSeed();
+        s.phase = o.countdownMs > 0 ? 'countdown' : 'playing';
+        s.startsAt = this.host.now() + o.countdownMs;
+        if (s.paused && s.paused.reason !== 'host-change' && s.paused.reason !== 'host-away') s.paused = null;
+        await this.admitWaiting();
+        if (o.mode === 'server') await this.callRules('onStart');
+        if (o.mode === 'host' && o.takeover && !this.hasTimer('takeover')) {
+          // Started while the host is away: now there is a game to continue.
+          const hostPlayer = this.player(s.hostId);
+          if (!hostPlayer || hostPlayer.status === 'away') this.setTimer('takeover', o.takeoverMs);
+        }
+        break;
+      }
+      case 'cancel': {
+        // Call a countdown off (someone dropped, settings changed): back to the lobby.
+        if (this.currentPhase() !== 'countdown') return fail('not-allowed');
+        s.phase = 'lobby';
+        s.startsAt = null;
+        if (o.mode === 'server') await this.callRules('onCancel');
+        break;
+      }
+      case 'data': {
+        if (byteLength(JSON.stringify(msg.d ?? null)) > o.maxDataBytes) return fail('too-large');
+        s.data = msg.d ?? null;
+        break;
+      }
+      case 'end':
+        s.phase = 'ended';
+        s.startsAt = null;
+        if (o.mode === 'server') await this.callRules('onEnd');
+        break;
+      case 'admit':
+        await this.admitWaiting();
+        break;
+      case 'kick': {
+        const ban = msg.ban === true;
+        const target = this.player(msg.id);
+        // Someone the room remembers can be removed while they are away, too.
+        const absent = target ? null : Object.entries(s.known).find(([, k]) => k.id === msg.id);
+        if ((!target && !absent) || target?.id === player.id) return fail('no-such-participant');
+        if (ban) {
+          // A ban only holds if the links stop working and nobody else the
+          // room remembers can walk back in without one.
+          s.bans.push(target ? target.pkh : absent[0]);
+          for (const role of Object.keys(s.keys)) s.keys[role] = { k: newSecret(), exp: null };
+          s.settings.access = 'private';
+          for (const k of Object.values(s.known)) if (!this.player(k.id)) k.out = true;
+        }
+        if (target) {
+          for (const other of this.socketsOf(target.id)) {
+            this.reject(other, ban ? CLOSE.BANNED : CLOSE.KICKED, ban ? 'banned' : 'kicked');
+          }
+          await this.removePlayer(target, ban ? 'banned' : 'kicked');
+        } else if (ban) {
+          delete s.known[absent[0]];
+        } else {
+          absent[1].out = true;
+        }
+        this.touch();
+        break;
+      }
+      case 'renew': {
+        if (!own(s.keys, msg.role)) return fail('bad-role');
+        const ttl = Number.isFinite(msg.ttlMs) && msg.ttlMs > 0 ? msg.ttlMs : null;
+        s.keys[msg.role] = { k: newSecret(), exp: ttl === null ? null : this.host.now() + ttl };
+        // The old link is void, also for those who used it and are away now.
+        for (const k of Object.values(s.known)) if (k.role === msg.role && !this.player(k.id)) k.out = true;
+        this.touch();
+        break;
+      }
+      case 'settings': {
+        if (msg.access === 'open' || msg.access === 'private') s.settings.access = msg.access;
+        if (o.lateJoinChoices.includes(msg.lateJoin)) s.settings.lateJoin = msg.lateJoin;
+        break;
+      }
+      case 'handover': {
+        if (o.mode !== 'host') return fail('not-allowed');
+        const target = this.player(msg.id);
+        if (!target || !this.canHost(target)) return fail('no-such-participant');
+        if (target.id !== s.hostId && !(await this.takeOver(target.id))) return fail('no-such-participant');
+        if (msg.n !== undefined) this.sendJson(ws, { t: 'ok', c, n: msg.n });
+        return;
+      }
+      case 'owner': {
+        const target = this.player(msg.id);
+        if (!target || target.id === player.id || target.status !== 'online') return fail('no-such-participant');
+        await this.giveOwner(target);
+        break;
+      }
+      case 'leave': {
+        this.sendJson(ws, { t: 'closed', reason: 'left' });
+        for (const other of this.socketsOf(player.id)) this.shut(other, CLOSE.LEFT, 'left');
+        if (isOwner) {
+          if (o.ownerLeave === 'close') {
+            await this.closeRoom('owner-left');
+            return;
+          }
+          await this.passOwner(player.id);
+        }
+        if (isHost) await this.saveSnapshot();
+        await this.removePlayer(player, 'left');
+        if (this.identifiedSockets().length === 0) this.setTimer('cleanup', o.cleanupMs);
+        return;
+      }
+      case 'close':
+        await this.closeRoom('closed-by-owner');
+        return;
+      default:
+        return fail('unknown-command');
+    }
+    if (msg.n !== undefined) this.sendJson(ws, { t: 'ok', c, n: msg.n });
+    if (this.fingerprint() === before) {
+      this.penalize(ws, 2); // nothing changed: no write, nothing to tell anyone
+      return;
+    }
+    this.touch();
+    this.broadcastRoom();
+  }
+
+  /** What a command can change, to tell real changes from no-ops. */
+  fingerprint() {
+    const s = this.state;
+    return JSON.stringify([
+      s.settings, s.keys, s.phase, s.round, s.startsAt, s.paused, s.ownerId, s.hostId, s.hostPending, s.data,
+      s.bans.length, Object.values(s.players).map((p) => [p.id, p.place, p.waiting, p.status]),
+      Object.values(s.known).map((k) => k.out === true),
+    ]);
+  }
+
+  async admitWaiting() {
+    for (const p of Object.values(this.state.players)) {
+      if (!p.waiting) continue;
+      p.waiting = false;
+      this.remember(p);
+      this.event('join', p.id);
+      if (this.options.mode === 'server') await this.callRules('onJoin', this.rulesPlayer(p));
+    }
+    this.touch();
+  }
+
+  // ----------------------------------------------------- server-mode rules
+
+  rulesPlayer(p) {
+    return { id: p.id, name: p.name, role: p.role, place: p.place, status: p.status, waiting: p.waiting };
+  }
+
+  rulesRoom() {
+    const core = this;
+    const s = this.state;
+    return {
+      get code() { return s.code; },
+      get phase() { return core.currentPhase(); },
+      get round() { return s.round; },
+      get seed() { return s.seed; },
+      get ownerId() { return s.ownerId; },
+      get players() { return Object.values(s.players).map((p) => core.rulesPlayer(p)); },
+      get game() { return s.game; },
+      set game(value) { s.game = value; core.touch(); },
+      get data() { return s.data; },
+      set data(value) { s.data = value ?? null; core.touch(); core.broadcastRoom(); },
+      env: core.host.env,
+      now: () => core.host.now(),
+      /** Store `room.game` after changing it in place. */
+      save: () => core.touch(),
+      send(to, data) {
+        const text = JSON.stringify({ t: 'msg', from: null, d: data });
+        for (const id of core.targets(to, null)) core.sendTo(id, text);
+      },
+      end() { s.phase = 'ended'; s.startsAt = null; core.touch(); core.broadcastRoom(); },
+      admit: async () => { await core.admitWaiting(); core.broadcastRoom(); },
+      setTimer: (name, ms) => core.setTimer('rules', ms, String(name)),
+      clearTimer: (name) => core.clearTimer('rules', String(name)),
+    };
+  }
+
+  /** Call a rules hook. Nothing is stored unless the rules changed `room.game` or called `room.save()`. */
+  async callRules(hook, ...args) {
+    const fn = this.options.rules?.[hook];
+    if (typeof fn !== 'function' || !this.state) return undefined;
+    return fn(this.rulesRoom(), ...args);
+  }
+}

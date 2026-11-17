@@ -1,0 +1,58 @@
+# Publishes Vättigt (the game's pages and the rooms) to Cloudflare from main.
+# Needs the repository secret CLOUDFLARE_API_TOKEN (Workers edit rights);
+# CLOUDFLARE_ACCOUNT_ID is optional. Without the token the job is skipped.
+name: Deploy to Cloudflare
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Test
+        run: |
+          npm ci
+          npm test
+          npm run smoke
+      - name: Check for the Cloudflare token
+        id: token
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::notice::CLOUDFLARE_API_TOKEN is not set; skipping the deploy."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Deploy and check
+        if: steps.token.outputs.skip != 'true'
+        run: |
+          npx wrangler deploy 2>&1 | tee deploy.log
+          url=$(grep -o 'https://[a-z0-9.-]*workers\.dev' deploy.log | head -1)
+          if [ -z "$url" ]; then echo "::error::Could not find the address in the deploy output"; exit 1; fi
+          echo "Vättigt: $url" >> "$GITHUB_STEP_SUMMARY"
+          for i in 1 2 3 4 5 6; do
+            body=$(curl -fsS "$url/rooms" || true)
+            echo "$body" | grep -q '"network-kit"' && break
+            sleep 5
+          done
+          echo "$body" | grep -q '"network-kit"' || { echo "::error::$url/rooms did not answer"; exit 1; }
+          curl -fsS "$url/" | grep -q '<title>Vättigt</title>' || { echo "::error::$url/ does not serve the game"; exit 1; }
+          curl -fsS -X POST "$url/rooms" -H 'content-type: application/json' -d '{}' | grep -q '"code"' \
+            || { echo "::error::creating a room on $url failed"; exit 1; }
+          echo "The game and room creation work on $url" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,122 @@
+// Wire protocol shared by the room server and the browser client.
+// Both sides of one game always use the same network-kit version (D-009),
+// so the protocol number only guards against mixed copies.
+
+export const PROTOCOL = 3;
+
+// Large messages travel in parts of at most this many characters (F-036):
+// at most 64 kB each in UTF-8, well under Cloudflare's limits for one
+// WebSocket message and one stored value. Both sides split and join them.
+export const PART_CHARS = 16_000;
+
+/** Split a text into part messages: { t: 'part', p, i, of, d }. */
+export function splitIntoParts(text, p) {
+  const of = Math.ceil(text.length / PART_CHARS);
+  const parts = [];
+  for (let i = 0; i < of; i++) {
+    parts.push(JSON.stringify({ t: 'part', p, i, of, d: text.slice(i * PART_CHARS, (i + 1) * PART_CHARS) }));
+  }
+  return parts;
+}
+
+/**
+ * Collects parts into whole texts. `add(part)` returns the joined text when
+ * the last part has arrived, null while parts are missing, and throws on
+ * parts that do not fit together or would make a text longer than maxChars.
+ */
+export class PartJoiner {
+  constructor(maxChars) {
+    this.maxChars = maxChars;
+    this.current = null;
+  }
+
+  add(part) {
+    const { p, i, of, d } = part;
+    if (!Number.isSafeInteger(p) || !Number.isSafeInteger(i) || !Number.isSafeInteger(of) || typeof d !== 'string') {
+      throw new Error('bad part');
+    }
+    if (of < 2 || of > Math.ceil(this.maxChars / PART_CHARS) || d.length > PART_CHARS) throw new Error('bad part');
+    if (i === 0) this.current = { p, of, texts: [], length: 0 };
+    const c = this.current;
+    if (!c || c.p !== p || c.of !== of || c.texts.length !== i) {
+      this.current = null;
+      throw new Error('parts out of order');
+    }
+    c.texts.push(d);
+    c.length += d.length;
+    if (c.length > this.maxChars) {
+      this.current = null;
+      throw new Error('too large');
+    }
+    if (c.texts.length < of) return null;
+    this.current = null;
+    return c.texts.join('');
+  }
+}
+
+// Room codes: no 0/O or 1/I so codes are easy to read out loud.
+export const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export const CODE_LENGTH = 4; // the default; each game may choose 4 to 12 (codeLength)
+export const CODE_MIN_LENGTH = 4;
+export const CODE_MAX_LENGTH = 12;
+
+// WebSocket close codes sent by the server. The client stops reconnecting
+// on all of them (see FINAL_CLOSE_CODES).
+export const CLOSE = Object.freeze({
+  ROOM_CLOSED: 4000,
+  KICKED: 4001,
+  BANNED: 4002,
+  REPLACED: 4003,
+  NOT_FOUND: 4004,
+  FULL: 4005,
+  IN_PROGRESS: 4006,
+  KEY: 4007,
+  GAME_CLOSED: 4008,
+  VERSION: 4009,
+  BAD_REQUEST: 4010,
+  LEFT: 4011,
+  RATE: 4012,
+  BUDGET: 4013,
+});
+
+// Not final: the server gave up on a connection that stopped answering.
+// A client that is in fact alive reconnects.
+export const CLOSE_UNRESPONSIVE = 4014;
+
+export const FINAL_CLOSE_CODES = new Set(Object.values(CLOSE));
+
+// Plain-language reasons for close codes, for games that show them as is.
+export const CLOSE_TEXT = Object.freeze({
+  [CLOSE.ROOM_CLOSED]: 'The room has closed.',
+  [CLOSE.KICKED]: 'You were removed from the room.',
+  [CLOSE.BANNED]: 'You cannot join this room.',
+  [CLOSE.REPLACED]: 'The room was opened in another tab.',
+  [CLOSE.NOT_FOUND]: 'Room not found.',
+  [CLOSE.FULL]: 'The room is full.',
+  [CLOSE.IN_PROGRESS]: 'The game has already started.',
+  [CLOSE.KEY]: 'This room needs a valid invitation link.',
+  [CLOSE.GAME_CLOSED]: 'The game is closed right now.',
+  [CLOSE.VERSION]: 'Please reload the page to get the latest version.',
+  [CLOSE.BAD_REQUEST]: 'Could not join the room.',
+  [CLOSE.LEFT]: 'You left the room.',
+  [CLOSE.RATE]: 'Too many messages were sent. Please reload the page.',
+  [CLOSE.BUDGET]: 'This room has used up its time for today.',
+});
+
+/** Upper-case a typed room code and drop spaces and dashes. */
+export function normalizeCode(text) {
+  return String(text ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+/**
+ * Is `code` a room code? With `length`, it must have exactly that many
+ * characters; without, any length a game may choose (4 to 12).
+ */
+export function isValidCode(code, length) {
+  if (typeof code !== 'string') return false;
+  if (length !== undefined ? code.length !== length : code.length < CODE_MIN_LENGTH || code.length > CODE_MAX_LENGTH) {
+    return false;
+  }
+  for (const ch of code) if (!CODE_ALPHABET.includes(ch)) return false;
+  return true;
+}

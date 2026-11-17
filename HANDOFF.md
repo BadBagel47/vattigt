@@ -11,15 +11,16 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 
 ## Nuläge
 
-- Första spelbara versionen finns (F-013, 2026-11-17): en match på samma skärm, för mobil i liggande läge, på Midsommarängen. Två lag med tre vättar, Kalle Gurra, Surströmming och Dynamit-Alfred, sprängbar terräng, vind, turtid, vårflod och vinst. Musiken (utkast 1) och ljudeffekter är med.
-- Spelet ligger i repots rot (`index.html`, `src/`). Fysiken i `src/sim/` räknar bara med heltal, så samma startvärde och samma knapptryck ger samma match överallt (D-011). Tester: `npm test`.
-- Grundreglerna står i [docs/RULES.md](docs/RULES.md) (D-009).
-- Provat i en telefonsimulering (iPhone och Pixel i liggande läge). Inte provat på en riktig telefon.
-- Designförslaget finns i [docs/DESIGN.md](docs/DESIGN.md), mockupen i [docs/mockup/index.html](docs/mockup/index.html).
+- Spelbar match på samma telefon (F-013) och över nätet (F-015, 2026-11-17). Online: skapa rum, bjud in med länk, QR-kod eller rumskod, välj lag i lobbyn, rumsägaren väljer stämning och startar. Den som skapade rummet kör matchen; de andra följer samma match från dennes inmatning. Laddar man om kommer man tillbaka in; försvinner den som kör matchen tar en annan spelare över efter 15 sekunder.
+- Cloudflare (F-014): en Worker serverar spelet och kör rummen (network-kit v0.5.0, kopia i `vendor/network-kit`, rum i EU). Publiceras från main av arbetsflödet `deploy.yml` när hemligheten `CLOUDFLARE_API_TOKEN` finns. Väntar på att användaren lägger in den; adressen blir troligen https://vattigt.l8p1.workers.dev (samma konto som network-kits demo).
+- Provat: spel över nätet mellan två emulerade telefoner mot en lokal rumsserver (samma match hos båda, omladdning, värdbyte). Inte provat på Cloudflare eller riktiga telefoner.
+- Känd begränsning: har ett lag ingen ansluten spelare går dess tur ut av sig själv (45 sekunder).
+- Grundreglerna står i [docs/RULES.md](docs/RULES.md) (D-009). Hur onlinedelen fungerar står i [docs/NETWORK.md](docs/NETWORK.md).
 
 ## Nästa steg
 
-- Användaren provspelar på telefonen och säger vad som ska ändras.
+- Användaren lägger in Cloudflare-nyckeln; sedan publiceras spelet och kontrolleras på Cloudflare, och GitHub Pages stängs av (beslut 2026-11-17).
+- Användaren provspelar online på två telefoner.
 - Därefter: se "Proposed runs" i [BACKLOG.md](BACKLOG.md).
 
 ## Öppna frågor till användaren
@@ -79,7 +80,10 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 
 - [docs/DESIGN.md](docs/DESIGN.md) – designförslaget: stil, banor, arsenal, väsen, spelidéer.
 - [index.html](index.html) och [src/](src/) – spelet. `src/sim/` är matchen (regler, fysik), `src/render/` grafiken, `src/audio/` ljudet, `src/main.js` kontroller och skärmar.
-- [tests/](tests/) – tester av matchen (`npm test`).
+- [tests/](tests/) – tester av matchen och inmatningsloggen (`npm test`); `npm run smoke` provar network-kit-kopian med spelets rumsinställningar.
+- [worker/](worker/), [rooms-options.js](rooms-options.js), [wrangler.jsonc](wrangler.jsonc), [.assetsignore](.assetsignore) – Cloudflare: Workern, rumsinställningarna och vilka filer som inte ska serveras.
+- [vendor/network-kit/](vendor/network-kit/) – kopia av network-kit v0.5.0. Ändras aldrig här; fel rättas i network-kit först.
+- [.github/workflows/deploy.yml](.github/workflows/deploy.yml) – tester och publicering till Cloudflare.
 - [docs/RULES.md](docs/RULES.md) – grundreglerna med siffror (D-009).
 - [README.md](README.md) – kort om spelet och hur det körs lokalt.
 - [docs/mockup/index.html](docs/mockup/index.html) – mockup av spelscen.
