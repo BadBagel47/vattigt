@@ -39,7 +39,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - 2026-11-13: Stilen är retro med modern känsla: låg upplösning med hela pixlar, mjukt ljus i eget lager, rastrerade övergångar, begränsad palett.
 - 2026-11-13: Stämning (tid på dygnet, årstid, väder) ska gå att ställa in i eget spel.
 - 2026-11-13: Spelet ska finnas som både singleplayer och multiplayer. Multiplayer först.
-- 2026-11-16: Nätverkskoden kommer från network-kit.
+- 2026-11-16: Nätverkskoden kommer från network-kit. (Agentens tolkning av "där har vi upplägg för nätverkskod"; bekräftad 2026-11-17 när användaren bad att behoven rapporteras dit.) Behov av nätverksfunktioner rapporteras till network-kit.
 - 2026-11-16: Inget brevspel. Spelet spelas bara lokalt (samma skärm) och online.
 - 2026-11-16: Ordvitsar görs på både vett och vätt.
 - 2026-11-16: Musiken är chiptune som möter svensk folkmusik. Agenten komponerar och producerar allt (ljudet skapas i webbläsaren, inga riktiga instrument); användaren lyssnar och styr.

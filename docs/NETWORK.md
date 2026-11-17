@@ -1,6 +1,6 @@
 # Vättigt och network-kit (D-011)
 
-Status: riktningen godkänd 2026-11-17 (alla räknar samma fysik). Detaljerna nedan är förslag. Bygger på network-kit v0.2.3 (`BadBagel47/network-kit`, se dess `docs/INTEGRATION.md`). Inget här är beslutat förrän det står under Decisions i [HANDOFF.md](../HANDOFF.md).
+Status: riktningen godkänd 2026-11-17 (alla räknar samma fysik). Detaljerna nedan är förslag. Bygger på network-kit v0.5.0 (`BadBagel47/network-kit`, se dess `docs/INTEGRATION.md`). Inget här är beslutat förrän det står under Decisions i [HANDOFF.md](../HANDOFF.md).
 
 ## Kort
 
@@ -15,7 +15,7 @@ Vättigt passar network-kits **värdstyrda rum** (`mode: 'host'`), samma sort so
 
 Spelet är turbaserat, och under en tur är det bara en spelare som styr. Därför:
 
-1. Den aktiva spelaren skickar sin **indata** (gå, hoppa, sikta, skjut) när den ändras.
+1. Den aktiva spelaren skickar sin **indata** (gå, hoppa, sikta, skjut) när den ändras. Siktet skickas med `latest`, så att bara senaste värdet går iväg när fingret rör sig fort.
 2. Värden skickar vidare till alla. Varje webbläsare räknar fram samma resultat själv.
 3. Värden äger turordning, turtid och vad som finns i lådorna, och skickar ut beslut som vanliga meddelanden.
 4. Efter varje tur skickar värden en kontrollsumma av läget. Om någon har räknat fel får den det fullständiga läget.
@@ -54,6 +54,13 @@ export default {
   maxMessagesPerDay: 20000,   // uppskattning, justeras efter provspel
 };
 ```
+
+## Behov som rapporterats till network-kit
+
+Inget av detta krävs; Vättigt passar v0.5.0 som den är. Rapporterat 2026-11-17 som F-039 i network-kit:
+
+- Den aktiva spelaren skulle kunna skicka direkt till alla, i stället för via värden. Halverar antalet meddelanden och gör att indata kommer fram även när värdens telefon sover.
+- Värden skulle kunna peka ut vem som tar över först, till exempel den vars tur det är. Mellan turerna lägger spelarna ofta ifrån sig telefonen, så värdens telefon somnar lätt.
 
 ## Utanför planen
 
