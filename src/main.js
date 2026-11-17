@@ -9,6 +9,7 @@ import { W, H, TPS, WEAPONS, DEFAULT_SETTINGS, TEAMS, MAX_UNITS } from './sim/ru
 import { MAP_NAMES } from './sim/terrain.js';
 import { createRenderer, drawIcon, MOODS, TEAM_COLORS, HATS, hatRows, teamColor } from './render/render.js';
 import { VATTE } from './render/sprites.js';
+import { planTurn, LEVELS } from './ai/ai.js';
 import { createSound } from './audio/sound.js';
 import { shareLink, readShareLink, forgetShareKey, qrSvg, tabSession } from '../vendor/network-kit/client/index.js';
 
@@ -28,7 +29,11 @@ const held = { left: false, right: false };
 
 const match = () => (mode === 'online' ? online?.match : mode === 'local' ? local : null);
 const world = () => match()?.world || backdrop;
-const myTurn = () => mode === 'local' || (mode === 'online' && online.myTurn());
+// On one phone everyone may steer, except the computer's team.
+const AI_TEAM = 1;
+const aiTurn = () => mode === 'local' && aiLevel && local && local.world.turn.team === AI_TEAM;
+const myTurn = () => (mode === 'local' && !aiTurn()) || (mode === 'online' && online.myTurn());
+let aiLevel = null, aiPlan = [], aiFor = -1, aiClock = 0;
 
 /* ---------- input events ---------- */
 function emit(ev) {
@@ -118,6 +123,7 @@ function updatePanels() {
       hint = p ? `${p.name} spelar ${u ? u.name.charAt(0) + u.name.slice(1).toLowerCase() : ''}` : 'Ingen i laget är med just nu.';
     }
   }
+  if (!hint && aiTurn() && t.phase === 'aim') hint = 'Datorn tänker …';
   if (!hint && canAct && wpn.target) hint = wpn.ticket ? 'Tryck på vätten som ska till Borås.' : wpn.build ? 'Tryck där plankan ska ligga.' : wpn.water ? 'Tryck där hinken ska tömmas.' : wpn.id === 'jas' ? 'Tryck där planet ska fälla laddningarna.' : 'Tryck där korvarna ska falla.';
   if (!hint && canAct && wpn.aim && shotsFired < 2 && !view.aim) hint = 'Dra i bilden för att sikta. Släpp för att skjuta.';
   if (!hint && horse) hint = 'Tryck på Spräng! när hästen är framme.';
@@ -225,6 +231,12 @@ function loop(ms) {
   requestAnimationFrame(loop);
   const dt = Math.min(.25, (ms - last) / 1000); last = ms;
   if (mode === 'local' && local && !paused) {
+    // the computer's turn: plan once, then feed its taps in over time
+    if (aiTurn() && local.world.turn.phase === 'aim' && aiFor !== local.world.turn.number) {
+      aiFor = local.world.turn.number; aiClock = 0;
+      let at = 0; aiPlan = planTurn(local.world, aiLevel).map(([d, ev]) => [at += d, ev]);
+    }
+    if (aiPlan.length) { aiClock += dt * 1000; while (aiPlan.length && aiPlan[0][0] <= aiClock && aiTurn()) local.push(aiPlan.shift()[1]); if (!aiTurn()) aiPlan = []; }
     acc += dt;
     while (acc >= 1 / TPS) { local.runStep(); handle(local.world.events, local.world); acc -= 1 / TPS; }
   } else if (mode === 'online' && online) {
@@ -251,7 +263,7 @@ function resetView() { view.aim = null; drag = null; held.left = held.right = fa
 
 /* ---------- settings (eget spel) and saved teams (lagbyggaren) ---------- */
 const NIGHT_MOODS = new Set(['midsommar', 'vinter']);
-const custom = { crates: true, map: DEFAULT_SETTINGS.map, units: DEFAULT_SETTINGS.units, turn: DEFAULT_SETTINGS.turn, flood: DEFAULT_SETTINGS.flood, weapons: new Set(DEFAULT_SETTINGS.weapons), team0: 0, team1: 1 };
+const custom = { opponent: 'spelare', crates: true, map: DEFAULT_SETTINGS.map, units: DEFAULT_SETTINGS.units, turn: DEFAULT_SETTINGS.turn, flood: DEFAULT_SETTINGS.flood, weapons: new Set(DEFAULT_SETTINGS.weapons), team0: 0, team1: 1 };
 const TEAM_KEY = 'vattigt-teams';
 const defaultTeams = () => TEAMS.map((t) => ({ name: t.name, color: t.color, hat: t.hat, units: t.units.map((n) => n.charAt(0) + n.slice(1).toLowerCase()) }));
 let savedTeams = (() => { try { const v = JSON.parse(localStorage.getItem(TEAM_KEY) || 'null'); if (Array.isArray(v) && v.length >= 2) return v; } catch (e) { /* storage off */ } return defaultTeams(); })();
@@ -268,6 +280,7 @@ function newLocalGame() {
   clearTimeout(overTimer);
   mode = 'local';
   local = createMatch((Math.random() * 4294967296) >>> 0, matchOpts());
+  aiLevel = custom.opponent === 'spelare' ? null : custom.opponent; aiPlan = []; aiFor = -1; aiClock = 0;
   resetView(); renderer.setMood(moodName);
   window.__vattigt = { match: local };
   paused = false; show(null); layout();
@@ -343,6 +356,7 @@ function setupCustom() {
   choiceRow(row('units'), [1, 2, 3, 4, MAX_UNITS], (v) => custom.units === v, (v) => { custom.units = v; rebuildPreview(); });
   choiceRow(row('turn'), [30, 45, 60, 90], (v) => custom.turn === v, (v) => { custom.turn = v; }, (v) => v + ' s');
   choiceRow(row('flood'), [0, 6, 8, 12], (v) => custom.flood === v, (v) => { custom.flood = v; }, (v) => (v ? 'Runda ' + v : 'Av'));
+  choiceRow(row('opponent'), ['spelare', 'latt', 'lagom', 'svar'], (v) => custom.opponent === v, (v) => { custom.opponent = v; }, (v) => (v === 'spelare' ? 'En spelare till' : 'Dator: ' + LEVELS[v].name.toLowerCase()));
   choiceRow(row('crates'), [true, false], (v) => custom.crates === v, (v) => { custom.crates = v; }, (v) => (v ? 'På' : 'Av'));
   choiceRow(row('weapons'), WEAPONS.map((w) => w.id), (v) => custom.weapons.has(v), (v) => { if (custom.weapons.has(v) && custom.weapons.size > 1) custom.weapons.delete(v); else custom.weapons.add(v); }, (v) => WEAPONS.find((w) => w.id === v).name);
   for (const [i, sel] of [[0, $('cTeam0')], [1, $('cTeam1')]]) {
@@ -400,7 +414,8 @@ async function goFull() {
   } catch (e) { /* not supported here, e.g. iPhone */ }
   layout();
 }
-$('play').addEventListener('click', () => { sound.unlock(); goFull(); newLocalGame(); });
+$('play').addEventListener('click', () => { sound.unlock(); goFull(); custom.opponent = 'spelare'; newLocalGame(); });
+$('playAi').addEventListener('click', () => { sound.unlock(); goFull(); custom.opponent = 'lagom'; newLocalGame(); });
 $('again').addEventListener('click', () => {
   sound.unlock();
   if (mode === 'local') newLocalGame();

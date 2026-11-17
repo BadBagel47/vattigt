@@ -9,7 +9,6 @@ Prioritet: Hög, Medel, Låg.
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
 | F-029 | Låg | Pågår (2026-11-17, session Vättigt, main) | Metspöt: kasta, haka fast och svinga sig vidare. Kräver ny styrning på telefonen. |
-| F-030 | Medel | Pågår (2026-11-17, session Vättigt, main) | Datormotståndare, så att man kan spela ensam (övningsmatch mot datorn). |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
@@ -34,6 +33,7 @@ Parkerat: D-012 (musik).
 | ID | Klart | Beskrivning |
 |---|---|---|
 | D-001 | 2026-11-13 | Första designförslaget: stil, banor, arsenal, väsen, spelidéer (docs/DESIGN.md). |
+| F-030 | 2026-11-17 | Datormotståndare i tre nivåer (lätt, lagom, svår): "Spela mot datorn" på startsidan och Motståndare i eget spel. Bara på en telefon, inte online. |
 | F-031 | 2026-11-17 | network-kit v0.5.1 inne (felrättningar: platsen i laget tillbaka efter lång frånvaro, namnet syns direkt). |
 | D-006 | 2026-11-17 | Typsnitten ligger i spelet med licenser; inga anrop till Google från någon sida. |
 | F-028 | 2026-11-17 | Lådor av/på i eget spel och online. |

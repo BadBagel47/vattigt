@@ -46,6 +46,11 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 - Skadan är störst mitt i smällen och minskar utåt. Smällen kastar iväg vättar som står nära.
 - Surströmmingsmolnet ligger kvar i tre rundor och driver långsamt med vinden. En vätte som står i molnet när det egna lagets tur börjar tar 5 skada.
 
+## Datorn som motståndare
+
+- Datorn styr lag 2 på en telefon (inte online). Den prövar många skott i huvudet och väljer det som skadar motståndarna mest och det egna laget minst.
+- **Lätt** missar ofta och väljer inte alltid det bästa skottet, **Lagom** missar ibland, **Svår** träffar nästan alltid. Står den bredvid en motståndare lägger den dynamit (inte på Lätt).
+
 ## Lådor
 
 - Varannan runda faller en låda med fallskärm, i Gruvan i en av orterna.

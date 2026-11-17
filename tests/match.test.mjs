@@ -56,3 +56,20 @@ test('online settings from the room data reach the match', async () => {
   assert.equal(m.world.map.id, 'gruvan');
   assert.equal(m.world.settings.night, false);
 });
+
+test('the computer opponent plays whole matches without getting stuck', async () => {
+  const { planTurn } = await import('../src/ai/ai.js');
+  for (const level of ['latt', 'svar']) {
+    const m = createMatch(77, { settings: { flood: 4 } });
+    let lastTurn = -1, plan = [], hurtOthers = 0;
+    for (let i = 0; i < 80000 && m.world.turn.phase !== 'over'; i++) {
+      const w = m.world;
+      if (w.turn.phase === 'aim' && w.turn.number !== lastTurn) { lastTurn = w.turn.number; plan = planTurn(w, level).map(([d, ev]) => ev); }
+      if (plan.length && i % 20 === 0) m.push(plan.shift());
+      m.runStep();
+      for (const e of w.events) if (e.t === 'damage') hurtOthers++;
+    }
+    assert.equal(m.world.turn.phase, 'over', `${level}: the match ended`);
+    assert.ok(hurtOthers > 3, `${level}: shots hit something`);
+  }
+});

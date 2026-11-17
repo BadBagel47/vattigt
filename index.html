@@ -151,6 +151,7 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
     <h1>Vättigt</h1>
     <p>Två lag vättar slåss om ängen, kobbarna, skogen eller gruvan. Gå, hoppa, sikta och skjut. Laget som har vättar kvar sist vinner.</p>
     <button type="button" class="primary" id="play">Spela på en telefon</button>
+    <button type="button" id="playAi">Spela mot datorn</button>
     <button type="button" id="goNet">Spela över nätet</button>
     <div class="choices">
       <button type="button" id="goCustom">Eget spel</button>
@@ -169,6 +170,7 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
     <div class="cright">
       <div class="opts">
         <div><span class="label" id="l-cmood">Stämning</span><div class="choices" role="group" aria-labelledby="l-cmood" id="moods"></div></div>
+        <div><span class="label" id="l-copp">Motståndare</span><div class="choices" role="group" aria-labelledby="l-copp" data-opt="opponent"></div></div>
         <div><span class="label" id="l-cteams">Lagen</span><div class="inline" role="group" aria-labelledby="l-cteams"><select id="cTeam0" aria-label="Lag 1"></select><select id="cTeam1" aria-label="Lag 2"></select></div></div>
         <div><span class="label" id="l-cunits">Vättar per lag</span><div class="choices" role="group" aria-labelledby="l-cunits" data-opt="units"></div></div>
         <div><span class="label" id="l-cturn">Turtid</span><div class="choices" role="group" aria-labelledby="l-cturn" data-opt="turn"></div></div>
