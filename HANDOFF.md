@@ -88,5 +88,9 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - [docs/RULES.md](docs/RULES.md) – grundreglerna med siffror (D-009).
 - [README.md](README.md) – kort om spelet och hur det körs lokalt.
 - [docs/mockup/index.html](docs/mockup/index.html) – mockup av spelscen.
+- [docs/maps/index.html](docs/maps/index.html) – mockup av Kobbarna, Trollskogen och Gruvan (D-004).
+- [docs/characters/index.html](docs/characters/index.html) – vättarna i större format med rörelser (D-007).
+- [docs/screens/index.html](docs/screens/index.html) – mockup av startmeny, eget spel och lagbyggare (D-008).
+- [docs/NAMES.md](docs/NAMES.md) – namnen mot varumärken (D-005).
 - [docs/NETWORK.md](docs/NETWORK.md) – hur Vättigt använder network-kit.
 - [docs/music/index.html](docs/music/index.html) – musikverkstad med Midsommarpolskan, utkast 1.

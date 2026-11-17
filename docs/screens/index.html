@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vättigt skärmar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;600&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: three phone screens in landscape, one after another, each with a short note. Single dark theme, as the game. */
+  color-scheme: dark;
+  --night:#12172b; --ground:#0c1022; --panel:#151b36; --line:#313b6b; --ink:#ebe6d8; --dim:#aab1cb; --sun:#ffd27a; --red:#e5533d; --blue:#4fa3ff;
+  --display:"Pixelify Sans","Courier New",monospace; --body:"Albert Sans","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55}
+.wrap{max-width:1000px;margin:0 auto;padding:28px 20px 72px;display:flex;flex-direction:column;gap:44px}
+header{display:flex;flex-direction:column;gap:6px}
+.eyebrow{font-family:var(--display);color:var(--dim);font-size:17px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(38px,7vw,60px);line-height:1;margin:0;color:var(--sun)}
+h2{font-family:var(--display);font-weight:700;font-size:28px;margin:0}
+p{margin:0}
+.lede{max-width:64ch;color:var(--dim);font-size:19px}
+section{display:flex;flex-direction:column;gap:12px}
+.note{color:var(--dim);max-width:70ch}
+
+/* a phone in landscape: everything inside scales with the frame */
+.phone{width:100%;aspect-ratio:844/390;border:3px solid #2a3256;border-radius:2.2%/4.8%;overflow:hidden;background:var(--ground);container-type:size;position:relative}
+.ph{position:absolute;inset:0;font-size:4.4cqh}
+.ph button{font-family:var(--display);font-size:1em;color:var(--ink);background:var(--panel);border:.5cqh solid var(--line);padding:.6cqh 2cqh;min-height:11.3cqh;cursor:pointer}
+.ph button:focus-visible,.ph input:focus-visible,.ph select:focus-visible{outline:.8cqh solid var(--sun);outline-offset:.4cqh}
+.ph button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:#1b1a14}
+.ph button:disabled{opacity:.45;cursor:default}
+.ph .primary{background:var(--sun);border-color:var(--sun);color:#1b1a14}
+.ph label,.ph .lab{font-family:var(--display);color:var(--dim);font-size:.85em;display:block}
+.ph input,.ph select{font-family:var(--body);font-size:1em;color:var(--ink);background:var(--ground);border:.5cqh solid var(--line);padding:.6cqh 1.6cqh;min-height:10cqh;width:100%}
+.chips{display:flex;flex-wrap:wrap;gap:1.4cqh}
+.chips button{font-size:.85em;min-height:9.5cqh;padding:.4cqh 1.6cqh}
+
+/* start menu */
+.menu canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+.menu .shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,10,24,.92) 0 42%,rgba(8,10,24,.35) 70%,transparent)}
+.menu .col{position:absolute;left:5%;top:7%;bottom:7%;width:36%;display:flex;flex-direction:column;gap:2.4cqh}
+.menu .logo{font-family:var(--display);font-weight:700;font-size:19cqh;line-height:.9;color:var(--sun);margin-bottom:2cqh}
+.menu .col button{text-align:left}
+.menu .foot{position:absolute;right:3%;bottom:4%;display:flex;gap:1.6cqh}
+
+/* custom game */
+.custom{display:grid;grid-template-columns:44% 1fr;gap:3cqh;padding:3.6cqh}
+.custom .left{display:flex;flex-direction:column;gap:2.4cqh;min-width:0}
+.custom .prev{position:relative;width:100%;aspect-ratio:480/270;border:.5cqh solid var(--line)}
+.custom .prev canvas{position:absolute;inset:0;width:100%;height:100%}
+.custom .prev .scene{image-rendering:pixelated}
+.custom .prev .glow{mix-blend-mode:screen}
+.maps{display:grid;grid-template-columns:1fr 1fr;gap:1.4cqh}
+.maps button{font-size:.8em;min-height:9cqh;text-align:left}
+.custom .right{display:flex;flex-direction:column;gap:1.6cqh;min-width:0;min-height:0}
+.custom .opts{display:flex;flex-direction:column;gap:1.9cqh;overflow:auto;flex:1;min-height:0;padding-right:1cqh}
+.custom .small{font-size:.75em;color:var(--dim)}
+.custom .bar{display:flex;gap:1.6cqh}
+.custom .bar .primary{flex:1}
+
+/* team builder */
+.teamb{display:grid;grid-template-columns:30% 1fr 26%;gap:3cqh;padding:3.6cqh}
+.teamb .list{display:flex;flex-direction:column;gap:1.6cqh}
+.teamb .list button{text-align:left}
+.teamb .form{display:flex;flex-direction:column;gap:1.9cqh;min-width:0;overflow:auto}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:1.4cqh}
+.sw{width:11cqh;min-height:11cqh;padding:0}
+.sw span{display:block;width:6cqh;height:6cqh;margin:auto;border:.5cqh solid #0c1022}
+.teamb .prev{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2cqh;background:var(--panel);border:.5cqh solid var(--line)}
+.teamb .prev canvas{width:70%;image-rendering:pixelated}
+.teamb .cry{font-family:var(--display);font-size:.85em;text-align:center;color:var(--sun);padding:0 2cqh}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="eyebrow">Vättigt · skärmar · mockup</span>
+  <h1>Meny, eget spel och lag</h1>
+  <p class="lede">Tre skärmar utanför matchen, ritade för en telefon i liggande läge. Knapparna går att trycka på. Eget spel använder spelets riktiga grafik, så stämningen syns direkt.</p>
+</header>
+
+<section aria-labelledby="h-menu">
+  <h2 id="h-menu">Startmeny</h2>
+  <div class="phone"><div class="ph menu">
+    <canvas id="menuScene" width="480" height="270" aria-hidden="true"></canvas><div class="shade"></div>
+    <div class="col">
+      <div class="logo">Vättigt</div>
+      <button type="button" class="primary">Spela på en telefon</button>
+      <button type="button">Spela över nätet</button>
+      <button type="button" data-go="h-custom">Eget spel</button>
+      <button type="button" data-go="h-team">Lagbyggare</button>
+    </div>
+    <div class="foot"><button type="button">Ljud av</button><button type="button">Om spelet</button></div>
+  </div></div>
+  <p class="note">Snabbstart överst: de två vanligaste valen spelar direkt med standardinställningar. Eget spel och lagbyggaren ligger under. Bakgrunden är en levande bana.</p>
+</section>
+
+<section aria-labelledby="h-custom">
+  <h2 id="h-custom">Eget spel</h2>
+  <div class="phone"><div class="ph custom">
+    <div class="left">
+      <div class="prev"><canvas class="scene" id="prevScene" width="480" height="270" role="img" aria-label="Förhandsvisning av banan med vald stämning"></canvas><canvas class="glow" id="prevGlow" aria-hidden="true"></canvas></div>
+      <div class="maps" role="group" aria-label="Bana" id="maps"></div>
+    </div>
+    <div class="right">
+      <div class="opts">
+      <div><span class="lab" id="l-time">Tid på dygnet</span><div class="chips" role="group" aria-labelledby="l-time" data-set="time"></div></div>
+      <div><span class="lab" id="l-season">Årstid</span><div class="chips" role="group" aria-labelledby="l-season" data-set="season"></div></div>
+      <div><span class="lab" id="l-weather">Väder</span><div class="chips" role="group" aria-labelledby="l-weather" data-set="weather"></div></div>
+      <div><span class="lab" id="l-turn">Turtid</span><div class="chips" role="group" aria-labelledby="l-turn" data-set="turn"></div></div>
+      <div><span class="lab" id="l-units">Vättar per lag</span><div class="chips" role="group" aria-labelledby="l-units" data-set="units"></div></div>
+      <div><span class="lab" id="l-flood">Vårflod</span><div class="chips" role="group" aria-labelledby="l-flood" data-set="flood"></div></div>
+      <div><span class="lab" id="l-weapons">Vapen</span><div class="chips" role="group" aria-labelledby="l-weapons" data-set="weapons" data-multi="1"></div></div>
+      </div>
+      <p class="small" id="prevNote" role="status"></p>
+      <div class="bar"><button type="button" data-go="h-menu">Tillbaka</button><button type="button" class="primary">Starta</button></div>
+    </div>
+  </div></div>
+  <p class="note">Tre reglage för stämningen: tid på dygnet, årstid och väder. De ändrar också spelet: på natten vaknar trollet, vintern ger is, regnet släcker eld. Förhandsvisningen visar den närmaste stämning som finns i spelet i dag; regn, dimma och vår finns inte än.</p>
+</section>
+
+<section aria-labelledby="h-team">
+  <h2 id="h-team">Lagbyggare</h2>
+  <div class="phone"><div class="ph teamb">
+    <div class="list" role="group" aria-label="Lag" id="teamList"></div>
+    <div class="form">
+      <div><label for="tname">Lagets namn</label><input id="tname" type="text" maxlength="20"></div>
+      <div><span class="lab" id="l-color">Färg</span><div class="chips" role="group" aria-labelledby="l-color" id="colors"></div></div>
+      <div><span class="lab" id="l-hat">Luva</span><div class="chips" role="group" aria-labelledby="l-hat" id="hats"></div></div>
+      <div><span class="lab">Vättarna</span><div class="names" id="names"></div></div>
+      <div class="chips"><button type="button" id="shuffle">Slumpa namn</button></div>
+      <div><label for="dialect">Pratar</label><select id="dialect"><option>Rikssvenska</option><option>Skånska</option><option>Göteborgska</option><option>Norrländska</option><option>Gotländska</option></select></div>
+    </div>
+    <div class="prev"><canvas id="teamPrev" width="20" height="26" role="img" aria-label="Lagets vätte"></canvas><div class="cry" id="cry"></div></div>
+  </div></div>
+  <p class="note">Laget får namn, färg, luva och fyra vättar med egna namn. Dialekten styr pratbubblorna under matchen. Lagen sparas på telefonen och kan tas med in i ett rum online.</p>
+</section>
+</div>
+
+<script type="module">
+import { newMatch, step } from '../../src/sim/world.js';
+import { createRenderer } from '../../src/render/render.js';
+import { VATTE } from '../../src/render/sprites.js';
+
+const $ = (id) => document.getElementById(id);
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* start menu: a live backdrop */
+const menuWorld = newMatch(1717); for (let i = 0; i < 160; i++) step(menuWorld);
+const glowStub = document.createElement('canvas'); glowStub.width = 480; glowStub.height = 270;
+const menuR = createRenderer($('menuScene'), glowStub); menuR.setMood('host');
+
+/* custom game: the real renderer with the chosen mood */
+const prevWorld = newMatch(424); for (let i = 0; i < 160; i++) step(prevWorld);
+const prevR = createRenderer($('prevScene'), $('prevGlow'));
+const S = { time: 'Midsommarnatt', season: 'Sommar', weather: 'Klart', turn: '45 s', units: '3', flood: 'Runda 8', weapons: new Set(['Kalle Gurra', 'Surströmming', 'Dynamit-Alfred']) };
+const OPTIONS = {
+  time: ['Dag', 'Skymning', 'Natt', 'Midsommarnatt'], season: ['Sommar', 'Höst', 'Vinter', 'Vår'], weather: ['Klart', 'Regn', 'Snö', 'Dimma'],
+  turn: ['30 s', '45 s', '60 s', '90 s'], units: ['2', '3', '4', '5'], flood: ['Av', 'Runda 6', 'Runda 8', 'Runda 12'],
+  weapons: ['Kalle Gurra', 'Surströmming', 'Dynamit-Alfred', 'Fallukorv', 'Dalahästen', 'Älgtestet']
+};
+function moodFor() {
+  if (S.season === 'Vinter' || S.weather === 'Snö') return ['vinter', 'Vinternatt'];
+  if (S.season === 'Höst' || S.time === 'Skymning') return ['host', 'Höstskymning'];
+  if (S.time === 'Dag') return ['dag', 'Sommardag'];
+  return ['midsommar', 'Midsommarnatt'];
+}
+function updatePrev() {
+  const [m, name] = moodFor(); prevR.setMood(m);
+  const exact = (m === 'midsommar' && S.time === 'Midsommarnatt' && S.season === 'Sommar' && S.weather === 'Klart')
+    || (m === 'dag' && S.time === 'Dag' && S.season === 'Sommar' && S.weather === 'Klart')
+    || (m === 'host' && S.time === 'Skymning' && S.season === 'Höst' && S.weather === 'Klart')
+    || (m === 'vinter' && S.time === 'Natt' && S.season === 'Vinter' && (S.weather === 'Klart' || S.weather === 'Snö'));
+  $('prevNote').textContent = exact ? `Visar ${name}.` : `Visar ${name}, den närmaste som finns i dag.`;
+}
+for (const el of document.querySelectorAll('[data-set]')) {
+  const key = el.dataset.set, multi = !!el.dataset.multi;
+  for (const v of OPTIONS[key]) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = v;
+    const on = () => multi ? S[key].has(v) : S[key] === v;
+    b.setAttribute('aria-pressed', String(on()));
+    if (key === 'weapons' && ['Fallukorv', 'Dalahästen', 'Älgtestet'].includes(v)) { b.disabled = true; b.title = 'Kommer senare'; }
+    b.addEventListener('click', () => {
+      if (multi) { if (S[key].has(v)) S[key].delete(v); else S[key].add(v); b.setAttribute('aria-pressed', String(on())); }
+      else { S[key] = v; el.querySelectorAll('button').forEach((o) => o.setAttribute('aria-pressed', String(o === b))); }
+      updatePrev();
+    });
+    el.append(b);
+  }
+}
+['Midsommarängen', 'Kobbarna', 'Trollskogen', 'Gruvan'].forEach((m, i) => {
+  const b = document.createElement('button'); b.type = 'button'; b.textContent = m; b.setAttribute('aria-pressed', String(i === 0));
+  if (i) { b.disabled = true; b.title = 'Finns som mockup, inte spelbar än'; }
+  $('maps').append(b);
+});
+updatePrev();
+
+/* team builder */
+const TEAMS = [
+  { name: 'Vettvillingarna', color: 0, hat: 'Toppig', units: ['Märta', 'Stina', 'Gösta', 'Ebbe'], cry: 'Nu tar vi dom!' },
+  { name: 'Vätternrundan', color: 1, hat: 'Tofs', units: ['Alva', 'Vera', 'Sixten', 'Tage'], cry: 'Ett varv till!' }
+];
+const COLORS = [[0xe5533d, 0xa5342a, 'Röd'], [0x4fa3ff, 0x2a6fd0, 'Blå'], [0x5fae3a, 0x3b7d34, 'Grön'], [0xf2c43c, 0xc8962a, 'Gul'], [0xb06ad8, 0x7a3fa0, 'Lila'], [0xeeeae0, 0xb8b0a0, 'Vit']];
+const NAMES = ['Agda', 'Alrik', 'Birger', 'Dagny', 'Elof', 'Frideborg', 'Gunnel', 'Holger', 'Ingrid', 'Josef', 'Knut', 'Lennart', 'Majken', 'Nils', 'Oskar', 'Ragnhild', 'Signe', 'Torsten', 'Ulla', 'Valborg', 'Åke', 'Östen'];
+let cur = 0;
+const hex = (v) => '#' + v.toString(16).padStart(6, '0');
+function teamList() {
+  $('teamList').innerHTML = '';
+  TEAMS.forEach((t, i) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = t.name; b.style.borderLeft = `2cqh solid ${hex(COLORS[t.color][0])}`; b.setAttribute('aria-pressed', String(i === cur)); b.addEventListener('click', () => { cur = i; form(); }); $('teamList').append(b); });
+  const add = document.createElement('button'); add.type = 'button'; add.textContent = '+ Nytt lag';
+  add.addEventListener('click', () => { TEAMS.push({ name: 'Nytt lag', color: TEAMS.length % COLORS.length, hat: 'Stickad', units: NAMES.slice(0, 4), cry: '' }); cur = TEAMS.length - 1; form(); });
+  $('teamList').append(add);
+}
+function form() {
+  const t = TEAMS[cur];
+  $('tname').value = t.name;
+  $('colors').innerHTML = '';
+  COLORS.forEach(([c, , n], i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.setAttribute('aria-label', n); b.title = n; b.setAttribute('aria-pressed', String(t.color === i)); const s = document.createElement('span'); s.style.background = hex(c); b.append(s); b.addEventListener('click', () => { t.color = i; form(); }); $('colors').append(b); });
+  $('hats').innerHTML = '';
+  for (const h of ['Toppig', 'Tofs', 'Stickad']) { const b = document.createElement('button'); b.type = 'button'; b.textContent = h; b.setAttribute('aria-pressed', String(t.hat === h)); b.addEventListener('click', () => { t.hat = h; form(); }); $('hats').append(b); }
+  $('names').innerHTML = '';
+  t.units.forEach((n, i) => { const inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 10; inp.value = n; inp.setAttribute('aria-label', `Vätte ${i + 1}`); inp.addEventListener('input', () => { t.units[i] = inp.value; }); $('names').append(inp); });
+  $('cry').textContent = t.cry ? `”${t.cry}”` : '';
+  teamList(); preview();
+}
+$('tname').addEventListener('input', () => { TEAMS[cur].name = $('tname').value; teamList(); });
+$('shuffle').addEventListener('click', () => { const pool = NAMES.slice(); TEAMS[cur].units = TEAMS[cur].units.map(() => pool.splice(Math.floor(Math.random() * pool.length), 1)[0]); form(); });
+function preview() {
+  const t = TEAMS[cur], [c, d] = COLORS[t.color], g = $('teamPrev').getContext('2d');
+  g.clearRect(0, 0, 20, 26);
+  g.fillStyle = '#3f7a3e'; g.fillRect(0, 22, 20, 4);
+  const rows = VATTE.slice();
+  if (t.hat === 'Tofs') { rows[0] = '....W....'; rows[1] = '...WLL...'; }
+  if (t.hat === 'Stickad') { rows[0] = '.........'; rows[1] = '.........'; rows[2] = '...LlL...'; rows[4] = '.hhhhhhhh'; }
+  const pal = { L: c, l: d, h: 0xffffff, S: 0xf2c9a2, N: 0xe89a80, e: 0x2a2030, W: 0xf4f4f0, G: 0x9aa0aa, g: 0x6a707c, B: 0x3a2c28 };
+  rows.forEach((r, j) => [...r].forEach((ch, i) => { if (ch !== '.') { g.fillStyle = hex(pal[ch]); g.fillRect(6 + i, 10 + j, 1, 1); } }));
+}
+form();
+
+for (const b of document.querySelectorAll('[data-go]')) b.addEventListener('click', () => $(b.dataset.go).scrollIntoView({ behavior: still ? 'auto' : 'smooth' }));
+
+function frame(ms) {
+  const w = $('prevScene').getBoundingClientRect().width, dpr = Math.min(2, devicePixelRatio || 1);
+  if ($('prevGlow').width !== Math.round(w * dpr)) { $('prevGlow').width = Math.round(w * dpr); $('prevGlow').height = Math.round(w * 270 / 480 * dpr); }
+  menuR.frame(menuWorld, {}, ms);
+  prevR.frame(prevWorld, {}, ms);
+  if (!still) requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

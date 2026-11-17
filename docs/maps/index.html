@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vättigt banor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;600&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: one map per section, scene first and notes beside or below. Single dark theme, as the game. */
+  color-scheme: dark;
+  --night:#12172b; --panel:#1b2240; --line:#313b6b; --ink:#ebe6d8; --dim:#aab1cb; --sun:#ffd27a;
+  --display:"Pixelify Sans","Courier New",monospace; --body:"Albert Sans","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55}
+.wrap{max-width:1480px;margin:0 auto;padding:28px 20px 72px;display:flex;flex-direction:column;gap:48px}
+header{display:flex;flex-direction:column;gap:6px}
+.eyebrow{font-family:var(--display);color:var(--dim);font-size:17px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(38px,7vw,60px);line-height:1;margin:0;color:var(--sun)}
+h2{font-family:var(--display);font-weight:700;font-size:32px;line-height:1.1;margin:0}
+h3{font-family:var(--display);font-weight:500;font-size:19px;margin:0;color:var(--sun)}
+p{margin:0}
+.lede{max-width:64ch;color:var(--dim);font-size:19px}
+section{display:flex;flex-direction:column;gap:14px}
+.where{font-family:var(--display);color:var(--dim);font-size:16px;text-transform:uppercase;letter-spacing:.08em}
+.stagebox{overflow-x:auto;border:2px solid var(--line);background:#000;line-height:0}
+.stage{position:relative;margin:0 auto}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.scene{image-rendering:pixelated;image-rendering:crisp-edges}
+.glow{mix-blend-mode:screen;pointer-events:none}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}
+.cols > div{display:flex;flex-direction:column;gap:8px;max-width:62ch}
+ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="eyebrow">Vättigt · banor · mockup</span>
+  <h1>Tre nya banor</h1>
+  <p class="lede">Kobbarna i Bohuslän, Trollskogen i Småland och Gruvan i Bergslagen, i samma pixelstil som Midsommarängen. Varje bana har ett eget material att spränga i och en egen regel som ändrar hur man spelar.</p>
+</header>
+
+<section aria-labelledby="h-kob">
+  <span class="where">Bohuslän</span>
+  <h2 id="h-kob">Kobbarna</h2>
+  <div class="stagebox"><div class="stage" data-scene="kobbarna"><canvas class="scene" width="480" height="270" role="img" aria-label="Pixelgrafik: rosa granitkobbar i havet, en röd sjöbod på pålar, en brygga, en fyr och vättar på hällarna."></canvas><canvas class="glow" aria-hidden="true"></canvas></div></div>
+  <div class="cols">
+    <div><h3>Så ser den ut</h3><p>Släta, rundslipade granithällar i rosa och grått med lavfläckar, mycket vatten emellan. En röd sjöbod står på pålar, en brygga sticker ut från mittenkobben och längst ut står fyren.</p></div>
+    <div><h3>Så spelas den</h3><ul><li>Granit tål mer: kratrarna blir hälften så stora som i jord.</li><li>Bryggan och sjöboden är av trä och rasar när de träffas.</li><li>Lite mark och mycket vatten: knuffar avgör mer än skada.</li></ul></div>
+  </div>
+</section>
+
+<section aria-labelledby="h-troll">
+  <span class="where">Småland</span>
+  <h2 id="h-troll">Trollskogen</h2>
+  <div class="stagebox"><div class="stage" data-scene="trollskogen"><canvas class="scene" width="480" height="270" role="img" aria-label="Pixelgrafik: mossig granskog i skymning med stora flyttblock, en stenmur, flugsvampar och dimma. Ett av blocken är ett sovande troll."></canvas><canvas class="glow" aria-hidden="true"></canvas></div></div>
+  <div class="cols">
+    <div><h3>Så ser den ut</h3><p>Mossig skogsbotten, höga granar, en gammal stenmur och flugsvamp. Dimma ligger i sänkorna och en lyktgubbe svävar mellan stammarna. Det största flyttblocket har ett ansikte.</p></div>
+    <div><h3>Så spelas den</h3><ul><li>Flyttblocken är hårda och kan vältas och rulla när marken under sprängs bort.</li><li>Trollet sover. Träffas det på natten vaknar det och kastar ett block tillbaka.</li><li>Dimman i sänkorna döljer vättarna för motståndaren.</li></ul></div>
+  </div>
+</section>
+
+<section aria-labelledby="h-gruva">
+  <span class="where">Bergslagen</span>
+  <h2 id="h-gruva">Gruvan</h2>
+  <div class="stagebox"><div class="stage" data-scene="gruvan"><canvas class="scene" width="480" height="270" role="img" aria-label="Pixelgrafik: en gruva i genomskärning med orter på tre nivåer, ett schakt med stege, räls och gruvvagn. Bara det som lyktorna lyser upp syns. Ovanför står gruvlaven mot natthimlen."></canvas><canvas class="glow" aria-hidden="true"></canvas></div></div>
+  <div class="cols">
+    <div><h3>Så ser den ut</h3><p>En sluten bana under jord: orter på tre nivåer, ett schakt med stege, timrade stöttor, räls och en gruvvagn. Överst står gruvlaven mot natthimlen och längst ner står grundvattnet.</p></div>
+    <div><h3>Så spelas den</h3><ul><li>Det är mörkt. Man ser bara det som lyktorna och den egna vättens pannlampa lyser upp.</li><li>Lyktor kan skjutas sönder, och då blir det mörkt där.</li><li>Gruvvagnen rullar längs rälsen när den får en knuff.</li></ul></div>
+  </div>
+</section>
+</div>
+
+<script>
+(() => {
+'use strict';
+const W = 480, H = 270;
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+const bay = (x, y) => (BAYER[(x & 3) + (y & 3) * 4] + .5) / 16;
+const hash = (x, y) => { const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return s - Math.floor(s); };
+const vnoise = (x, y, s) => {
+  const gx = Math.floor(x / s), gy = Math.floor(y / s);
+  let fx = x / s - gx, fy = y / s - gy; fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+  const a = hash(gx, gy), b = hash(gx + 1, gy), c = hash(gx, gy + 1), d = hash(gx + 1, gy + 1);
+  return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+};
+const mix = (a, b, t) => {
+  const r = (a >> 16 & 255) + ((b >> 16 & 255) - (a >> 16 & 255)) * t, g = (a >> 8 & 255) + ((b >> 8 & 255) - (a >> 8 & 255)) * t, l = (a & 255) + ((b & 255) - (a & 255)) * t;
+  return (r << 16) | (g << 8) | l;
+};
+
+/* ---------- a tiny pixel painter ---------- */
+function painter() {
+  const px = new Uint32Array(W * H), solid = new Uint8Array(W * H);
+  const P = {
+    px, solid, lights: [],
+    set(x, y, c) { x |= 0; y |= 0; if (x >= 0 && x < W && y >= 0 && y < H) px[y * W + x] = c; },
+    get(x, y) { x |= 0; y |= 0; return x >= 0 && x < W && y >= 0 && y < H ? px[y * W + x] : 0; },
+    blend(x, y, c, t) { P.set(x, y, mix(P.get(x, y), c, t)); },
+    rect(x, y, w, h, c) { for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) P.set(x + i, y + j, c); },
+    disc(cx, cy, r, c) { for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + r * .6) P.set(cx + i, cy + j, c); },
+    isSolid(x, y) { return x >= 0 && x < W && y >= 0 && y < H && solid[y * W + x] === 1; },
+    top(x, from = 0) { for (let y = from; y < H; y++) if (P.isSolid(x, y)) return y; return H; },
+    sky(stops, until = 205) { const n = stops.length - 1; for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) P.set(x, y, stops[Math.min(n, Math.floor(Math.min(1, y / until) * n + bay(x, y) * .999))]); },
+    stars(n, maxY, chance = 1) { for (let i = 0; i < n; i++) if (hash(i, 3) < chance) P.set(hash(i, 1) * W, hash(i, 2) * maxY, hash(i, 5) < .3 ? 0xffffff : 0xb8c4e8); }
+  };
+  return P;
+}
+
+/* ---------- font and vättar ---------- */
+const F = { A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', F: '111100110100100', G: '011100101101011', H: '101101111101101', I: '111010010010111', J: '001001001101010', K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111', V: '101101101101010', X: '101101010101101', Y: '101101010010010', Z: '111001010100111',
+  0: '111101101101111', 1: '010110010010111', 2: '110001010100111', 3: '110001010001110', 4: '101101111001001', 5: '111100110001110', 6: '011100111101111', 7: '111001010010010', 8: '111101111101111', 9: '111101111001110', ' ': '000000000000000' };
+const ACC = { 'Å': ['A', '010'], 'Ä': ['A', '101'], 'Ö': ['O', '101'] };
+function glyphs(P, s, x, y, c) {
+  for (const ch0 of s) { let ch = ch0, acc = null; if (ACC[ch]) { acc = ACC[ch][1]; ch = ACC[ch][0]; }
+    const g = F[ch] || F[' ']; for (let i = 0; i < 15; i++) if (g[i] === '1') P.set(x + i % 3, y + Math.floor(i / 3), c);
+    if (acc) for (let i = 0; i < 3; i++) if (acc[i] === '1') P.set(x + i, y - 2, c); x += 4; }
+}
+function text(P, s, x, y, c, center) {
+  x = Math.round(center ? x - ([...s].length * 4 - 1) / 2 : x);
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1], [-1, 1]]) glyphs(P, s, x + dx, y + dy, 0x0c1022);
+  glyphs(P, s, x, y, c);
+}
+const VATTE = ['....L....', '....LL...', '...LLLl..', '..LLLLLl.', '.LLLLLLLl', '..SSSSS..', '..SSeSe..', '..SSSNN..', '..WWWWW..', '.gGWWWGG.', '.gGGGGGG.', '..B...B..'];
+const TEAM = [[0xe5533d, 0xa5342a], [0x4fa3ff, 0x2a6fd0]];
+function vatte(P, x, team, name, hp, face, beard, tint = (c) => c) {
+  const y = P.top(x, 0) - 1, sx = x - 4, sy = y - 11;
+  const pal = { L: TEAM[team][0], l: TEAM[team][1], S: 0xf2c9a2, N: 0xe89a80, e: 0x2a2030, W: beard ? 0xf4f4f0 : 0x9aa0aa, G: 0x9aa0aa, g: 0x6a707c, B: 0x3a2c28 };
+  VATTE.forEach((row, j) => { const r = beard || j !== 8 ? row : '..SSSSS..'; for (let i = 0; i < 9; i++) { const ch = r[face < 0 ? 8 - i : i]; if (ch !== '.') P.set(sx + i, sy + j, tint(pal[ch])); } });
+  text(P, name, x, sy - 14, TEAM[team][0], true);
+  text(P, String(hp), x, sy - 7, 0xffffff, true);
+  return [x, y];
+}
+function vatteAt(P, x, y, ...rest) {   // stand on the first ground below y
+  const keep = P.top; P.top = (xx) => keep(xx, y); const r = vatte(P, x, ...rest); P.top = keep; return r;
+}
+function hud(P, hpA, hpB) {
+  [['VETTVILLINGARNA', hpA], ['VÄTTERNRUNDAN', hpB]].forEach(([n, hp], i) => {
+    const y = 6 + i * 16, c = TEAM[i][0];
+    text(P, n, 6, y, c); P.rect(5, y + 7, 66, 5, 0x0c1022); P.rect(6, y + 8, Math.round(64 * hp / 300), 3, c); text(P, String(hp), 75, y + 7, 0xffffff);
+  });
+}
+
+/* ---------- Kobbarna ---------- */
+function kobbarna() {
+  const P = painter(), WL = 204;
+  P.sky([0x6fb2e6, 0x86c2ec, 0xa2d2f2, 0xbfe0f6, 0xdaeefa, 0xeef7fc], 200);
+  P.disc(420, 46, 11, 0xfffbe6); P.lights.push([420, 46, 70, '255,250,220', .45]);
+  for (const [cx, cy, s] of [[90, 40, 1.3], [250, 26, 1], [340, 70, .9]]) for (const [dx, dy, r] of [[0, 0, 6], [8, 2, 5], [-8, 3, 4], [15, 4, 3]]) P.disc(cx + dx * s, cy + dy * s, Math.round(r * s), 0xffffff);
+  for (let x = 0; x < W; x++) { const h = Math.max(0, 6 + 5 * Math.sin(x / 31) + 3 * Math.sin(x / 9)) * (x % 160 < 110 ? 1 : 0); for (let y = Math.round(WL - h); y < WL; y++) P.set(x, y, 0x9fb0c8); }
+  // granite islands
+  const isl = [[78, 78, 52], [248, 62, 74], [404, 70, 44]];
+  // rounded domes that widen under the water
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    for (const [cx, w, h] of isl) {
+      const ww = w * (1 + Math.max(0, y - WL) / 200), t = (x - cx) / ww;
+      if (Math.abs(t) < 1 && y >= Math.round(WL + 6 - h * Math.pow(1 - t * t, .7) + (vnoise(x, 0, 13) - .5) * 6)) { P.solid[y * W + x] = 1; break; }
+    }
+  }
+  const GR = [0xe2b7aa, 0xcfa196, 0xb48a86, 0x8d6d74];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!P.isSolid(x, y)) continue;
+    const up = !P.isSolid(x, y - 1), d = y - P.top(x);
+    const band = vnoise(x * .6, y * 1.2, 9) * .7 + vnoise(x, y, 4) * .3 + d / 120;
+    let c = GR[Math.min(3, Math.floor(band * 3 + bay(x, y) * .6))];
+    const crack = Math.abs(Math.sin(x * .09 + y * .045 + vnoise(x, y, 20) * 4));
+    if (crack < .035 && d > 2) c = 0x6e5560;
+    if (up) c = 0xf3d2c6; else if (!P.isSolid(x - 1, y) || !P.isSolid(x + 1, y)) c = mix(c, 0xffffff, .15);
+    if (d < 7 && hash(x, y) < .035) c = hash(y, x) < .5 ? 0xe0a040 : 0xc9c46a;
+    if (y > WL - 3) c = mix(c, 0x3a3a4a, .45);
+    if (y >= WL) c = mix(c, y - WL < 2 ? 0x8fd0e8 : mix(0x2f7fa8, 0x123e5e, Math.min(1, (y - WL) / 50)), .8);
+    P.set(x, y, c);
+  }
+  for (const x of [52, 61, 120, 230, 271, 380, 432]) { const t = P.top(x); P.set(x, t - 1, 0x6fa84a); P.set(x + 1, t - 2, 0x8fc65a); P.set(x - 1, t - 1, 0x5f9a3a); }
+  // boathouse on poles
+  { const x = 112, base = P.top(116) - 1, top = base - 22;
+    for (let j = 0; j < 22; j++) for (let i = 0; i < 30; i++) P.set(x + i, top + j, i % 4 === 3 ? 0x8a2a24 : 0xa5342a);
+    P.rect(x, top, 2, 22, 0xf2efe6); P.rect(x + 28, top, 2, 22, 0xf2efe6);
+    for (let j = 0; j < 9; j++) for (let i = -2 + j; i < 32 - j; i++) P.set(x + i, top - 1 - j, j === 0 ? 0x2a2630 : 0x4a3f48);
+    P.rect(x + 10, base - 13, 10, 13, 0x5a1e1a); P.rect(x + 14, base - 13, 2, 13, 0xf2efe6);
+    for (const px2 of [x + 2, x + 14, x + 27]) for (let y = base + 1; y < WL + 8; y++) if (!P.isSolid(px2, y)) P.set(px2, y, 0x5a3a2a);
+    P.rect(x - 2, base + 1, 34, 2, 0x8b5a3a); }
+  // jetty from the middle skerry
+  { const y = WL - 6; for (let x = 160; x <= 196; x++) if (!P.isSolid(x, y)) { P.set(x, y, x % 4 === 0 ? 0x6a4430 : 0x9a6a46); P.set(x, y + 1, 0x5a3a2a); }
+    for (const x of [162, 172, 182, 192]) for (let yy = y + 2; yy < WL + 10; yy++) if (!P.isSolid(x, yy)) P.set(x, yy, 0x4a3022); }
+  // lighthouse
+  { const x = 418, base = P.top(420);
+    for (let j = 0; j < 40; j++) { const w = 4 + Math.floor(j / 10); for (let i = -w; i <= w; i++) P.set(x + i, base - 40 + j, (j > 12 && j < 20) ? 0xc8382e : (i < -w + 2 ? 0xd8dde8 : 0xffffff)); }
+    P.rect(x - 5, base - 46, 11, 6, 0x2a2630); P.rect(x - 3, base - 45, 7, 4, 0xfff1b0); P.rect(x - 6, base - 48, 13, 2, 0xc8382e);
+    P.lights.push([x, base - 43, 34, '255,240,170', .9]); }
+  // a rowing boat and gulls
+  { const x = 300, y = WL - 1; for (let i = 0; i < 18; i++) { const d = Math.abs(i - 9) > 7 ? 1 : 0; P.set(x + i, y - 3 + d, 0xf2efe6); P.rect(x + i, y - 2 + d, 1, 3 - d, 0xc8382e); } }
+  for (const [gx, gy] of [[150, 60], [170, 52], [330, 96], [205, 110]]) { P.set(gx - 2, gy, 0x3a3a4a); P.set(gx - 1, gy - 1, 0x3a3a4a); P.set(gx, gy, 0x3a3a4a); P.set(gx + 1, gy - 1, 0x3a3a4a); P.set(gx + 2, gy, 0x3a3a4a); }
+  // sea
+  for (let y = WL; y < H; y++) for (let x = 0; x < W; x++) {
+    if (P.isSolid(x, y)) continue;
+    const d = y - WL; let c = d / 40 + bay(x, y) * .45 > .5 ? 0x1f5f86 : 0x2f7fa8;
+    if (d === 0) c = Math.sin(x / 5) > .2 ? 0xd8f0f8 : 0x5fb0d0;
+    else if ((x * 7 + d * 13) % 47 < 3 && d % 3 === 1) c = 0x8fd0e8;
+    if (d < 4 && (P.isSolid(x - 1, y) || P.isSolid(x + 1, y) || P.isSolid(x - 2, y) || P.isSolid(x + 2, y))) c = 0xffffff;
+    P.set(x, y, c);
+  }
+  vatte(P, 54, 0, 'MÄRTA', 100, 1, 0); vatte(P, 92, 0, 'GÖSTA', 74, 1, 1);
+  vatte(P, 236, 1, 'ALVA', 100, -1, 0); vatte(P, 262, 1, 'SIXTEN', 55, -1, 1); vatte(P, 392, 1, 'VERA', 100, -1, 0);
+  hud(P, 174, 255);
+  return P;
+}
+
+/* ---------- Trollskogen ---------- */
+function trollskogen() {
+  const P = painter(), WL = 252;
+  P.sky([0x16263f, 0x1f3348, 0x2e4652, 0x4a6158, 0x7a8a6a, 0xa8a87a], 210);
+  P.stars(40, 70, .6);
+  P.disc(110, 44, 8, 0xf4f0d8); P.lights.push([110, 44, 40, '230,235,200', .35]);
+  const spruce = (x, base, h, c, c2) => { for (let j = 0; j < h; j++) { const w = Math.floor((j / h) * h * .28) + ((j % 6) < 2 ? 0 : 1); for (let i = -w; i <= w; i++) P.set(x + i, base - h + j, i < 0 ? c2 : c); } P.rect(x, base, 1, 4, c2); };
+  for (let k = 0; k < 26; k++) spruce(k * 19 + (k % 3) * 5, 210 + (k % 4) * 3, 54 + (k * 7) % 30, 0x2c4a50, 0x26404a);
+  for (let k = 0; k < 18; k++) spruce(k * 28 + 9, 228, 70 + (k * 11) % 34, 0x1f3a3a, 0x1a3232);
+  const ground = (x) => Math.round(206 + 14 * Math.sin(x / 58 + 1) + 8 * Math.sin(x / 23) + (vnoise(x, 0, 11) - .5) * 5);
+  const rocks = [[88, 176, 24], [222, 190, 17], [336, 156, 34], [440, 186, 20]];
+  for (let x = 0; x < W; x++) for (let y = ground(x); y < H; y++) P.solid[y * W + x] = 1;
+  const inRock = (x, y) => { for (let k = 0; k < rocks.length; k++) { const [cx, cy, r] = rocks[k]; const dx = x - cx, dy = (y - cy) * 1.15; if (dx * dx + dy * dy <= r * r) return k; } return -1; };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (inRock(x, y) >= 0) P.solid[y * W + x] = 1;
+  // stone wall
+  for (let k = 0; k < 9; k++) { const sx = 150 + k * 7, gy = ground(sx + 3); for (const [ox, oy] of [[0, -4], [3, -9]]) { if (k === 8 && oy === -9) continue; for (let j = -3; j <= 3; j++) for (let i = -3; i <= 3; i++) if (i * i + j * j * 1.4 <= 10) { P.solid[(gy + oy + j) * W + sx + ox + i] = 1; } } }
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!P.isSolid(x, y)) continue;
+    const up = !P.isSolid(x, y - 1), k = inRock(x, y);
+    let c;
+    if (k >= 0 || (x >= 147 && x <= 210 && y < ground(x))) {
+      const [cx, cy, r] = k >= 0 ? rocks[k] : [x, y, 4];
+      const sh = k >= 0 ? ((x - cx) + (y - cy)) / (2 * r) + (bay(x, y) - .5) * .4 : (bay(x, y) - .5);
+      c = sh < -.35 ? 0xa4a8b0 : sh < .1 ? 0x868a94 : sh < .45 ? 0x686c78 : 0x4e5260;
+      let d = 0; while (d < 6 && P.isSolid(x, y - d - 1)) d++;
+      if (d < 3 && (k !== 2 || x < cx - 6 || x > cx + 14) && bay(x, y) < .8 - d * .25) c = d === 0 ? 0x9fd06a : 0x5f9a4a;
+    } else {
+      let d = 0; while (d < 9 && P.isSolid(x, y - d - 1)) d++;
+      c = d === 0 ? 0xa8d870 : d < 3 ? 0x6fae52 : d < 5 + (bay(x, y) > .5) ? 0x3f7a3e : (vnoise(x, y, 7) > .6 ? 0x3b2f2a : 0x2b221f);
+      if (d > 8 && hash(x, y) < .02) c = 0x6a4a34;
+    }
+    if (up && c !== 0xa8d870 && c !== 0x9fd06a) c = mix(c, 0xffffff, .12);
+    P.set(x, y, c);
+  }
+  // the troll's face on the big block
+  { const [cx, cy] = rocks[2], f = (x, y, c) => P.set(cx + x, cy + y, c);
+    for (const ex of [-12, 4]) { f(ex, -6, 0x2a2630); f(ex + 1, -5, 0x2a2630); f(ex + 2, -5, 0x2a2630); f(ex + 3, -5, 0x2a2630); f(ex + 4, -6, 0x2a2630); }
+    for (let j = 0; j < 7; j++) for (let i = -3; i <= 3 - (j > 4 ? 1 : 0); i++) if (i * i + (j - 3) * (j - 3) <= 10) f(i - 3, -2 + j, j < 2 ? 0xa8acb6 : 0x8e929c);
+    for (let i = -10; i <= 8; i++) f(i, 9 + Math.round(Math.abs(i) / 6), 0x3a3e4a);
+    text(P, 'Z', cx + 22, cy - 34, 0xd8dde8); text(P, 'Z', cx + 28, cy - 41, 0xd8dde8); }
+  // ferns, fly agarics, a wisp
+  for (const x of [30, 64, 128, 190, 262, 300, 396, 470]) { const g = P.top(x); for (let k = 0; k < 6; k++) { P.set(x - k, g - 1 - (k >> 1), 0x4f8a4b); P.set(x + k, g - 1 - (k >> 1), 0x5f9a52); } }
+  for (const x of [118, 248, 288, 410]) { const g = P.top(x); P.rect(x + 1, g - 3, 2, 3, 0xf2efe6); P.rect(x - 1, g - 6, 6, 3, 0xd8382a); P.rect(x, g - 7, 4, 1, 0xd8382a); P.set(x, g - 5, 0xffffff); P.set(x + 3, g - 6, 0xffffff); }
+  P.disc(268, 160, 2, 0xbfe8ff); P.lights.push([268, 160, 26, '150,210,255', .9]);
+  // mist in the hollows
+  for (let y = 180; y < 232; y++) for (let x = 0; x < W; x++) { const a = Math.max(0, 1 - Math.abs(y - 214 + 10 * Math.sin(x / 70)) / 18) * (.55 + .45 * vnoise(x, y, 23)); if (a > bay(x, y) * 1.1 + .1) P.blend(x, y, 0xc8d4d8, .35); }
+  for (let y = WL; y < H; y++) for (let x = 0; x < W; x++) if (!P.isSolid(x, y)) P.set(x, y, y === WL ? 0x6a8a9a : 0x1a3040);
+  vatte(P, 46, 0, 'STINA', 100, 1, 0); vatte(P, 176, 0, 'EBBE', 90, 1, 1);
+  vatte(P, 270, 1, 'TAGE', 100, -1, 1); vatte(P, 336, 1, 'ALVA', 62, -1, 0); vatte(P, 452, 1, 'VERA', 100, -1, 0);
+  hud(P, 190, 262);
+  return P;
+}
+
+/* ---------- Gruvan ---------- */
+function gruvan() {
+  const P = painter(), SURF = 46, WL = 252;
+  P.sky([0x060814, 0x0b1026, 0x121a38], 46); P.stars(60, 40, 1);
+  for (let y = SURF; y < H; y++) for (let x = 0; x < W; x++) P.solid[y * W + x] = 1;
+  const dig = (x1, y1, x2, y2, h) => { for (let x = Math.min(x1, x2); x <= Math.max(x1, x2); x++) { const t = x2 === x1 ? 0 : (x - x1) / (x2 - x1), fy = Math.round(y1 + (y2 - y1) * t); for (let y = fy - h; y < fy; y++) if (y >= 0 && y < H) P.solid[y * W + x] = 0; } };
+  const shaft = (x1, x2, y1, y2) => { for (let y = y1; y < y2; y++) for (let x = x1; x < x2; x++) P.solid[y * W + x] = 0; };
+  dig(26, 100, 458, 104, 22); dig(14, 168, 330, 166, 20); dig(120, 230, 470, 234, 24); dig(380, 168, 452, 150, 14);
+  shaft(296, 314, SURF - 2, 232);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const dx = (x - 112) / 62, dy = (y - 196) / 30; if (dx * dx + dy * dy < 1 && y > 168) P.solid[y * W + x] = 0; }
+  dig(150, 208, 196, 168, 12);
+  // rock colours, ore veins
+  for (let y = SURF; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!P.isSolid(x, y)) { P.set(x, y, (x + y * 3) % 9 === 0 ? 0x1c1820 : 0x161219); continue; }
+    const n = vnoise(x, y, 14) * .6 + vnoise(x, y, 5) * .4;
+    let c = n < .35 ? 0x4a4048 : n < .55 ? 0x3a3238 : n < .75 ? 0x2f292f : 0x262126;
+    const vein = Math.abs(Math.sin(x * .05 - y * .11 + vnoise(x, y, 30) * 5));
+    if (vein < .05) c = 0x8a4a3a; if (vein < .015 && hash(x, y) < .4) c = 0xd8b46a;
+    if (!P.isSolid(x, y - 1)) c = 0x6a5e62; else if (!P.isSolid(x, y + 1)) c = 0x241f24;
+    if (y === SURF || y === SURF + 1) c = y === SURF ? 0x3f5a3e : 0x2f4a32;
+    P.set(x, y, c);
+  }
+  // headframe and hut on the surface
+  { const x = 305, b = SURF;
+    for (let j = 0; j < 38; j++) { const o = Math.floor(j / 3); P.set(x - 14 + o, b - j, 0x6a4a34); P.set(x + 14 - o, b - j, 0x6a4a34); if (j % 8 === 0) for (let i = -14 + o; i <= 14 - o; i++) P.set(x + i, b - j, 0x5a3a2a); }
+    for (let a = 0; a < 40; a++) P.set(x + Math.round(Math.cos(a / 40 * 6.283) * 6), b - 40 + Math.round(Math.sin(a / 40 * 6.283) * 6), 0x9aa0aa);
+    P.set(x, b - 40, 0x9aa0aa); for (let y = b - 34; y < b + 120; y++) if (!P.isSolid(x, y)) P.set(x, y, 0x8a8f9a);
+    P.rect(x + 22, b - 14, 34, 14, 0xa5342a); for (let j = 0; j < 6; j++) P.rect(x + 20 + j, b - 15 - j, 38 - 2 * j, 1, 0x3a2f38);
+    P.rect(x + 30, b - 9, 6, 5, 0xffd66b); P.lights.push([x + 33, b - 7, 22, '255,200,100', .7]); }
+  P.disc(200, 18, 7, 0xf4f6ff); P.disc(203, 16, 6, 0x0b1026);
+  // ladder, timber sets, rails and a cart
+  for (let y = SURF; y < 232; y++) { P.set(299, y, 0x8a5a3a); P.set(311, y, 0x8a5a3a); if (y % 5 === 0) for (let x = 299; x <= 311; x++) P.set(x, y, 0xa86a42); }
+  const floor = (x, from) => { for (let y = from; y < H; y++) if (P.isSolid(x, y)) return y; return H; };
+  for (const [x, from] of [[60, 80], [140, 80], [220, 80], [380, 80], [440, 80], [40, 150], [250, 150], [200, 210], [360, 210], [430, 210]]) {
+    const fy = floor(x, from); let ty = fy - 1; while (ty > from - 30 && !P.isSolid(x, ty - 1)) ty--;
+    for (let y = ty; y < fy; y++) { P.set(x - 6, y, 0x7a5236); P.set(x + 6, y, 0x7a5236); } for (let i = -7; i <= 7; i++) P.set(x + i, ty, 0x9a6a46);
+  }
+  for (const [x1, x2, from] of [[20, 320, 150], [130, 470, 210]]) for (let x = x1; x <= x2; x++) { const fy = floor(x, from); if (fy >= H) continue; P.set(x, fy - 1, 0x9aa0aa); if (x % 5 === 0) P.set(x, fy - 1, 0x6a4a34); }
+  { const x = 232, fy = floor(x, 150); P.rect(x - 8, fy - 9, 17, 7, 0x6a707c); P.rect(x - 7, fy - 8, 15, 2, 0x9aa0aa); P.rect(x - 7, fy - 6, 15, 1, 0xb07a4a); P.disc(x - 4, fy - 2, 1, 0x3a3238); P.disc(x + 4, fy - 2, 1, 0x3a3238); }
+  // lanterns
+  const lamps = [[70, 84], [190, 84], [420, 84], [100, 152], [270, 152], [380, 154], [150, 216], [300, 214], [450, 216], [80, 186]];
+  for (const [lx, ly] of lamps) { P.set(lx, ly - 2, 0x8a8f9a); P.rect(lx - 1, ly - 1, 3, 3, 0xffd66b); P.set(lx, ly, 0xfff6c8); }
+  // ground water at the bottom of the cavern
+  for (let y = WL; y < H; y++) for (let x = 0; x < W; x++) if (!P.isSolid(x, y)) P.set(x, y, y === WL ? 0x4a7a9a : 0x14283a);
+  const crew = [[92, 80, 0, 'GÖSTA', 100, 1, 1], [112, 180, 0, 'MÄRTA', 81, 1, 0], [340, 80, 1, 'SIXTEN', 100, -1, 1], [410, 200, 1, 'VERA', 66, -1, 0]];
+  const units = crew.map(([x, y, ...r]) => vatteAt(P, x, y, ...r));
+  // darkness: only what the lanterns and the vättar's headlamps reach can be seen
+  const L = lamps.map(([x, y]) => [x, y, 46]).concat(units.map(([x, y]) => [x, y - 8, 20]));
+  for (let y = SURF + 2; y < H; y++) for (let x = 0; x < W; x++) {
+    let light = 0; for (const [lx, ly, r] of L) { const d = Math.hypot(x - lx, y - ly) / r; if (d < 1) light = Math.max(light, 1 - d * d); }
+    const step = Math.floor((light + bay(x, y) * .25) * 4) / 4;
+    if (step < 1) P.set(x, y, mix(P.get(x, y), 0x040308, Math.min(.92, (1 - step) * .95)));
+  }
+  for (const [lx, ly] of lamps) P.lights.push([lx, ly, 40, '255,190,90', .85]);
+  for (const [ux, uy] of units) P.lights.push([ux, uy - 8, 14, '255,240,200', .5]);
+  units.forEach(([ux, uy], i) => { const [, , team, name, hp] = crew[i]; text(P, name, ux, uy - 25, TEAM[team][0], true); text(P, String(hp), ux, uy - 18, 0xffffff, true); });
+  hud(P, 181, 166);
+  return P;
+}
+
+/* ---------- show ---------- */
+const BUILDERS = { kobbarna, trollskogen, gruvan };
+const built = {};
+function draw(stage) {
+  const name = stage.dataset.scene, P = built[name] || (built[name] = BUILDERS[name]());
+  const [sc, gl] = stage.querySelectorAll('canvas');
+  const box = stage.parentElement, k = Math.floor(box.clientWidth / W), w = k >= 1 ? k * W : box.clientWidth;
+  stage.style.width = w + 'px'; stage.style.height = Math.round(w * H / W) + 'px';
+  const ctx = sc.getContext('2d'), img = ctx.createImageData(W, H), b = new Uint32Array(img.data.buffer);
+  for (let i = 0; i < W * H; i++) { const c = P.px[i]; b[i] = (0xff000000 | ((c & 255) << 16) | (c & 0xff00) | (c >> 16 & 255)) >>> 0; }
+  ctx.putImageData(img, 0, 0);
+  const dpr = Math.min(2, devicePixelRatio || 1); gl.width = Math.round(w * dpr); gl.height = Math.round(w * H / W * dpr);
+  const g = gl.getContext('2d'), s = gl.width / W;
+  for (const [x, y, r, rgb, a] of P.lights) { const gr = g.createRadialGradient(x * s, y * s, 0, x * s, y * s, r * s); gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(.4, `rgba(${rgb},${a * .35})`); gr.addColorStop(1, `rgba(${rgb},0)`); g.fillStyle = gr; g.fillRect((x - r) * s, (y - r) * s, 2 * r * s, 2 * r * s); }
+}
+const stages = [...document.querySelectorAll('.stage')];
+const all = () => stages.forEach(draw);
+addEventListener('resize', all);
+all();
+})();
+</script>
+</body>
+</html>

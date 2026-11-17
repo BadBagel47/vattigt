@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vättigt vättar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;600&family=Pixelify+Sans:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Layout: controls on top, a grid of animated poses below. Single dark theme, as the game. */
+  color-scheme: dark;
+  --night:#12172b; --panel:#1b2240; --line:#313b6b; --ink:#ebe6d8; --dim:#aab1cb; --sun:#ffd27a;
+  --display:"Pixelify Sans","Courier New",monospace; --body:"Albert Sans","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 72px;display:flex;flex-direction:column;gap:36px}
+header{display:flex;flex-direction:column;gap:6px}
+.eyebrow{font-family:var(--display);color:var(--dim);font-size:17px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(38px,7vw,60px);line-height:1;margin:0;color:var(--sun)}
+h2{font-family:var(--display);font-weight:700;font-size:28px;margin:0}
+h3{font-family:var(--display);font-weight:500;font-size:19px;margin:0;color:var(--sun)}
+p{margin:0}
+.lede{max-width:64ch;color:var(--dim);font-size:19px}
+section{display:flex;flex-direction:column;gap:14px}
+.controls{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:2px solid var(--line);padding:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.row .label{font-family:var(--display);color:var(--dim);min-width:110px}
+button{font-family:var(--display);font-size:17px;color:var(--ink);background:var(--night);border:2px solid var(--line);padding:6px 12px;min-height:44px;cursor:pointer}
+button:hover{border-color:var(--dim)}
+button:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:#1b1a14}
+.swatch{width:44px;padding:0}
+.swatch span{display:block;width:24px;height:24px;margin:auto;border:2px solid #0c1022}
+.poses{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px}
+.pose{background:var(--panel);border:2px solid var(--line);padding:10px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.pose canvas{width:144px;height:200px;image-rendering:pixelated;background:linear-gradient(#2c3b66,#5a6fa0 96%,#3f7a3e 96%)}
+.pose h3{font-size:18px}
+.pose p{font-size:14px;color:var(--dim);text-align:center}
+.compare{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end}
+.compare figure{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px}
+.compare canvas{image-rendering:pixelated;background:#2c3b66}
+figcaption{font-size:14px;color:var(--dim)}
+ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:5px;max-width:66ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <span class="eyebrow">Vättigt · figurer · förslag</span>
+  <h1>Vättarna</h1>
+  <p class="lede">En vätte i större format, 16 × 22 pixlar i stället för 9 × 12, med rörelser som ger personlighet: lunk, sikte, hopp, fika och den sista suckan. Välj lag, luva och skägg för att se varianterna.</p>
+</header>
+
+<section aria-labelledby="h-pick">
+  <h2 id="h-pick" style="position:absolute;left:-9999px">Välj utseende</h2>
+  <div class="controls">
+    <div class="row" role="group" aria-labelledby="l-team"><span class="label" id="l-team">Lag</span></div>
+    <div class="row" role="group" aria-labelledby="l-hat"><span class="label" id="l-hat">Luva</span></div>
+    <div class="row" role="group" aria-labelledby="l-beard"><span class="label" id="l-beard">Skägg</span></div>
+  </div>
+</section>
+
+<section aria-labelledby="h-poses">
+  <h2 id="h-poses">Rörelser</h2>
+  <div class="poses" id="poses"></div>
+</section>
+
+<section aria-labelledby="h-size">
+  <h2 id="h-size">Storlek på banan</h2>
+  <div class="compare">
+    <figure><canvas id="cmpOld" width="40" height="40" style="width:160px;height:160px"></canvas><figcaption>Nu: 9 × 12</figcaption></figure>
+    <figure><canvas id="cmpNew" width="40" height="40" style="width:160px;height:160px"></canvas><figcaption>Förslag: 16 × 22</figcaption></figure>
+  </div>
+  <ul>
+    <li>Den större vätten ryms på banan om banorna ritas i 640 × 360 i stället för 480 × 270. Det blir fortfarande hela pixlar på en telefon i liggande läge, och det ger plats för ansiktsuttryck.</li>
+    <li>Alternativet är att behålla banornas storlek och bara använda det stora formatet i menyer, lagbyggaren och när en vätte zoomas in vid vinst.</li>
+    <li>Rörelserna fungerar i båda storlekarna: det lilla formatet får samma rörelser med färre pixlar.</li>
+  </ul>
+</section>
+</div>
+
+<script>
+(() => {
+'use strict';
+const SW = 16, SH = 22;
+const TEAMS = { Röda: [0xe5533d, 0xa5342a, 0xff9a7a], Blå: [0x4fa3ff, 0x2a6fd0, 0xa8d4ff], Gröna: [0x5fae3a, 0x3b7d34, 0xb6e06a], Gula: [0xf2c43c, 0xc8962a, 0xffe38a] };
+const HATS = ['Toppig', 'Tofs', 'Stickad'];
+const st = { team: 'Röda', hat: 'Toppig', beard: true };
+
+// Body, from the brim down. Hats are drawn on top of row 8.
+const BODY = [
+  '..lllllllllll...',
+  '...SSSSSSSSs....',
+  '...SSeSSSeSs....',
+  '...SSSSNNSSs....',
+  '..WWSSSNNSWWw...',
+  '..WWWWWWWWWWw...',
+  '...WWWWWWWWw....',
+  '..GgWWWWWWwGg...',
+  '.HGGGWWWWGGGgH..',
+  '.HGGGGGGGGGGgH..',
+  '..bbbbbybbbbb...',
+  '..GGGGGGGGGGg...',
+  '...BBB...BBB....',
+  '..BBBB...BBBB...'
+];
+const HAT = {
+  Toppig: ['.......L........', '......LLl.......', '.....LLLl.......', '.....hLLLl......', '....hLLLLl......', '....hLLLLLl.....', '...LLLLLLLLl....', '..LLLLLLLLLLl...'],
+  Tofs: ['......WWW.......', '.....WWWWW......', '......LLl.......', '.....hLLLl......', '....hLLLLLl.....', '....hLLLLLl.....', '...LLLLLLLLl....', '..LLLLLLLLLLl...'],
+  Stickad: ['................', '................', '................', '......LLLl......', '....LLlLLlLl....', '...LlLLlLLlLl...', '...LLLLLLLLLL...', '..hhhhhhhhhhhh..']
+};
+function figure(pose, t) {
+  const rows = HAT[st.hat].concat(BODY).map((r) => r.padEnd(SW, '.').split(''));
+  const at = (x, y, ch) => { if (y >= 0 && y < rows.length && x >= 0 && x < SW) rows[y][x] = ch; };
+  if (!st.beard) for (let y = 12; y <= 16; y++) for (let x = 0; x < SW; x++) if (rows[y][x] === 'W' || rows[y][x] === 'w') rows[y][x] = y === 12 ? 'S' : y === 13 ? (x > 3 && x < 12 ? 'S' : '.') : 'G';
+  if (!st.beard) { at(6, 13, 'm'); at(7, 13, 'm'); at(8, 13, 'm'); }
+  let dy = 0, lean = 0;
+  const blink = () => { for (let x = 0; x < SW; x++) if (rows[10][x] === 'e') rows[10][x] = 's'; };
+  const legs = (a, b) => { rows[20] = a.padEnd(SW, '.').split(''); rows[21] = b.padEnd(SW, '.').split(''); };
+  const extras = [];
+  switch (pose) {
+    case 'idle': if (t % 24 > 21) blink(); dy = (t >> 3) % 2; break;
+    case 'walk': {
+      const f = (t >> 2) % 4;
+      legs(['...BBB...BBB....', '...BBB..BBB.....', '...BBB...BBB....', '....BBB..BBB....'][f], ['..BBBB...BBBB...', '..BBBB.BBBB.....', '..BBBB...BBBB...', '....BBBB.BBBB...'][f]);
+      dy = f % 2; lean = 1; break;
+    }
+    case 'aim': {
+      if (t % 30 > 27) blink();
+      at(1, 16, 'G'); at(1, 17, 'G');
+      for (let k = 0; k < 9; k++) extras.push([6 + k, 15 - Math.floor(k * .55), k > 6 ? 0x4a5530 : 0x8a9d55]);
+      extras.push([13, 16, 0xf2c9a2]); extras.push([6, 16, 0xf2c9a2]);
+      if (t % 20 < 10) extras.push([15, 10, 0xffe38a]);
+      break;
+    }
+    case 'jump': {
+      const f = (t >> 3) % 4;
+      dy = [2, -3, -5, -1][f];
+      if (f === 0) legs('..BBBBB.BBBBB...', '................');
+      else if (f === 2) legs('...BBB...BBB....', '..BBB.....BBB...');
+      at(0, 15, 'H'); at(14, 15, 'H');
+      break;
+    }
+    case 'fika': {
+      if (t % 26 > 23) blink();
+      const sip = (t >> 4) % 3 === 2;
+      extras.push(...(sip ? [[10, 12, 0xffffff], [11, 12, 0xffffff], [10, 13, 0xffffff], [11, 13, 0xd8dde8]] : [[12, 16, 0xffffff], [13, 16, 0xffffff], [12, 17, 0xffffff], [13, 17, 0xd8dde8], [14, 16, 0xffffff]]));
+      for (let k = 0; k < 3; k++) { const sy = (sip ? 10 : 14) - k - ((t >> 2) % 2); extras.push([(sip ? 11 : 13) + ((k + (t >> 3)) % 2), sy, 0xb8c4e0]); }
+      break;
+    }
+    case 'fall': {
+      const f = Math.min(5, (t >> 3) % 8);
+      if (f >= 4) return { stone: true, f };
+      dy = f; lean = f;
+      for (let x = 0; x < SW; x++) if (rows[10][x] === 'e') rows[10][x] = 'x';
+      break;
+    }
+  }
+  return { rows, dy, lean, extras };
+}
+function paint(c, pose, t, scale = 1, ox = 0, oy = 0) {
+  const g = c.getContext('2d'), team = TEAMS[st.team];
+  const pal = { L: team[0], l: team[1], h: team[2], S: 0xf2c9a2, s: 0xd8a882, N: 0xe89a80, e: 0x2a2030, x: 0x2a2030, m: 0xa8605a, W: 0xf4f4f0, w: 0xc9c4d0, G: 0x9aa0aa, g: 0x6a707c, H: 0xf2c9a2, b: 0x5a3a2a, y: 0xffd66b, B: 0x3a2c28 };
+  const fig = figure(pose, t);
+  const hex = (v) => '#' + v.toString(16).padStart(6, '0');
+  if (fig.stone) {
+    const x = ox + 4, y = oy + 9;
+    const pix = (i, j, col) => { g.fillStyle = hex(col); g.fillRect((x + i) * scale, (y + j) * scale, scale, scale); };
+    for (let j = 0; j < 14; j++) for (let i = 0; i < 9; i++) if (!(j < 2 && (i < 2 || i > 6))) pix(i, j, i < 2 ? 0xb3b8bd : 0x8b8f98);
+    for (const [i, j] of [[4, 3], [3, 5], [5, 5], [4, 7], [4, 8], [3, 10], [5, 10]]) pix(i, j, team[1]);
+    return;
+  }
+  const { rows, dy, lean, extras } = fig;
+  rows.forEach((r, j) => r.forEach((ch, i) => {
+    if (ch === '.') return;
+    const sh = lean && j < 12 ? Math.round(lean * (12 - j) / 12) : 0;
+    g.fillStyle = hex(pal[ch]); g.fillRect((ox + i + sh) * scale, (oy + j + dy) * scale, scale, scale);
+  }));
+  for (const [i, j, col] of extras) { g.fillStyle = hex(col); g.fillRect((ox + i) * scale, (oy + j + dy) * scale, scale, scale); }
+}
+
+const POSES = [
+  ['idle', 'Står', 'Andas, blinkar och ser sig om.'],
+  ['walk', 'Lunkar', 'Fyra steg, lite framåtlutad.'],
+  ['aim', 'Siktar', 'Kalle Gurra på axeln, stubinen glöder.'],
+  ['jump', 'Hoppar', 'Sätter sig på huk, flyger, landar.'],
+  ['fika', 'Fikar', 'Kaffekoppen ångar. Den tar en klunk.'],
+  ['fall', 'Stupar', 'Kryss i ögonen och sedan en runsten.']
+];
+const box = document.getElementById('poses');
+const canvases = POSES.map(([id, name, note]) => {
+  const d = document.createElement('div'); d.className = 'pose';
+  const c = document.createElement('canvas'); c.width = 18 * 2; c.height = 22; 
+  c.width = 18; c.height = 25; c.setAttribute('role', 'img'); c.setAttribute('aria-label', `Vätte: ${name.toLowerCase()}`);
+  const h = document.createElement('h3'); h.textContent = name;
+  const p = document.createElement('p'); p.textContent = note;
+  d.append(c, h, p); box.append(d); return [id, c];
+});
+function choice(groupId, values, key, render) {
+  const row = document.querySelector(`[aria-labelledby=${groupId}]`);
+  values.forEach((v) => {
+    const b = document.createElement('button'); b.type = 'button';
+    if (render) render(b, v); else b.textContent = v;
+    b.setAttribute('aria-pressed', String(st[key] === v));
+    b.addEventListener('click', () => { st[key] = v; row.querySelectorAll('button').forEach((o) => o.setAttribute('aria-pressed', String(o === b))); draw(tick); });
+    row.append(b);
+  });
+}
+choice('l-team', Object.keys(TEAMS), 'team', (b, v) => { b.className = 'swatch'; b.setAttribute('aria-label', v); b.title = v; const s = document.createElement('span'); s.style.background = '#' + TEAMS[v][0].toString(16).padStart(6, '0'); b.append(s); });
+choice('l-hat', HATS, 'hat');
+choice('l-beard', [true, false], 'beard', (b, v) => { b.textContent = v ? 'Med skägg' : 'Utan skägg'; });
+
+const old = ['....L....', '....LL...', '...LLLl..', '..LLLLLl.', '.LLLLLLLl', '..SSSSS..', '..SSeSe..', '..SSSNN..', '..WWWWW..', '.gGWWWGG.', '.gGGGGGG.', '..B...B..'];
+function compare() {
+  const team = TEAMS[st.team];
+  const a = document.getElementById('cmpOld').getContext('2d'); a.fillStyle = '#2c3b66'; a.fillRect(0, 0, 40, 40); a.fillStyle = '#3f7a3e'; a.fillRect(0, 34, 40, 6);
+  const pal = { L: team[0], l: team[1], S: 0xf2c9a2, N: 0xe89a80, e: 0x2a2030, W: 0xf4f4f0, G: 0x9aa0aa, g: 0x6a707c, B: 0x3a2c28 };
+  old.forEach((r, j) => [...r].forEach((ch, i) => { if (ch !== '.') { a.fillStyle = '#' + pal[ch].toString(16).padStart(6, '0'); a.fillRect(15 + i, 22 + j, 1, 1); } }));
+  const b = document.getElementById('cmpNew'); const g = b.getContext('2d'); g.fillStyle = '#2c3b66'; g.fillRect(0, 0, 40, 40); g.fillStyle = '#3f7a3e'; g.fillRect(0, 34, 40, 6);
+  paint(b, 'idle', 0, 1, 12, 12);
+}
+let tick = 0;
+function draw(t) {
+  for (const [id, c] of canvases) { const g = c.getContext('2d'); g.clearRect(0, 0, c.width, c.height); paint(c, id, t, 1, 1, 2); }
+  compare();
+}
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+draw(0);
+if (!still) setInterval(() => draw(++tick), 1000 / 12);
+})();
+</script>
+</body>
+</html>
