@@ -51,3 +51,60 @@ test('the new weapons keep the match the same in every browser', () => {
   const run = () => { const r = shoot(25, 'korv', { tx: 200 }, 300); step(r.w, { weapon: idx('bullar') }); return fingerprint(r.w); };
   assert.equal(run(), run());
 });
+
+test('Jasså 39 drops five charges near the tap', () => {
+  const { ev } = shoot(31, 'jas', { tx: 300 }, 500);
+  const booms = ev.filter((e) => e.t === 'boom');
+  assert.ok(booms.length >= 4 && booms.every((b) => Math.abs(b.x - 300) < 120));
+});
+
+test('Prinsesstårtan makes a very large crater', () => {
+  const { ev } = shoot(32, 'tarta', { angle: 60, power: 55 }, 400);
+  assert.ok(ev.some((e) => e.t === 'boom' && e.r === 40));
+});
+
+test('Plattpaketet puts a crooked wooden plank where you tap', () => {
+  const w = settle(newMatch(33));
+  step(w, { weapon: idx('platt') }); step(w, { fire: { tx: 240, ty: 60 } });
+  let wood = 0; for (let y = 50; y < 75; y++) for (let x = 220; x < 262; x++) if (w.map.solid[y * R.W + x] && w.map.mat[y * R.W + x] === 3) wood++;
+  assert.ok(wood > 60, `${wood} wood pixels`);
+});
+
+test('Halmbocken singes the vättar of the team whose turn begins nearby', () => {
+  const w = settle(newMatch(34));
+  const enemy = w.units.find((u) => u.team === 1);
+  w.fires.push({ X: enemy.X, Y: enemy.Y, turns: R.FIRE_TURNS });
+  const hp = enemy.hp;
+  for (let i = 0; i < R.TURN_TICKS + 300 && w.turn.team === 0; i++) step(w);
+  assert.equal(enemy.hp, hp - R.FIRE_DAMAGE);
+});
+
+test('Enkel biljett till Borås sends a vätte away for a round; it comes back wet with less life', () => {
+  const w = settle(newMatch(35));
+  const enemy = w.units.find((u) => u.team === 1), hp = enemy.hp;
+  step(w, { weapon: idx('biljett') });
+  step(w, { fire: { tx: enemy.X >> 10, ty: (enemy.Y >> 10) - 5 } });
+  assert.ok(enemy.away > 0, 'away');
+  let back = false;
+  for (let i = 0; i < 20000 && !back; i++) { step(w); if (w.events.some((e) => e.t === 'back')) back = true; if (w.turn.phase === 'aim' && w.turn.number < 4) { /* turns run out by themselves */ } }
+  assert.ok(back, 'came back');
+  assert.ok(enemy.wet > 0, 'wet');
+  assert.equal(enemy.hp, hp - R.TICKET_DAMAGE);
+});
+
+test('a crate falls every second round and can be picked up', () => {
+  const w = settle(newMatch(36));
+  let dropped = null;
+  for (let i = 0; i < 40000 && !dropped; i++) { step(w); const e = w.events.find((x) => x.t === 'crate-drop'); if (e) dropped = e; }
+  assert.ok(dropped, 'a crate was dropped');
+  assert.ok(w.turn.round >= 3);
+  for (let i = 0; i < 400; i++) step(w);
+  const c = w.crates[0];
+  if (c) {
+    const u = w.units.find((o) => o.alive && !o.away);
+    u.X = c.X; u.Y = c.Y; u.air = true;
+    let got = false;
+    for (let i = 0; i < 10; i++) { step(w); if (w.events.some((e) => e.t === 'crate')) got = true; }
+    assert.ok(got, 'picked up');
+  }
+});

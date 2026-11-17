@@ -205,6 +205,7 @@ export function createEngine(ctx, hooks = {}) {
   setTempo(st.bpm);
 
   function sting(kind, t = ctx.currentTime + .03) {
+    if (kind === 'boras') return dansband(t);
     const six = 60 / (st.bpm * 1.05) / 4;
     const notes = kind === 'vinst'
       ? [['D5', 0, 2], ['F#5', 2, 2], ['A5', 4, 2], ['D6', 6, 14]]
@@ -219,6 +220,21 @@ export function createEngine(ctx, hooks = {}) {
     thump(CH.sting.in, t, 120, 55, .16, .5);
     if (kind === 'vinst') { thump(CH.sting.in, t + 6 * six, 150, 42, .3, .8);
       for (const m of [50, 54, 57, 62]) tone(CH.sting.in, W.p50, m, t + 6 * six, 12 * six, { gain: .06, cut: 2000, a: .01, d: .3, s: .5, r: .4 }); }
+  }
+  // "Bara i Borås": a short dansband phrase in C major with an oom-pa bass (game only, not in the workshop).
+  function dansband(t) {
+    const e = 60 / 132 / 2;
+    const mel = [['G4', 0, 1], ['C5', 1, 1], ['E5', 2, 1], ['G5', 3, 2], ['E5', 5, 1], ['A5', 6, 2], ['G5', 8, 1], ['E5', 9, 1], ['F5', 10, 1], ['D5', 11, 1], ['C5', 12, 4]];
+    music.gain.setTargetAtTime(.25, t, .03); music.gain.setTargetAtTime(1, t + 16 * e, .4);
+    for (const [n, s, l] of mel) {
+      tone(CH.sting.in, W.p50, midi(n), t + s * e, l * e * .9, { gain: .16, cut: 3200, a: .01, d: .08, s: .7, r: .08, vib: 14 });
+      tone(CH.sting.in, W.p25, midi(n) - 4 + (n[0] === 'G' || n[0] === 'C' ? 1 : 0), t + s * e + .004, l * e * .9, { gain: .07, cut: 2400, a: .01, d: .1, s: .6, r: .08 });
+    }
+    for (let b = 0; b < 16; b++) {
+      const bt = t + b * e;
+      if (b % 2 === 0) { tone(CH.sting.in, 'triangle', midi(b % 4 === 0 ? 'C3' : 'G2'), bt, e * .8, { gain: .3, a: .005, d: .1, s: .5, r: .05 }); thump(CH.sting.in, bt, 110, 50, .12, .35); }
+      else for (const m of [64, 67, 72]) tone(CH.sting.in, W.p50, m, bt, e * .4, { gain: .04, cut: 2000, a: .003, d: .05, s: .3, r: .04 });
+    }
   }
   return { st, start, stop, scheduleUntil, setLevel, setLayer, setTempo, setGung: g => { st.gung = g; }, sting, analyser };
 }

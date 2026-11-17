@@ -62,11 +62,20 @@ const weaponButtons = WEAPONS.map((wp, i) => {
   const b = document.createElement('button');
   b.type = 'button'; b.className = 'weapon'; b.setAttribute('aria-pressed', 'false');
   const c = document.createElement('canvas'); drawIcon(c, i);
-  b.append(c, document.createElement('small'));
-  b.addEventListener('click', () => { emit({ weapon: i }); sound.unlock(); });
+  const name = document.createElement('span'); name.textContent = wp.name;
+  b.append(c, name, document.createElement('small'));
+  b.addEventListener('click', () => { emit({ weapon: i }); sound.unlock(); menu(false); });
   $('weapons').append(b);
   return b;
 });
+function menu(open) {
+  $('weaponMenu').hidden = !open;
+  $('weaponBtn').setAttribute('aria-expanded', String(open));
+  if (open) (weaponButtons.find((b) => b.getAttribute('aria-pressed') === 'true') || weaponButtons[0]).focus();
+}
+$('weaponBtn').addEventListener('click', () => { sound.unlock(); menu($('weaponMenu').hidden); });
+$('weaponMenu').addEventListener('click', (e) => { if (e.target === $('weaponMenu')) menu(false); });
+let shownWeapon = -1, shownAmmo = null;
 function updatePanels() {
   const w = world();
   if (!w) return;
@@ -78,9 +87,19 @@ function updatePanels() {
     const ammo = w.teams[team].ammo[i];
     b.setAttribute('aria-pressed', String(t.weapon === i));
     b.disabled = !canAct || ammo === 0;
+    b.hidden = !w.settings.weapons.includes(WEAPONS[i].id);
     b.querySelector('small').textContent = ammo < 0 ? '' : String(ammo);
     b.setAttribute('aria-label', `${WEAPONS[i].name}, ${ammo < 0 ? 'obegränsad' : ammo + ' kvar'}`);
   });
+  const am = w.teams[team].ammo[t.weapon];
+  if (shownWeapon !== t.weapon || shownAmmo !== am) {
+    shownWeapon = t.weapon; shownAmmo = am;
+    drawIcon($('weaponIcon'), t.weapon);
+    $('weaponName').textContent = WEAPONS[t.weapon].name + (am >= 0 ? ` (${am})` : '');
+    $('weaponBtn').setAttribute('aria-label', `Vapen: ${WEAPONS[t.weapon].name}. Tryck för att byta.`);
+  }
+  $('weaponBtn').disabled = !canAct;
+  if (!canAct && !$('weaponMenu').hidden) menu(false);
   const wpn = WEAPONS[t.weapon], dyn = !wpn.aim && !wpn.target;
   const horse = mine && t.phase === 'retreat' && w.projectiles.some((p) => p.kind === 'hast' && u && p.owner === u.id && p.age > 6);
   $('drop').hidden = !(dyn || horse);
@@ -99,7 +118,7 @@ function updatePanels() {
       hint = p ? `${p.name} spelar ${u ? u.name.charAt(0) + u.name.slice(1).toLowerCase() : ''}` : 'Ingen i laget är med just nu.';
     }
   }
-  if (!hint && canAct && wpn.target) hint = 'Tryck där korvarna ska falla.';
+  if (!hint && canAct && wpn.target) hint = wpn.ticket ? 'Tryck på vätten som ska till Borås.' : wpn.build ? 'Tryck där plankan ska ligga.' : wpn.id === 'jas' ? 'Tryck där planet ska fälla laddningarna.' : 'Tryck där korvarna ska falla.';
   if (!hint && canAct && wpn.aim && shotsFired < 2 && !view.aim) hint = 'Dra i bilden för att sikta. Släpp för att skjuta.';
   if (!hint && horse) hint = 'Tryck på Spräng! när hästen är framme.';
   $('hint').textContent = hint;
@@ -129,7 +148,8 @@ function canAim(kind = 'aim') {
 }
 stage.addEventListener('pointerdown', (e) => {
   sound.unlock();
-  if (canAim('target')) { e.preventDefault(); stage.setPointerCapture?.(e.pointerId); drag = { id: e.pointerId, target: true }; view.target = toWorld(e)[0]; return; }
+  if (!$('weaponMenu').hidden) return;
+  if (canAim('target')) { e.preventDefault(); stage.setPointerCapture?.(e.pointerId); drag = { id: e.pointerId, target: true }; [view.target, view.targetY] = toWorld(e); return; }
   if (!canAim()) return;
   e.preventDefault();
   stage.setPointerCapture?.(e.pointerId);
@@ -137,7 +157,7 @@ stage.addEventListener('pointerdown', (e) => {
 });
 stage.addEventListener('pointermove', (e) => {
   if (!drag || e.pointerId !== drag.id) return;
-  if (drag.target) { view.target = toWorld(e)[0]; return; }
+  if (drag.target) { [view.target, view.targetY] = toWorld(e); return; }
   const [x, y] = toWorld(e), dx = x - drag.start[0], dy = y - drag.start[1], len = Math.hypot(dx, dy);
   if (len < 4) { view.aim = null; return; }
   const angle = ((Math.round(Math.atan2(-dy, dx) * 180 / Math.PI) % 360) + 360) % 360;
@@ -146,7 +166,7 @@ stage.addEventListener('pointermove', (e) => {
 });
 function endDrag(e) {
   if (!drag || e.pointerId !== drag.id) return;
-  if (drag.target) { if (canAim('target')) { emit({ fire: { tx: Math.round(Math.max(0, Math.min(W - 1, view.target))) } }); shotsFired++; } drag = null; view.target = null; return; }
+  if (drag.target) { if (canAim('target')) { emit({ fire: { tx: Math.round(Math.max(0, Math.min(W - 1, view.target))), ty: Math.round(Math.max(0, Math.min(H - 1, view.targetY))) } }); shotsFired++; } drag = null; view.target = null; return; }
   if (view.aim && view.aim.power >= 10 && canAim()) { emit({ fire: { ...view.aim } }); shotsFired++; }
   drag = null; view.aim = null;
 }
@@ -160,7 +180,9 @@ addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft') { held.left = true; updateWalk(); }
   else if (e.key === 'ArrowRight') { held.right = true; updateWalk(); }
   else if (e.key === ' ') { emit({ jump: true }); e.preventDefault(); }
-  else if (/^[1-7]$/.test(e.key)) emit({ weapon: +e.key - 1 });
+  else if (/^[1-9]$/.test(e.key)) emit({ weapon: +e.key - 1 });
+  else if (e.key === 'v' || e.key === 'V') menu($('weaponMenu').hidden);
+  else if (e.key === 'Escape') menu(false);
   else if (e.key === 'Enter' && e.target === document.body) emit({ fire: true });
   else return;
   sound.unlock();
@@ -171,11 +193,23 @@ addEventListener('keyup', (e) => {
 });
 
 /* ---------- the loop ---------- */
+// "Bara i Borås": when something unlikely happens (an own goal, a chain of five blasts, a ticket), once a turn.
+const boras = { team: -1, booms: 0, shown: false, timer: null };
+function stamp() {
+  if (boras.shown) return;
+  boras.shown = true;
+  $('stamp').hidden = false; sound.sting('boras');
+  clearTimeout(boras.timer); boras.timer = setTimeout(() => { $('stamp').hidden = true; }, 2600);
+}
 function handle(evs, w) {
   if (!evs.length) return;
   renderer.onEvents(evs, w);
   sound.onEvents(evs);
   for (const e of evs) {
+    if (e.t === 'turn') { boras.team = e.team; boras.booms = 0; boras.shown = false; }
+    else if (e.t === 'boom' && ++boras.booms === 5) stamp();
+    else if (e.t === 'death' && w.units[e.unit] && w.units[e.unit].team === boras.team) stamp();
+    else if (e.t === 'ticket') stamp();
     if (e.t === 'turn') { view.aim = null; drag = null; walkDir = 0; }
     if (e.t === 'over') showOver();
   }

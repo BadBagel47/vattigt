@@ -31,7 +31,8 @@ export function matchSettings(opts = {}) {
     units: clamp(s.units, 1, R.MAX_UNITS, d.units),
     turn: clamp(s.turn, 10, 120, d.turn),
     flood: clamp(s.flood, 0, 99, d.flood),
-    weapons: weapons.length ? weapons : ['gurra']
+    weapons: weapons.length ? weapons : ['gurra'],
+    crates: s.crates !== false
   };
 }
 
@@ -48,7 +49,7 @@ export function newMatch(seed, opts = {}) {
     map, water: map.water, wind: 0, trollTurn: -1,
     cart: map.cart ? { X: map.cart.x * FP, Y: map.cart.y * FP, VX: 0, VY: 0, air: 1, hit: -1 } : null,
     teams, units: [], projectiles: [], clouds: [], stones: [],
-    spawn: [],
+    spawn: [], crates: [], fires: [],
     turn: { phase: 'start', team: -1, unit: -1, timer: 0, retreat: 0, quiet: 0, round: 0, weapon: 0, aim: { angle: 45, power: 60 }, number: 0 },
     winner: null, events: [], mapVersion: 0
   };
@@ -95,7 +96,7 @@ function hurt(w, u, n) {
 }
 
 function stepUnit(w, u) {
-  if (!u.alive) return;
+  if (!u.alive || u.away) return;
   let x = px(u.X), y = px(u.Y);
   if (!u.air && !standing(w, x, y)) { u.air = true; u.VX = 0; u.VY = 0; }
   if (u.air) {
@@ -140,7 +141,30 @@ function fire(w, u, shot) {
   if (team.ammo[t.weapon] === 0) return false;
   if (team.ammo[t.weapon] > 0) team.ammo[t.weapon]--;
   const cx = u.X, cy = u.Y - 5 * FP;
-  if (wp.target) {
+  if (wp.ticket) {
+    // the vätte nearest the tap, not the one using the ticket
+    const tx = shot.tx | 0, ty = shot.ty | 0;
+    let best = null, bd = 30 * 30;
+    for (const o of w.units) { if (!o.alive || o.away || o.id === u.id) continue; const dx = px(o.X) - tx, dy = px(o.Y) - 5 - ty, d = dx * dx + dy * dy; if (d < bd) { bd = d; best = o; } }
+    if (!best) { team.ammo[t.weapon]++; return false; }
+    w.events.push({ t: 'ticket', unit: best.id, x: px(best.X), y: px(best.Y) });
+    best.away = R.TICKET_TURNS; best.X = -1000 * FP; best.Y = -1000 * FP; best.VX = 0; best.VY = 0; best.air = false;
+  } else if (wp.build) {
+    const tx = Math.max(14, Math.min(W - 15, shot.tx | 0)), ty = Math.max(4, Math.min(H - 4, shot.ty | 0)), tilt = u.face;
+    for (let i = -14; i <= 14; i++) for (let j = 0; j < 3; j++) {
+      const x = tx + i, y = ty + j + Math.trunc((i * tilt + 14) / 10) - 1;
+      if (x >= 0 && x < W && y >= 0 && y < H && !w.map.solid[y * W + x]) { w.map.solid[y * W + x] = 1; w.map.mat[y * W + x] = 3; }
+    }
+    w.mapVersion++;
+    w.events.push({ t: 'build', x: tx, y: ty });
+  } else if (wp.id === 'halm') {
+    w.fires.push({ X: u.X + u.face * 6 * FP, Y: u.Y, turns: R.FIRE_TURNS });
+    w.events.push({ t: 'fire-start', x: px(u.X), y: px(u.Y) });
+  } else if (wp.id === 'jas') {
+    const tx = Number.isInteger(shot.tx) ? Math.max(0, Math.min(W - 1, shot.tx)) : px(u.X) + u.face * 60;
+    for (let k = 0; k < 5; k++) w.projectiles.push({ kind: 'jas', X: (tx + (k - 2) * 14) * FP, Y: (-10 - k * 4) * FP, VX: 0, VY: 0, owner: u.id, age: 20, fuse: -1, rest: false });
+    w.events.push({ t: 'plane', x: tx });
+  } else if (wp.target) {
     const tx = Number.isInteger(shot.tx) ? Math.max(0, Math.min(W - 1, shot.tx)) : px(u.X) + u.face * 60;
     for (let k = 0; k < 5; k++) {
       w.projectiles.push({ kind: wp.id, X: (tx + (k - 2) * 10) * FP, Y: (-8 - k * 7) * FP, VX: randInt(w, 1201) - 600, VY: 0, owner: u.id, age: 0, fuse: wp.fuse + k * 6, rest: false, bounces: 0 });
@@ -167,6 +191,8 @@ function explode(w, x, y, wp) {
   w.events.push({ t: 'boom', x, y, r, kind: wp.id });
   for (const l of w.map.lamps) if (l.on && (l.x - x) * (l.x - x) + (l.y - y) * (l.y - y) <= (r + 6) * (r + 6)) { l.on = 0; w.events.push({ t: 'lamp', x: l.x, y: l.y }); }
   wakeTroll(w, x, y, r);
+  const hit = w.crates.filter((c) => { const dx = px(c.X) - x, dy = px(c.Y) - 3 - y; return dx * dx + dy * dy <= (r + 5) * (r + 5); });
+  if (hit.length) { w.crates = w.crates.filter((c) => !hit.includes(c)); for (const c of hit) if (c.kind === 'post') explode(w, px(c.X), px(c.Y) - 3, R.CRATE_BOOM); }
   const c = w.cart;
   if (c) {
     const dx = px(c.X) - x, dy = px(c.Y) - 4 - y, reach = r + 20;
@@ -187,6 +213,37 @@ function explode(w, x, y, wp) {
     u.air = true;
   }
   for (const p of w.projectiles) if (p.rest) { const dx = px(p.X) - x, dy = px(p.Y) - y; if (dx * dx + dy * dy < reach * reach) { p.rest = false; p.VY = -1500; } }
+}
+
+/* ---------- crates ---------- */
+function dropCrate(w) {
+  const limited = R.WEAPONS.map((wp, i) => i).filter((i) => R.WEAPONS[i].ammo >= 0 && w.settings.weapons.includes(R.WEAPONS[i].id));
+  const post = limited.length && randInt(w, 10) < 6;
+  let x, y;
+  if (w.map.roof) { const all = w.map.spawns[0].concat(w.map.spawns[1]); [x, y] = all[randInt(w, all.length)]; y -= 8; }
+  else { x = 30 + randInt(w, W - 60); y = -12; }
+  w.crates.push({ X: x * FP, Y: y * FP, VY: 0, rest: false, kind: post ? 'post' : 'fika', weapon: post ? limited[randInt(w, limited.length)] : -1 });
+  w.events.push({ t: 'crate-drop', x });
+}
+function stepCrates(w) {
+  for (const c of w.crates) {
+    const x = px(c.X), y = px(c.Y);
+    if (c.rest && !solidAt(w, x - 2, y + 1) && !solidAt(w, x + 2, y + 1) && !solidAt(w, x, y + 1)) c.rest = false;
+    if (!c.rest) {
+      c.VY = Math.min(c.VY + (R.GRAVITY >> 2), 1200);
+      const ny = c.Y + c.VY;
+      if (solidAt(w, x, px(ny) + 1) || solidAt(w, x - 2, px(ny) + 1) || solidAt(w, x + 2, px(ny) + 1)) { let yy = px(ny); while (yy > 0 && solidAt(w, x, yy)) yy--; c.Y = yy * FP; c.VY = 0; c.rest = true; }
+      else c.Y = ny;
+    }
+    for (const u of w.units) {
+      if (!u.alive || u.away || c.taken || Math.abs(px(u.X) - x) > 6 || Math.abs(px(u.Y) - px(c.Y)) > 9) continue;
+      c.taken = 1;
+      if (c.kind === 'fika') { const n = Math.min(R.FIKA_HP, R.HP_MAX - u.hp); u.hp += n; w.events.push({ t: 'crate', kind: 'fika', unit: u.id, n, x, y: px(c.Y) }); }
+      else { const tm = w.teams[u.team]; if (tm.ammo[c.weapon] >= 0) tm.ammo[c.weapon]++; w.events.push({ t: 'crate', kind: 'post', unit: u.id, weapon: c.weapon, x, y: px(c.Y) }); }
+    }
+    if (px(c.Y) > w.water) { c.taken = 1; w.events.push({ t: 'splash', x, y: w.water }); }
+  }
+  w.crates = w.crates.filter((c) => !c.taken);
 }
 
 /* ---------- loose things: boulders that fall and roll, the mine cart ---------- */
@@ -325,7 +382,7 @@ function stepProjectile(w, p) {
     const nx = p.X + sx, ny = p.Y + sy, ix = px(nx), iy = px(ny);
     if (iy > w.water) { w.events.push({ t: 'splash', x: ix, y: w.water }); return false; }
     if (ix < -60 || ix > W + 60 || iy > H + 20) return false;
-    if (p.kind === 'gurra' || p.kind === 'troll' || p.kind === 'bullar' || p.kind === 'ball') {
+    if (p.kind === 'gurra' || p.kind === 'troll' || p.kind === 'bullar' || p.kind === 'ball' || p.kind === 'jas' || p.kind === 'tarta') {
       const hitUnit = w.units.some((u) => u.alive && !(u.id === p.owner && p.age < 12) && Math.abs(px(u.X) - ix) <= 3 && iy >= px(u.Y) - 10 && iy <= px(u.Y));
       if (solidAt(w, ix, iy) || hitUnit) {
         explode(w, ix, iy, wp);
@@ -365,6 +422,25 @@ function nextTurn(w) {
     if (aliveIn(w, team).length) break;
   }
   if (team <= t.team || t.team < 0) t.round++;
+  // back from Borås: wet (an umbrella for two turns), with a little less life, somewhere on the own side
+  for (const u of w.units) if (u.wet) u.wet--;
+  for (const u of w.units) if (u.alive && u.away && --u.away === 0) {
+    const spots = w.map.spawns[u.team], [sx, sy] = spots[randInt(w, spots.length)];
+    let y = sy; while (y > 3 && !bodyFree(w, sx, y)) y--;
+    u.X = sx * FP; u.Y = y * FP; u.air = true; u.wet = 2;
+    w.events.push({ t: 'back', unit: u.id, x: sx, y });
+    if (u.hp > R.TICKET_DAMAGE) hurt(w, u, R.TICKET_DAMAGE); else u.hp = 1;
+  }
+  // Halmbocken singes the vättar of the team whose turn begins
+  for (const f of w.fires) for (const u of aliveIn(w, team)) {
+    if (u.away) continue;
+    const dx = px(u.X) - px(f.X), dy = px(u.Y) - px(f.Y);
+    if (dx * dx + dy * dy <= R.FIRE_RADIUS * R.FIRE_RADIUS) hurt(w, u, R.FIRE_DAMAGE);
+  }
+  for (const f of w.fires) f.turns--;
+  w.fires = w.fires.filter((f) => f.turns > 0);
+  // a crate every second round
+  if (w.settings.crates && t.phase !== 'start' && team <= t.team && t.round % R.CRATE_EVERY === 1) dropCrate(w);
   // the surströmming cloud stings the vättar of the team whose turn begins
   for (const c of w.clouds) for (const u of aliveIn(w, team)) {
     const dx = px(u.X) - px(c.X), dy = px(u.Y) - 5 - px(c.Y);
@@ -379,7 +455,8 @@ function nextTurn(w) {
   // the next vätte of that team, in turn
   const tm = w.teams[team], own = w.units.filter((u) => u.team === team);
   let pick = null;
-  for (let k = 0; k < own.length; k++) { const u = own[(tm.next + k) % own.length]; if (u.alive) { pick = u; tm.next = (own.indexOf(u) + 1) % own.length; break; } }
+  for (let k = 0; k < own.length; k++) { const u = own[(tm.next + k) % own.length]; if (u.alive && !u.away) { pick = u; tm.next = (own.indexOf(u) + 1) % own.length; break; } }
+  if (!pick) { t.team = team; t.phase = 'settle'; t.quiet = 0; return; }   // all of this team is in Borås: the turn passes
   t.team = team; t.unit = pick.id; t.phase = 'aim'; t.timer = w.settings.turn * R.TPS; t.retreat = 0; t.quiet = 0; t.number++;
   if (tm.ammo[t.weapon] === 0) t.weapon = Math.max(0, tm.ammo.findIndex((a) => a !== 0));
   t.aim = { angle: pick.face > 0 ? 45 : 135, power: 60 };
@@ -393,7 +470,7 @@ function gameOver(w, living) {
 }
 
 const busy = (w) => w.projectiles.length > 0 || w.units.some((u) => u.alive && u.air) || w.stones.some((s) => s.air !== false)
-  || w.map.boulders.some((b) => b.moving) || (w.cart && (w.cart.VX !== 0 || w.cart.air));
+  || w.map.boulders.some((b) => b.moving) || (w.cart && (w.cart.VX !== 0 || w.cart.air)) || w.crates.some((c) => !c.rest);
 
 /* ---------- one step ---------- */
 // input: { walk: -1|0|1, jump: bool, weapon: index, aim: {angle, power}, fire: {angle, power} | true }
@@ -420,6 +497,7 @@ export function step(w, input = {}) {
     // Dalahästen goes off when the player taps again.
     if (input.fire && t.phase === 'retreat') for (const p of w.projectiles) if (p.kind === 'hast' && p.owner === u.id && p.fuse < 0 && p.age > 6) p.fuse = 1;
   }
+  stepCrates(w);
   for (const b of w.map.boulders) stepBoulder(w, b);
   stepCart(w);
   for (const o of w.units) stepUnit(w, o);
@@ -464,6 +542,9 @@ export function fingerprint(w) {
   for (const l of w.map.lamps) mix(l.on);
   for (const b of w.map.boulders) { mix(b.cx); mix(b.cy); }
   if (w.cart) { mix(w.cart.X); mix(w.cart.Y); mix(w.cart.VX); }
+  for (const c of w.crates) { mix(c.X); mix(c.Y); mix(c.weapon + 2); }
+  for (const f of w.fires) { mix(f.X); mix(f.turns); }
+  for (const u of w.units) mix(u.away | 0);
   const s = w.map.solid;
   for (let i = 0; i < s.length; i += 7) mix(s[i] * (i + 1));
   mix(w.turn.team + 5); mix(w.turn.unit + 5); mix(w.turn.timer); mix(w.turn.round);

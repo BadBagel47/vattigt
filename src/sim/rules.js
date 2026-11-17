@@ -48,6 +48,24 @@ export const WEAPONS = [
   // Älgtestet: runs straight ahead, knocks over whoever is in the way, goes off at the first steep wall.
   { id: 'alg', name: 'Älgtestet', speed: 0, wind: false, radius: 22, damage: 60, force: 6 * FP, aim: false, walker: true, ammo: 1, life: 8 * TPS }
 ];
+WEAPONS.push(
+  // Jasså 39: a plane drops five charges in a row where you tap; they drift with the wind.
+  { id: 'jas', name: 'Jasså 39', speed: 0, wind: true, radius: 12, damage: 30, force: 3 * FP, aim: false, target: true, ammo: 1 },
+  // Prinsesstårtan: rare and enormous.
+  { id: 'tarta', name: 'Prinsesstårtan', speed: 6 * FP, wind: false, radius: 40, damage: 100, force: 8 * FP, aim: true, ammo: 1 },
+  // Plattpaketet: a wooden plank where you tap, a little crooked (a screw was left over).
+  { id: 'platt', name: 'Plattpaketet', speed: 0, wind: false, radius: 0, damage: 0, force: 0, aim: false, target: true, build: true, ammo: 2 },
+  // Halmbocken: set out where you stand; it burns for two rounds and singes whoever stands near it.
+  { id: 'halm', name: 'Halmbocken', speed: 0, wind: false, radius: 6, damage: 10, force: FP, aim: false, ammo: 1 },
+  // Enkel biljett till Borås: tap a vätte; it is gone for a round and comes back wet, with a little less life.
+  { id: 'biljett', name: 'Enkel biljett till Borås', speed: 0, wind: false, radius: 0, damage: 0, force: 0, aim: false, target: true, ticket: true, ammo: 1 }
+);
+export const FIRE_DAMAGE = 10, FIRE_RADIUS = 16, FIRE_TURNS = 4;
+export const TICKET_TURNS = 2, TICKET_DAMAGE = 10;
+// Crates: one every second round; a post parcel with a weapon or a fika basket with life.
+export const CRATE_EVERY = 2, FIKA_HP = 25, HP_MAX = 150;
+export const CRATE_BOOM = { id: 'crate', name: 'Låda', wind: false, radius: 10, damage: 20, force: 2 * FP };
+
 // The small meatballs from Köttbullar.
 export const MEATBALL = { id: 'ball', name: 'Köttbulle', wind: false, radius: 8, damage: 20, force: 2 * FP };
 
@@ -61,5 +79,5 @@ export const TEAMS = [
 
 // Settings for a match (eget spel). Everything that changes the match is here,
 // so every browser in an online room builds the same match from the same settings.
-export const DEFAULT_SETTINGS = { map: 'midsommar', night: true, units: UNITS_PER_TEAM, turn: 45, flood: FLOOD_ROUND, weapons: ['gurra', 'strom', 'dyn', 'bullar', 'korv', 'hast', 'alg'] };
+export const DEFAULT_SETTINGS = { map: 'midsommar', night: true, units: UNITS_PER_TEAM, turn: 45, flood: FLOOD_ROUND, weapons: ['gurra', 'strom', 'dyn', 'bullar', 'korv', 'hast', 'alg', 'jas', 'tarta', 'platt', 'halm', 'biljett'], crates: true };
 export const MAX_UNITS = 5;

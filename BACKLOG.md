@@ -9,25 +9,24 @@ Prioritet: Hög, Medel, Låg.
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
 | D-006 | Låg | Förslag | Bestäm hur typsnitt ska levereras (egen fil i stället för Google Fonts) inför publicering. |
-| D-010 | Medel | Pågår (2026-11-17, session Vättigt, main) | Borås i spelet: bana, verktyget Enkel biljett till Borås, stämpeln Bara i Borås och Knallen. Förslag i docs/DESIGN.md; användaren väljer vilka delar som ska med. |
-| F-024 | Medel | Pågår (2026-11-17, session Vättigt, main) | Lådor som faller ner under matchen (postpaket med vapen, fikakorg med liv). |
-| F-025 | Låg | Pågår (2026-11-17, session Vättigt, main) | Fler vapen ur designförslaget: Jasså 39, Surströmmingens moln i fler varianter, Skurhinken, Halmbocken, Prinsesstårtan, Metspöt, Plattpaketet. |
+| D-026 | Låg | Förslag | Resten av Borås: banan Borås (regn, parkeringshus, slukhål) och Knallen som byter vapen. |
+| F-027 | Låg | Förslag | Vapen som kräver mer: Skurhinken (vatten som rinner), Metspöt (svingrep), Kräftskivan, Snöbollen. |
+| F-028 | Medel | Förslag | Inställning på skärmen för lådor av/på i eget spel och online. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
 
-Prioriterat för: roligare matcher med vänner.
+Prioriterat för: att det som finns fungerar bra på riktiga telefoner, innan mer läggs till.
 
-- **A** – stark modell, hög nivå – Lådor
-  - F-024 – Lådor som faller ner under matchen, så att det finns något att springa efter
-  - Fråga: Vad ska lådorna innehålla? Rekommendation: vapen (postpaket) och liv (fikakorg), en låda varannan runda.
-- **B** – stark modell, hög nivå – Fler vapen
-  - F-025 – Lägg till fler vapen ur designförslaget, så att varje match blir annorlunda
-- **C** – standardmodell, medelnivå – Borås
-  - D-010 – Borås i spelet: stämpeln "Bara i Borås", Enkel biljett till Borås och Knallen
-  - Fråga: Vilka delar? Rekommendation: stämpeln och biljetten först.
+- **A** – standardmodell, medelnivå – Små tillägg
+  - F-028 – Lådor av/på i eget spel och online, så att man kan spela utan slump
+- **B** – stark modell, hög nivå – Svårare vapen
+  - F-027 – Skurhinken, Metspöt, Kräftskivan och Snöbollen, så att det finns mer att välja på
+  - Fråga: Metspöt (svingrep) kräver ny styrning på telefonen. Rekommendation: vänta med Metspöt och ta de tre andra först.
+- **C** – standardmodell, medelnivå – Borås som bana
+  - D-026 – Banan Borås med regn, parkeringshus och slukhål, och Knallen
 
-D-006 (typsnitt) tas inför bredare publicering.
+Användarens provspel kan ge punkter som går före. D-006 (typsnitt) tas inför bredare publicering.
 
 Parkerat: D-012 (musik).
 
@@ -36,6 +35,9 @@ Parkerat: D-012 (musik).
 | ID | Klart | Beskrivning |
 |---|---|---|
 | D-001 | 2026-11-13 | Första designförslaget: stil, banor, arsenal, väsen, spelidéer (docs/DESIGN.md). |
+| F-024 | 2026-11-17 | Lådor varannan runda: postpaket med vapen, fikakorg med liv, fallskärm, förstörs av smällar. |
+| F-025 | 2026-11-17 | Fem till: Jasså 39, Prinsesstårtan, Plattpaketet, Halmbocken och Enkel biljett till Borås. Vapnen väljs nu i en meny (tolv får inte plats i panelen). |
+| D-010 | 2026-11-17 | Borås: stämpeln Bara i Borås med dansbandsslinga och verktyget Enkel biljett till Borås. Banan och Knallen är kvar (D-026). |
 | F-023 | 2026-11-17 | Fyra nya vapen: Köttbullar, Fallukorv, Dalahästen och Älgtestet. |
 | F-021 | 2026-11-17 | Online väljer rumsägaren lag från sin lagbyggare, vättar per lag, turtid, vårflod och vapen (under "Inställningar för matchen" i lobbyn). |
 | F-022 | 2026-11-17 | Flyttblock som faller och rullar, gruvvagnen som rullar när den knuffas, dimman som döljer motståndarlaget. |

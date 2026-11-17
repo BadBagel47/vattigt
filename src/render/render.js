@@ -376,7 +376,7 @@ export function createRenderer(scene, glow) {
   }
 
   /* ---------- effects from simulation events ---------- */
-  let parts = [], flashes = [], floaters = [], banner = null, shake = 0;
+  let parts = [], flashes = [], floaters = [], banner = null, shake = 0, plane = null;
   const rnd = Math.random;
   function onEvents(evs, w) {
     for (const e of evs) {
@@ -395,6 +395,15 @@ export function createRenderer(scene, glow) {
         banner = { s: possessive(u.name) + ' TUR', c: teamColor(w, u.team).c, age: 0 };
       } else if (e.t === 'cloud') {
         for (let i = 0; i < 16; i++) { const a = rnd() * 6.283, v = rnd() * 1.2; parts.push({ x: e.x, y: e.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - .3, g: -.005, life: 50, c: 0xb8d45a, kind: 'smoke', r: 2 }); }
+      } else if (e.t === 'crate') {
+        floaters.push({ x: e.x, y: e.y - 10, s: e.kind === 'fika' ? '+' + e.n : WEAPONS[e.weapon].name.toUpperCase(), c: e.kind === 'fika' ? 0x9bd45a : 0xffd66b, age: 0 });
+      } else if (e.t === 'ticket') {
+        banner = { s: 'ENKEL BILJETT', c: 0x8ad0ff, age: 0 };
+        for (let i = 0; i < 12; i++) parts.push({ x: e.x, y: e.y - 6, vx: (rnd() - .5) * 1.5, vy: -rnd() * 1.5, g: -.01, life: 40, c: 0xd8e8ff, kind: 'smoke', r: 1 });
+      } else if (e.t === 'back') {
+        floaters.push({ x: e.x, y: e.y - 20, s: 'TILLBAKA FRÅN BORÅS', c: 0x8ad0ff, age: 0 });
+      } else if (e.t === 'plane') {
+        plane = { x: -20, y: 14, tx: e.x };
       } else if (e.t === 'flood') {
         banner = { s: 'VÅRFLODEN STIGER', c: 0x8ad0ff, age: 0 };
       }
@@ -407,6 +416,7 @@ export function createRenderer(scene, glow) {
     for (const f of floaters) { f.age++; f.y -= .35; } floaters = floaters.filter((f) => f.age < 75);
     if (banner) { banner.age++; if (banner.age > 100) banner = null; }
     shake *= .85; if (shake < .3) shake = 0;
+    if (plane) { plane.x += 5; if (plane.x > W + 30) plane = null; }
   }
 
   /* ---------- dynamic layer ---------- */
@@ -441,6 +451,12 @@ export function createRenderer(scene, glow) {
   }
   function drawAim(w, view) {
     const u = activeUnit(w), wp0 = WEAPONS[w.turn.weapon];
+    if (view.target != null && wp0.target && w.turn.phase === 'aim' && (wp0.build || wp0.ticket)) {
+      const x = Math.round(view.target), y = Math.round(view.targetY || 0);
+      if (wp0.build) { const tilt = u ? u.face : 1; for (let i = -14; i <= 14; i++) for (let j = 0; j < 3; j++) if ((i + j) % 2 === 0) set(x + i, y + j + Math.trunc((i * tilt + 14) / 10) - 1, 0xc8925e); }
+      else for (let a = 0; a < 24; a++) set(x + Math.round(Math.cos(a / 24 * 6.283) * 9), y + Math.round(Math.sin(a / 24 * 6.283) * 9), 0x8ad0ff);
+      return;
+    }
     if (view.target != null && wp0.target && w.turn.phase === 'aim') {
       const x = Math.round(view.target);
       for (let y = 4; y < H; y += 4) if (!solid(x, y)) set(x, y, 0xff6a5a);
@@ -481,6 +497,10 @@ export function createRenderer(scene, glow) {
         sprite(HORSE, { r: 0xe5533d, w: 0xffffff, b: 0x4fa3ff, g: 0x9bd45a }, x - 4, y - 7 - (still ? 0 : (t >> 1) % 2), p.dir < 0, true);
       } else if (p.kind === 'alg') {
         sprite(MOOSE[still ? 0 : (t >> 1) % 2], { a: 0xd8c8a0, b: 0x6a4430, n: 0x3a2418 }, x - 6, y - 7, p.dir < 0);
+      } else if (p.kind === 'jas') {
+        rect(x - 1, y - 3, 3, 6, tn(0x6a707c)); set(x, y + 3, 0xffe38a); set(x - 1, y - 4, tn(0x9aa0aa)); set(x + 1, y - 4, tn(0x9aa0aa));
+      } else if (p.kind === 'tarta') {
+        disc(x, y, 3, 0x8fd06a); set(x, y - 4, 0xd8382a); rect(x - 3, y + 1, 7, 1, 0xf4c2d0);
       } else if (p.kind === 'troll') {
         disc(x, y, 3, tn(0x868a94)); set(x - 1, y - 1, tn(0xa4a8b0));
       } else {
@@ -606,12 +626,26 @@ export function createRenderer(scene, glow) {
       rect(x - 7, y - 7, 15, 5, tn(0x6a707c)); rect(x - 6, y - 6, 13, 1, tn(0x9aa0aa)); rect(x - 6, y - 5, 13, 1, tn(0xb07a4a));
       disc(x - 4, y - 1, 1, tn(0x3a3238)); disc(x + 4, y - 1, 1, tn(0x3a3238));
     }
-    for (const u of w.units) if (u.alive && !inFog(w, u, act)) drawUnit(u, t, act && u.id === act.id, w, view);
+    for (const f of w.fires) {
+      const x = px(f.X), y = px(f.Y);
+      sprite(['......yy.', '.....yyyy', 'yyy..yy..', 'yyyyyyy..', 'yyyyyyy..', 'yry.yyy..', '.y...y...', '.y...y...'], { y: 0xe8c860, r: 0xd8382a }, x - 4, y - 8, false);
+      for (let k = 0; k < 6; k++) { const fx = x - 4 + ((k * 3 + (still ? 0 : t)) % 9), fy = y - 9 - ((k * 5 + (still ? 0 : t * 2)) % 7); set(fx, fy, k % 2 ? 0xffa040 : 0xffe38a); }
+      lights.push([x, y - 6, 22, '255,160,60', .9]);
+    }
+    for (const c of w.crates) {
+      const x = px(c.X), y = px(c.Y);
+      if (!c.rest) { for (let i = -5; i <= 5; i++) set(x + i, y - 14 + Math.round(i * i / 9), 0xffffff); for (const i of [-5, 0, 5]) for (let j = -12 + Math.round(i * i / 9); j < -6; j++) set(x + i * (1 - (j + 12) / 8), y + j, 0xd8dde8); }
+      if (c.kind === 'post') { rect(x - 3, y - 6, 7, 6, tn(0xb07a4a)); rect(x - 3, y - 4, 7, 1, tn(0xffd23a)); rect(x, y - 6, 1, 6, tn(0xffd23a)); }
+      else { rect(x - 3, y - 5, 7, 5, tn(0xd8b06a)); rect(x - 2, y - 7, 5, 1, tn(0x8a6a3a)); for (let i = -3; i <= 3; i += 2) set(x + i, y - 5, tn(0xd8382a)); }
+    }
+    for (const u of w.units) if (u.alive && !u.away && !inFog(w, u, act)) drawUnit(u, t, act && u.id === act.id, w, view);
+    for (const u of w.units) if (u.alive && !u.away && u.wet) { const x = px(u.X), y = px(u.Y) - 15; for (let i = -5; i <= 5; i++) set(x + i, y + Math.round(i * i / 10), i % 2 ? 0x4fa3ff : 0x2a6fd0); for (let j = 1; j < 6; j++) set(x, y + j, 0x3a2c28); }
     drawProjectiles(w, t);
     drawClouds(w, t);
     water(w, t);
     if (!w.map.roof) ambient(t);
     drawParts();
+    if (plane) { const x = plane.x, y = plane.y; rect(x - 8, y, 16, 2, tn(0x8a8f9a)); rect(x - 2, y - 3, 3, 8, tn(0x6a707c)); rect(x - 8, y - 2, 2, 2, tn(0x6a707c)); set(x + 8, y, 0xd8dde8); }
     if (art().dark) {
       const dyn = [];
       for (const u of w.units) if (u.alive) dyn.push([px(u.X), px(u.Y) - 8, 22]);

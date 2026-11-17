@@ -62,7 +62,8 @@ test('settings: turn time, flood off and weapons left out', () => {
   assert.deepEqual([s.turn, s.flood, s.weapons], [30, 0, ['gurra']]);
   const w = settle(newMatch(4, { settings: s }));
   assert.equal(w.turn.timer, 30 * R.TPS);
-  assert.deepEqual(w.teams[0].ammo, [-1, 0, 0, 0, 0, 0, 0]);
+  assert.equal(w.teams[0].ammo[0], -1);
+  assert.ok(w.teams[0].ammo.slice(1).every((a) => a === 0));
   assert.equal(matchSettings({ settings: { units: 99, map: 'mars' } }).units, R.DEFAULT_SETTINGS.units);
 });
 

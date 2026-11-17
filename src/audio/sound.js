@@ -80,6 +80,7 @@ export function createSound() {
       else { out.gain.setTargetAtTime(.7, ctx.currentTime, .05); startMusic(); }
     },
     get muted() { return muted; },
+    sting(kind) { if (eng && !muted && ctx.state === 'running') eng.sting(kind); },
     suspend() { if (ctx) ctx.suspend().catch(() => {}); },
     resume() { if (ctx && !muted) ctx.resume().catch(() => {}); },
     onEvents

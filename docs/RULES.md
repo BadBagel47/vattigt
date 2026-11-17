@@ -33,10 +33,26 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 | Köttbullar | Dra för att sikta. Den stora köttbullen smäller där den landar och delar sig i fem små som också smäller. | 30 + upp till 20 per liten | liten | 2 |
 | Fallukorv | Tryck där på banan korvarna ska falla. Fem korvringar faller från himlen, studsar och smäller vid tredje studsen. I Gruvan landar de ovanpå berget. | 30 per korv | liten | 1 |
 | Dalahästen | Släpps lös vid fötterna och travar framåt, hoppar över det den inte kan klättra uppför. Tryck Spräng! när den är framme, annars smäller den efter 10 sekunder. | upp till 60 | medelstor | 1 |
+| Jasså 39 | Tryck där på banan planet ska fälla. Fem laddningar faller på rad, tar vind och smäller när de slår ner. | 30 per laddning | liten | 1 |
+| Prinsesstårtan | Dra för att sikta. Smäller där den landar. | upp till 100 | mycket stor | 1 |
+| Plattpaketet | Tryck där plankan ska ligga. En planka av trä hamnar där, lite sned. | – | – | 2 |
+| Halmbocken | Ställs ut där vätten står och brinner i två rundor. En vätte nära elden när det egna lagets tur börjar tar 10 skada. | 10 per tur | – | 1 |
+| Enkel biljett till Borås | Tryck på en vätte. Den är borta en runda och kommer tillbaka blöt, med paraply och 10 liv mindre, någonstans på sitt lags sida. | 10 | – | 1 |
 | Älgtestet | Släpps lös och rusar rakt fram. Den välter vättar den springer på (10 skada och en knuff) och smäller mot första branta väggen, eller efter 8 sekunder. | upp till 60 | medelstor | 1 |
 
 - Skadan är störst mitt i smällen och minskar utåt. Smällen kastar iväg vättar som står nära.
 - Surströmmingsmolnet ligger kvar i tre rundor och driver långsamt med vinden. En vätte som står i molnet när det egna lagets tur börjar tar 5 skada.
+
+## Lådor
+
+- Varannan runda faller en låda med fallskärm, i Gruvan i en av orterna.
+- **Postpaket:** ett vapen till laget som tar lådan. **Fikakorg:** 25 liv till vätten som tar den, högst 150.
+- En smäll förstör lådor i närheten; ett postpaket smäller då självt (upp till 20 skada).
+- Lådor går att stänga av i koden (inställningen finns ännu inte på skärmen).
+
+## Bara i Borås
+
+- När något osannolikt händer stämplas BARA I BORÅS över skärmen till en dansbandsslinga: ett eget lag förlorar en vätte under sin egen tur, fem smällar under samma tur, eller någon får en enkel biljett till Borås. Högst en gång per tur. Stämpeln ändrar inget i matchen.
 
 ## Vårfloden
 
@@ -52,4 +68,4 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 
 ## Inte med än
 
-Lådor, resten av vapnen ur designförslaget och datormotståndare.
+Knallen, Skurhinken, Metspöt, resten av vapnen ur designförslaget och datormotståndare.
