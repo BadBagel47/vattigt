@@ -324,7 +324,7 @@ function resetWorld() {
 }
 function settle(o) { while (o.y < H + 20 && !isSolid(o.x, o.y + 1)) o.y++; }
 
-const TEAM = [{ name: 'VETTVILLINGARNA', c: 0xe5533d, d: 0xa5342a }, { name: 'VÄTTERNRUNDAN', c: 0x4fa3ff, d: 0x2a6fd0 }];
+const TEAM = [{ name: 'VETTVILLINGARNA', c: 0xe5533d, d: 0xa5342a }, { name: 'VÄTTRUNDAN', c: 0x4fa3ff, d: 0x2a6fd0 }];
 const SOIL = [0x8a5a3a, 0x6d4330, 0x4e2f28], RIM = 0xb07a4a, ROCK = [0xb3b8bd, 0x8b8f98, 0x646874];
 function terrainColor(x, y) {
   const d = y - h0[x], i = y * W + x;

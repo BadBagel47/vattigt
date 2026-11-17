@@ -43,5 +43,5 @@ export const WEAPONS = [
 
 export const TEAMS = [
   { name: 'Vettvillingarna', units: ['MÄRTA', 'STINA', 'GÖSTA'] },
-  { name: 'Vätternrundan', units: ['ALVA', 'VERA', 'SIXTEN'] }
+  { name: 'Vättrundan', units: ['ALVA', 'VERA', 'SIXTEN'] }
 ];

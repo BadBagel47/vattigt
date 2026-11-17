@@ -45,6 +45,8 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - 2026-11-16: Nätverkskoden kommer från network-kit. (Agentens tolkning av "där har vi upplägg för nätverkskod"; bekräftad 2026-11-17 när användaren bad att behoven rapporteras dit.) Behov av nätverksfunktioner rapporteras till agenten som arbetar med network-kit (meddelande till den sessionen), inte genom att ändra i network-kits repo.
 - 2026-11-16: Inget brevspel. Spelet spelas bara lokalt (samma skärm) och online.
 - 2026-11-16: Ordvitsar görs på både vett och vätt.
+- 2026-11-17: Lagnamnet Vätternrundan byts mot Vättrundan (D-017), eftersom Vätternrundan är namnet på ett känt cykellopp.
+- 2026-11-17: Vättarna behåller sin storlek ute på banan tills vidare; det stora formatet (16 × 22) används i menyer och lagbyggaren (D-020).
 - 2026-11-16: Musiken är chiptune som möter svensk folkmusik. Agenten komponerar och producerar allt (ljudet skapas i webbläsaren, inga riktiga instrument); användaren lyssnar och styr.
 - 2026-11-17: Mobil först: spelet byggs för pekskärm och liggande läge; tangentbord och mus kommer sedan.
 - 2026-11-17: Spelet är på svenska.

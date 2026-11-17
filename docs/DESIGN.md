@@ -15,7 +15,7 @@ Turbaserat artilleri med vättar ur svensk folktro: två eller flera lag, en spr
 - Ordvitsar görs på både vett och vätt.
 - Förslag på lagnamn:
   - På vett: Vettvillingarna, Vettskrämda, Från vettet, Vett och etikett, Vettgiriga.
-  - På vätt (Vätternrundan ska bytas, se docs/NAMES.md): Vätternrundan, Vättarna på Vättern, Vättkampen, Vättar på väg, Vättbollslaget, Vättlöparna.
+  - På vätt: Vättrundan (ersätter Vätternrundan, se docs/NAMES.md), Vättarna på Vättern, Vättkampen, Vättar på väg, Vättbollslaget, Vättlöparna.
 - Förslag på vättenamn: Gösta, Stina, Märta, Ebbe, Alva, Vera, Sixten, Tage.
 
 ## Stil: retro med modern känsla
