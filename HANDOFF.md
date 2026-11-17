@@ -3,7 +3,7 @@
 Rules version: 1.9 (uppdaterad 2026-11-16, inga ändringar behövdes)
 Inventory: 2026-11-13
 Project language: svenska (beslut 2026-11-17), både i spelet och i README. Kod, kodkommentarer och commits på engelska.
-Publishing method: GitHub Pages från main, roten (godkänt 2026-11-17), när det är påslaget blir adressen https://badbagel47.github.io/vattigt/. 2026-11-17 svarade adressen inte och GitHub hade inte byggt någon sida, så Pages är troligen inte påslaget. Tills vidare finns spelet som en privat sida hos Claude som agenten publicerar från repots filer. Mockuper och musikverkstad är fristående HTML-filer under docs/.
+Publishing method: GitHub Pages från main, roten. Spelet: https://badbagel47.github.io/vattigt/ (igång och kontrollerat 2026-11-17). Varje push till main publiceras av sig själv. Mockuper och musikverkstad är fristående HTML-filer under docs/.
 
 ## Mål
 
@@ -69,7 +69,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 
 - Klar (2026-11-16): repot heter `vattigt` på GitHub (tidigare `vettigt`; gamla länkar leds vidare av GitHub).
 
-- Väntar (2026-11-17): användaren slår på GitHub Pages (Settings → Pages → Deploy from a branch, main, / (root)). Användaren trodde att det var gjort, men 2026-11-17 svarade adressen inte och inget bygge hade körts. Agenten får inte göra det själv: GitHubs API för Pages är spärrat i agentens miljö.
+- Klar (2026-11-17): GitHub Pages påslaget av användaren (main, roten). Agenten får inte göra det själv: GitHubs API för Pages är spärrat i agentens miljö.
 
 ## Dokumentationskarta
 
