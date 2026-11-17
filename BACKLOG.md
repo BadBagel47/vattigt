@@ -11,13 +11,15 @@ Prioritet: Hög, Medel, Låg.
 | D-006 | Låg | Förslag | Bestäm hur typsnitt ska levereras (egen fil i stället för Google Fonts) inför publicering. |
 | F-029 | Låg | Förslag | Metspöt: kasta, haka fast och svinga sig vidare. Kräver ny styrning på telefonen. |
 | F-030 | Medel | Förslag | Datormotståndare, så att man kan spela ensam (övningsmatch mot datorn). |
+| F-031 | Medel | Förslag | Ta in network-kit v0.5.1 (bara felrättningar): en spelare som kommer tillbaka efter en längre stund får tillbaka sin plats i laget om den är ledig, och namnet syns direkt när någon går med. Görs med network-kits kopieringsskript, när användaren säger till. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
 
 Prioriterat för: att det som finns fungerar bra på riktiga telefoner, innan mer läggs till.
 
-- **A** – standardmodell, medelnivå – Typsnitt i spelet
+- **A** – standardmodell, medelnivå – Typsnitt och ny network-kit
+  - F-031 – Ta in network-kit v0.5.1, så att den som tappat kontakten länge får tillbaka sin plats i laget
   - D-006 – Lägg typsnitten i spelet i stället för att hämta dem från Google, så att spelarnas webbläsare inte kontaktar Google och spelet laddar snabbare
 - **B** – stark modell, hög nivå – Spela ensam
   - F-030 – En datormotståndare, så att man kan öva och spela utan vänner
