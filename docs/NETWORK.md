@@ -23,6 +23,15 @@ Spelet är turbaserat, och under en tur är det bara en spelare som styr. Därf�
 
 Det ger ett mycket billigt spel. En tur blir några tiotal meddelanden, inte en ström av positioner.
 
+**Takt för indata (råd från network-kits agent, 2026-11-17):** att bara skicka indata när den ändras räcker inte, eftersom de andra webbläsarna måste veta hur långt de får räkna utan att missa något. Förslag:
+
+- Den aktiva spelaren skickar en liten bunt ungefär var tionde sekund: vilka steg den täcker och indata per steg, även tomma buntar.
+- De andra ligger ungefär 0,2 sekunder efter.
+- I faserna där ingen styr (vänta tills allt ligger still, matchstart) räknar alla fritt utan att vänta, eftersom spelet bara tar emot indata under sikte och reträtt.
+- Försvinner den aktiva spelaren mitt i turen meddelar värden "ingen mer indata efter steg N", och resten av turen räknas som tom indata.
+- Med buntar behövs inte `latest` för siktet.
+- Rummets startvärde passar direkt som matchens startvärde.
+
 **Krav på spelets kod:** fysiken måste ge exakt samma resultat i alla webbläsare. Det betyder heltal eller fasta decimaler, fast tidssteg och ingen `Math.random` (all slump från rummets `seed`). Kravet behöver finnas från första raden fysik.
 
 **Reserv om det blir för svårt:** värden räknar ensam och skickar ut skeendet (projektilens bana, kratrar, skada). Kostar mer men kräver ingen exakt likadan fysik.
