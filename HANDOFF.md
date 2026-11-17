@@ -15,7 +15,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - Cloudflare (F-014): en Worker serverar spelet och kör rummen (network-kit v0.5.0, kopia i `vendor/network-kit`, rum i EU) på https://vattigt.l8p1.workers.dev. Publiceras från main av arbetsflödet `deploy.yml`.
 - Provat: spel över nätet mellan två emulerade telefoner mot en lokal rumsserver (samma match hos båda, omladdning, värdbyte), och av användaren på Cloudflare 2026-11-17: multiplayer fungerar.
 - Känd begränsning: har ett lag ingen ansluten spelare går dess tur ut av sig själv (45 sekunder).
-- Fyra spelbara banor (Midsommarängen, Kobbarna, Trollskogen, Gruvan) med egna material och regler, eget spel och lagbyggare (D-018, D-019, 2026-11-17). Online väljer rumsägaren bana och stämning.
+- Fyra spelbara banor (Midsommarängen, Kobbarna, Trollskogen, Gruvan) med egna material och regler, eget spel och lagbyggare (D-018, D-019). Sju vapen (F-023). Online väljer rumsägaren bana, stämning, lag och inställningar (F-021). Flyttblock som rullar, gruvvagn och dimma (F-022). Allt 2026-11-17.
 - Grundreglerna står i [docs/RULES.md](docs/RULES.md) (D-009). Hur onlinedelen fungerar står i [docs/NETWORK.md](docs/NETWORK.md).
 
 ## Nästa steg

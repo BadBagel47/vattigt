@@ -25,7 +25,7 @@ export function noise(x, y, s, seed) {
 }
 
 function blank(id, name, water) {
-  return { id, name, water, solid: new Uint8Array(W * H), mat: new Uint8Array(W * H), cave: new Uint8Array(W * H), burnt: new Uint8Array(W * H), surface: new Int16Array(W), lamps: [], troll: null, roof: 0, spawns: [[], []] };
+  return { id, name, water, solid: new Uint8Array(W * H), mat: new Uint8Array(W * H), cave: new Uint8Array(W * H), burnt: new Uint8Array(W * H), surface: new Int16Array(W), lamps: [], troll: null, roof: 0, spawns: [[], []], boulders: [], cart: null };
 }
 const fill = (m, x, y, mat) => { if (x >= 0 && x < W && y >= 0 && y < H) { const i = y * W + x; m.solid[i] = 1; m.mat[i] = mat; } };
 function finish(m) {
@@ -96,6 +96,15 @@ function trollskogen(seed) {
   }
   m.rocks = rocks;
   m.troll = { x: 336, y: 156, r: 34 };
+  // the boulders as loose pieces that can fall and roll (offsets of their pixels)
+  m.boulders = rocks.map(([cx, cy, r], k) => {
+    const pts = [];
+    for (let y = cy - r - 2; y <= cy + r + 2; y++) for (let x = cx - r; x <= cx + r; x++) {
+      const dx = x - cx, dy = Math.trunc(((y - cy) * 115) / 100);
+      if (dx * dx + dy * dy <= r * r) pts.push([x - cx, y - cy]);
+    }
+    return { cx, cy, r, troll: k === 2 ? 1 : 0, pts, moving: 0, gone: 0 };
+  });
   m.spawns = [[[40, 150], [70, 150], [110, 120], [176, 150], [200, 150], [130, 150]], [[275, 150], [300, 150], [400, 150], [455, 140], [420, 150], [250, 150]]];
   return finish(m);
 }
@@ -116,6 +125,7 @@ function gruvan() {
   for (let y = SURF - 2; y < 232; y++) for (let x = 296; x < 314; x++) open(x, y);
   for (let y = 168; y < 226; y++) for (let x = 50; x < 175; x++) { const dx = x - 112, dy = y - 196; if (dx * dx * 900 + dy * dy * 3844 < 3460000) open(x, y); }
   m.roof = SURF;
+  m.cart = { x: 232, y: 165 };
   m.lamps = [[70, 84], [190, 84], [420, 84], [100, 152], [270, 152], [390, 154], [150, 216], [300, 214], [450, 216], [80, 186]].map(([x, y]) => ({ x, y, on: 1 }));
   m.spawns = [[[60, 85], [200, 85], [90, 150], [150, 215], [110, 190], [130, 85]], [[400, 85], [390, 155], [260, 150], [420, 215], [440, 85], [340, 215]]];
   return finish(m);

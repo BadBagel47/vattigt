@@ -62,7 +62,7 @@ test('settings: turn time, flood off and weapons left out', () => {
   assert.deepEqual([s.turn, s.flood, s.weapons], [30, 0, ['gurra']]);
   const w = settle(newMatch(4, { settings: s }));
   assert.equal(w.turn.timer, 30 * R.TPS);
-  assert.deepEqual(w.teams[0].ammo, [-1, 0, 0]);
+  assert.deepEqual(w.teams[0].ammo, [-1, 0, 0, 0, 0, 0, 0]);
   assert.equal(matchSettings({ settings: { units: 99, map: 'mars' } }).units, R.DEFAULT_SETTINGS.units);
 });
 
@@ -72,4 +72,22 @@ test('team names and colours from the team builder', () => {
   assert.equal(w.teams[0].color, 3);
   assert.equal(w.units[0].name, 'ADA');
   assert.equal(w.teams[1].name, 'Vättrundan');
+});
+
+test('a boulder falls when the ground under it is blown away', () => {
+  const w = settle(newMatch(12, { settings: { map: 'trollskogen' } }));
+  const b = w.map.boulders[3], y0 = b.cy;
+  for (let y = b.cy; y < b.cy + b.r + 30; y++) for (let x = b.cx - b.r - 2; x <= b.cx + b.r + 2; x++) { const i = y * R.W + x; if (w.map.mat[i] !== 2 || y > b.cy + b.r + 2) { w.map.solid[i] = 0; } }
+  b.moving = 1;
+  for (let i = 0; i < 200; i++) step(w);
+  assert.ok(b.cy > y0 + 5, `moved from ${y0} to ${b.cy}`);
+});
+
+test('the mine cart rolls when a blast pushes it', () => {
+  const w = settle(newMatch(13, { settings: { map: 'gruvan' } }));
+  for (let i = 0; i < 120; i++) step(w);
+  const x0 = w.cart.X;
+  w.projectiles.push({ kind: 'gurra', X: (232 - 14) * R.FP, Y: 160 * R.FP, VX: 0, VY: 3000, owner: -1, age: 50, fuse: -1, rest: false });
+  for (let i = 0; i < 120; i++) step(w);
+  assert.ok(w.cart === null || Math.abs(w.cart.X - x0) > 5 * R.FP, 'the cart moved');
 });

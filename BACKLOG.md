@@ -10,22 +10,22 @@ Prioritet: Hög, Medel, Låg.
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
 | D-006 | Låg | Förslag | Bestäm hur typsnitt ska levereras (egen fil i stället för Google Fonts) inför publicering. |
 | D-010 | Medel | Väntar på användaren | Borås i spelet: bana, verktyget Enkel biljett till Borås, stämpeln Bara i Borås och Knallen. Förslag i docs/DESIGN.md; användaren väljer vilka delar som ska med. |
-| F-021 | Medel | Pågår (2026-11-17, session Vättigt, main) | Fler inställningar i onlinelobbyn: turtid, vättar per lag, vårflod, vapen och egna lag från lagbyggaren (i dag bara bana och stämning). |
-| F-022 | Låg | Pågår (2026-11-17, session Vättigt, main) | Banornas extra regler som saknas: flyttblock som rullar, gruvvagnen som rullar på rälsen, dimman i Trollskogen som döljer vättar. |
-| F-023 | Medel | Pågår (2026-11-17, session Vättigt, main) | Fler vapen ur designförslaget i spelet, till exempel Fallukorv, Dalahästen, Älgtestet och Köttbullar. |
+| F-024 | Medel | Förslag | Lådor som faller ner under matchen (postpaket med vapen, fikakorg med liv). |
+| F-025 | Låg | Förslag | Fler vapen ur designförslaget: Jasså 39, Surströmmingens moln i fler varianter, Skurhinken, Halmbocken, Prinsesstårtan, Metspöt, Plattpaketet. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
 
 Prioriterat för: roligare matcher med vänner.
 
-- **A** – stark modell, hög nivå – Fler vapen
-  - F-023 – Lägg till Fallukorv, Dalahästen, Älgtestet och Köttbullar, så att matcherna får fler sätt att vinna
-  - Fråga: Vilka vapen först? Rekommendation: de fyra ovan, eftersom de skiljer sig mest från dagens tre.
-- **B** – standardmodell, medelnivå – Inställningar online
-  - F-021 – Låt rumsägaren välja turtid, vättar per lag, vårflod, vapen och egna lag, så att online blir som eget spel
-- **C** – stark modell, hög nivå – Banornas sista regler
-  - F-022 – Block som rullar, gruvvagnen och dimman som döljer, så att banorna blir som i designen
+- **A** – stark modell, hög nivå – Lådor
+  - F-024 – Lådor som faller ner under matchen, så att det finns något att springa efter
+  - Fråga: Vad ska lådorna innehålla? Rekommendation: vapen (postpaket) och liv (fikakorg), en låda varannan runda.
+- **B** – stark modell, hög nivå – Fler vapen
+  - F-025 – Lägg till fler vapen ur designförslaget, så att varje match blir annorlunda
+- **C** – standardmodell, medelnivå – Borås
+  - D-010 – Borås i spelet: stämpeln "Bara i Borås", Enkel biljett till Borås och Knallen
+  - Fråga: Vilka delar? Rekommendation: stämpeln och biljetten först.
 
 D-006 (typsnitt) tas inför bredare publicering.
 
@@ -36,6 +36,9 @@ Parkerat: D-012 (musik).
 | ID | Klart | Beskrivning |
 |---|---|---|
 | D-001 | 2026-11-13 | Första designförslaget: stil, banor, arsenal, väsen, spelidéer (docs/DESIGN.md). |
+| F-023 | 2026-11-17 | Fyra nya vapen: Köttbullar, Fallukorv, Dalahästen och Älgtestet. |
+| F-021 | 2026-11-17 | Online väljer rumsägaren lag från sin lagbyggare, vättar per lag, turtid, vårflod och vapen (under "Inställningar för matchen" i lobbyn). |
+| F-022 | 2026-11-17 | Flyttblock som faller och rullar, gruvvagnen som rullar när den knuffas, dimman som döljer motståndarlaget. |
 | D-018 | 2026-11-17 | Kobbarna, Trollskogen och Gruvan spelbara: granit och flyttblock tål mer, trä går sönder lätt, trollet kastar sten på natten, lyktor släcks av smällar och mörker i gruvan. Inte med: block som rullar, gruvvagnen, dimma som döljer. |
 | D-019 | 2026-11-17 | Eget spel (bana, stämning, lag, vättar per lag, turtid, vårflod, vapen, förhandsvisning med riktig grafik) och lagbyggare (namn, färg, luva, fem vättar, sparas i webbläsaren). Online: rumsägaren väljer bana och stämning. |
 | D-020 | 2026-11-17 | Beslut: vättarna behåller sin storlek på banan tills vidare. |

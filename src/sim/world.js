@@ -3,7 +3,7 @@
 // (whole numbers only, no Math.random, no Math.sin), so online play can send
 // inputs only (D-011).
 import * as R from './rules.js';
-import { makeMap, blast, isSolid } from './terrain.js';
+import { makeMap, blast, isSolid, ROCK } from './terrain.js';
 import { sin, cos, isqrt } from './trig.js';
 
 const { FP, W, H } = R;
@@ -46,7 +46,9 @@ export function newMatch(seed, opts = {}) {
   const w = {
     seed: seed >>> 0, rng: seed >>> 0, tick: 0, settings,
     map, water: map.water, wind: 0, trollTurn: -1,
+    cart: map.cart ? { X: map.cart.x * FP, Y: map.cart.y * FP, VX: 0, VY: 0, air: 1, hit: -1 } : null,
     teams, units: [], projectiles: [], clouds: [], stones: [],
+    spawn: [],
     turn: { phase: 'start', team: -1, unit: -1, timer: 0, retreat: 0, quiet: 0, round: 0, weapon: 0, aim: { angle: 45, power: 60 }, number: 0 },
     winner: null, events: [], mapVersion: 0
   };
@@ -138,7 +140,14 @@ function fire(w, u, shot) {
   if (team.ammo[t.weapon] === 0) return false;
   if (team.ammo[t.weapon] > 0) team.ammo[t.weapon]--;
   const cx = u.X, cy = u.Y - 5 * FP;
-  if (wp.aim) {
+  if (wp.target) {
+    const tx = Number.isInteger(shot.tx) ? Math.max(0, Math.min(W - 1, shot.tx)) : px(u.X) + u.face * 60;
+    for (let k = 0; k < 5; k++) {
+      w.projectiles.push({ kind: wp.id, X: (tx + (k - 2) * 10) * FP, Y: (-8 - k * 7) * FP, VX: randInt(w, 1201) - 600, VY: 0, owner: u.id, age: 0, fuse: wp.fuse + k * 6, rest: false, bounces: 0 });
+    }
+  } else if (wp.walker) {
+    w.projectiles.push({ kind: wp.id, X: u.X, Y: u.Y, VX: 0, VY: 0, owner: u.id, age: 0, fuse: -1, rest: false, dir: u.face, hits: [u.id] });
+  } else if (wp.aim) {
     const angle = ((shot.angle % 360) + 360) % 360, power = Math.max(0, Math.min(100, shot.power | 0));
     const v = Math.trunc((wp.speed * power) / 100);
     const dx = cos(angle), dy = -sin(angle);
@@ -158,6 +167,12 @@ function explode(w, x, y, wp) {
   w.events.push({ t: 'boom', x, y, r, kind: wp.id });
   for (const l of w.map.lamps) if (l.on && (l.x - x) * (l.x - x) + (l.y - y) * (l.y - y) <= (r + 6) * (r + 6)) { l.on = 0; w.events.push({ t: 'lamp', x: l.x, y: l.y }); }
   wakeTroll(w, x, y, r);
+  const c = w.cart;
+  if (c) {
+    const dx = px(c.X) - x, dy = px(c.Y) - 4 - y, reach = r + 20;
+    if (dx * dx + dy * dy < reach * reach) { const d = Math.max(1, isqrt(dx * dx + dy * dy)); c.VX += Math.trunc((dx * wp.force * (reach - d)) / (reach * d)); c.VY = -900; c.air = 1; c.hit = -1; }
+  }
+  for (const b of w.map.boulders) b.moving = 1;
   const reach = r + 12;
   for (const u of w.units) {
     if (!u.alive) continue;
@@ -174,6 +189,65 @@ function explode(w, x, y, wp) {
   for (const p of w.projectiles) if (p.rest) { const dx = px(p.X) - x, dy = px(p.Y) - y; if (dx * dx + dy * dy < reach * reach) { p.rest = false; p.VY = -1500; } }
 }
 
+/* ---------- loose things: boulders that fall and roll, the mine cart ---------- */
+function stepBoulder(w, b) {
+  if (b.gone || !b.moving || w.tick % 2) return;
+  const m = w.map, own = new Set();
+  const live = b.pts.filter(([dx, dy]) => { const x = b.cx + dx, y = b.cy + dy; return x >= 0 && x < W && y >= 0 && y < H && m.solid[y * W + x] && m.mat[y * W + x] === ROCK; });
+  if (live.length < 20) { b.gone = 1; b.moving = 0; return; }
+  for (const [dx, dy] of live) own.add((b.cy + dy) * W + b.cx + dx);
+  let left = 0, right = 0;
+  for (const [dx, dy] of live) {
+    const x = b.cx + dx, y = b.cy + dy + 1;
+    if (y < H && m.solid[y * W + x] && !own.has(y * W + x)) { if (dx < 0) left++; else if (dx > 0) right++; else { left++; right++; } }
+  }
+  let mx = 0, my = 0;
+  if (left + right === 0) my = 1; else if (right === 0 && left < 6) mx = 1; else if (left === 0 && right < 6) mx = -1;
+  if (!mx && !my) { b.moving = 0; return; }
+  if (mx) my = 1;     // rolling: down and sideways
+  const fits = (sx, sy) => live.every(([dx, dy]) => { const x = b.cx + dx + sx, y = b.cy + dy + sy; if (x < 0 || x >= W || y >= H) return true; const i = y * W + x; return !m.solid[i] || own.has(i); });
+  if (!fits(mx, my)) { if (mx && fits(mx, 0)) my = 0; else if (mx && fits(0, 1)) mx = 0; else { b.moving = 0; return; } }
+  for (const [dx, dy] of live) { const x = b.cx + dx, y = b.cy + dy; m.solid[y * W + x] = 0; m.mat[y * W + x] = 0; }
+  b.cx += mx; b.cy += my;
+  for (const [dx, dy] of live) { const x = b.cx + dx, y = b.cy + dy; if (x >= 0 && x < W && y >= 0 && y < H) { m.solid[y * W + x] = 1; m.mat[y * W + x] = ROCK; } }
+  if (b.troll && m.troll) { m.troll.x = b.cx; m.troll.y = b.cy; }
+  w.mapVersion++;
+  for (const u of w.units) {
+    if (!u.alive) continue;
+    const ux = px(u.X), uy = px(u.Y);
+    if (!own.has((uy - 4) * W + ux - mx) && !(m.solid[(uy - 4) * W + ux] && m.mat[(uy - 4) * W + ux] === ROCK)) continue;
+    hurt(w, u, 30);
+    if (u.alive) { let y = uy; while (y > 2 && !bodyFree(w, ux, y)) y--; u.Y = y * FP; u.VX = (ux < b.cx ? -2 : 2) * FP; u.VY = -2 * FP; u.air = true; }
+  }
+  if (b.cy - b.r > w.water) b.gone = 1;
+}
+function stepCart(w) {
+  const c = w.cart;
+  if (!c) return;
+  const free = (x, y) => !solidAt(w, x - 6, y) && !solidAt(w, x + 6, y) && !solidAt(w, x, y) && !solidAt(w, x - 6, y - 5) && !solidAt(w, x + 6, y - 5);
+  const x = px(c.X), y = px(c.Y);
+  const onGround = !free(x, y + 1);
+  if (!onGround) { c.VY = Math.min(c.VY + R.GRAVITY, 6 * FP); c.air = 1; }
+  else if (c.VY > 0) { c.VY = 0; c.air = 0; }
+  if (onGround && c.VX) c.VX = Math.abs(c.VX) <= 12 ? 0 : c.VX - Math.sign(c.VX) * 12;
+  const n = Math.max(1, Math.trunc((Math.max(Math.abs(c.VX), Math.abs(c.VY)) + FP - 1) / FP));
+  for (let i = 0; i < n; i++) {
+    const nx = c.X + Math.trunc(c.VX / n), ny = c.Y + Math.trunc(c.VY / n);
+    if (free(px(nx), px(ny))) { c.X = nx; c.Y = ny; continue; }
+    if (free(px(nx), px(ny) - 2)) { c.X = nx; c.Y = ny - 2 * FP; continue; }
+    if (free(px(c.X), px(ny))) { c.Y = ny; c.VX = -Math.trunc(c.VX / 3); continue; }
+    if (c.VY > 0) { c.VY = 0; c.air = 0; } else c.VX = -Math.trunc(c.VX / 3);
+    break;
+  }
+  if (Math.abs(c.VX) > 700) for (const u of w.units) {
+    if (!u.alive || u.id === c.hit || Math.abs(px(u.X) - px(c.X)) > 8 || Math.abs(px(u.Y) - px(c.Y)) > 8) continue;
+    c.hit = u.id; hurt(w, u, 25);
+    if (u.alive) { u.VX = Math.sign(c.VX) * 3 * FP; u.VY = -2 * FP; u.air = true; }
+    w.events.push({ t: 'bump', x: px(u.X), y: px(u.Y) });
+  }
+  if (px(c.Y) > w.water) { w.events.push({ t: 'splash', x: px(c.X), y: w.water }); w.cart = null; }
+}
+
 // Trollskogen at night: a blast on the troll wakes it, and it throws a stone at
 // whoever's turn it is. Once a turn, aimed roughly, as trolls do.
 function wakeTroll(w, x, y, r) {
@@ -186,13 +260,59 @@ function wakeTroll(w, x, y, r) {
   w.trollTurn = w.turn.number;
   const sx = tr.x, sy = tr.y - tr.r - 6, dx = px(target.X) - sx, dir = dx < 0 ? -1 : 1;
   const v = Math.max(2048, Math.min(10 * FP, isqrt(Math.abs(dx) * FP * R.GRAVITY)));
-  w.projectiles.push({ kind: 'troll', X: sx * FP, Y: sy * FP, VX: Math.trunc((dir * v * 724) / 1024), VY: -Math.trunc((v * 724) / 1024), owner: -1, age: 0, fuse: -1, rest: false });
+  w.spawn.push({ kind: 'troll', X: sx * FP, Y: sy * FP, VX: Math.trunc((dir * v * 724) / 1024), VY: -Math.trunc((v * 724) / 1024), owner: -1, age: 0, fuse: -1, rest: false });
   w.events.push({ t: 'troll', x: sx, y: sy });
+}
+
+// Dalahästen and Älgtestet walk along the ground.
+function stepWalker(w, p, wp) {
+  p.age++;
+  if (p.age >= wp.life || (p.fuse > 0 && --p.fuse === 0)) { explode(w, px(p.X), px(p.Y) - 3, wp); return false; }
+  const x = px(p.X), y = px(p.Y);
+  const free = (xx, yy) => !solidAt(w, xx, yy) && !solidAt(w, xx, yy - 4) && !solidAt(w, xx, yy - 7);
+  const ground = solidAt(w, x, y + 1) || solidAt(w, x - 1, y + 1) || solidAt(w, x + 1, y + 1);
+  if (!ground || p.VY < 0) {
+    p.VY = Math.min(p.VY + R.GRAVITY, 6 * FP);
+    const nx = p.X + p.VX, ny = p.Y + p.VY;
+    if (free(px(nx), px(ny))) { p.X = nx; p.Y = ny; }
+    else if (free(px(p.X), px(ny))) { p.Y = ny; p.VX = 0; }
+    else { p.Y = px(p.Y) * FP; p.VY = 0; p.VX = 0; }
+  } else {
+    p.VY = 0; p.VX = 0;
+    const steps = p.kind === 'alg' ? 2 : (p.age % 2);
+    for (let s = 0; s < steps; s++) {
+      const cx = px(p.X), cy = px(p.Y), climb = p.kind === 'alg' ? 4 : 6;
+      let moved = false;
+      for (let c = 0; c <= climb && !moved; c++) if (free(cx + p.dir, cy - c)) {
+        let ny = cy - c; for (let k = 0; k < 4 && free(cx + p.dir, ny + 1); k++) ny++;
+        p.X = (cx + p.dir) * FP; p.Y = ny * FP; moved = true;
+      }
+      if (!moved) {
+        if (p.kind === 'alg') { explode(w, cx, cy - 4, wp); return false; }
+        if ((p.hops = (p.hops || 0) + 1) > 4) { p.dir = -p.dir; p.hops = 0; }
+        else { p.VY = -2400; p.VX = p.dir * 700; }
+        break;
+      }
+    }
+  }
+  if (p.kind === 'alg') {
+    for (const u of w.units) {
+      if (!u.alive || p.hits.includes(u.id) || Math.abs(px(u.X) - px(p.X)) > 5 || Math.abs(px(u.Y) - px(p.Y)) > 9) continue;
+      p.hits.push(u.id); hurt(w, u, 10);
+      if (u.alive) { u.VX = p.dir * 3 * FP; u.VY = -2 * FP; u.air = true; }
+      w.events.push({ t: 'bump', x: px(u.X), y: px(u.Y) });
+    }
+  }
+  const ix = px(p.X), iy = px(p.Y);
+  if (iy > w.water) { w.events.push({ t: 'splash', x: ix, y: w.water }); return false; }
+  if (ix < -20 || ix > W + 20) return false;
+  return true;
 }
 
 function stepProjectile(w, p) {
   p.age++;
-  const wp = p.kind === 'troll' ? R.TROLLSTONE : R.WEAPONS.find((o) => o.id === p.kind);
+  const wp = p.kind === 'troll' ? R.TROLLSTONE : p.kind === 'ball' ? R.MEATBALL : R.WEAPONS.find((o) => o.id === p.kind);
+  if (wp.walker) { p.age--; return stepWalker(w, p, wp); }
   if (p.fuse > 0 && --p.fuse === 0) { open(w, p, wp); return false; }
   if (p.rest) {
     if (!solidAt(w, px(p.X), px(p.Y) + 1)) p.rest = false; else return true;
@@ -205,10 +325,15 @@ function stepProjectile(w, p) {
     const nx = p.X + sx, ny = p.Y + sy, ix = px(nx), iy = px(ny);
     if (iy > w.water) { w.events.push({ t: 'splash', x: ix, y: w.water }); return false; }
     if (ix < -60 || ix > W + 60 || iy > H + 20) return false;
-    if (p.kind === 'gurra' || p.kind === 'troll') {
+    if (p.kind === 'gurra' || p.kind === 'troll' || p.kind === 'bullar' || p.kind === 'ball') {
       const hitUnit = w.units.some((u) => u.alive && !(u.id === p.owner && p.age < 12) && Math.abs(px(u.X) - ix) <= 3 && iy >= px(u.Y) - 10 && iy <= px(u.Y));
-      if (solidAt(w, ix, iy) || hitUnit) { explode(w, ix, iy, wp); return false; }
+      if (solidAt(w, ix, iy) || hitUnit) {
+        explode(w, ix, iy, wp);
+        if (p.kind === 'bullar') for (let k = 0; k < 5; k++) w.spawn.push({ kind: 'ball', X: ix * FP, Y: (iy - 4) * FP, VX: randInt(w, 3001) - 1500, VY: -1500 - randInt(w, 1500), owner: -1, age: 0, fuse: -1, rest: false });
+        return false;
+      }
     } else if (solidAt(w, ix, iy)) {
+      if (p.kind === 'korv' && ++p.bounces >= 3) { explode(w, px(p.X), px(p.Y), wp); return false; }
       const hx = solidAt(w, ix, px(p.Y)), vy = solidAt(w, px(p.X), iy);
       if (hx || !vy) p.VX = -Math.trunc((p.VX * 45) / 100);
       if (vy || !hx) { p.VY = -Math.trunc((p.VY * 40) / 100); p.VX = Math.trunc((p.VX * 80) / 100); }
@@ -267,7 +392,8 @@ function gameOver(w, living) {
   w.events.push({ t: 'over', winner: w.winner });
 }
 
-const busy = (w) => w.projectiles.length > 0 || w.units.some((u) => u.alive && u.air) || w.stones.some((s) => s.air !== false);
+const busy = (w) => w.projectiles.length > 0 || w.units.some((u) => u.alive && u.air) || w.stones.some((s) => s.air !== false)
+  || w.map.boulders.some((b) => b.moving) || (w.cart && (w.cart.VX !== 0 || w.cart.air));
 
 /* ---------- one step ---------- */
 // input: { walk: -1|0|1, jump: bool, weapon: index, aim: {angle, power}, fire: {angle, power} | true }
@@ -288,12 +414,18 @@ export function step(w, input = {}) {
       else if (input.walk === 1 || input.walk === -1) { u.walk++; if (u.walk % R.WALK_EVERY === 0) walk(w, u, input.walk); }
       if (input.fire && t.phase === 'aim' && !u.air) {
         const shot = input.fire === true ? t.aim : input.fire;
-        if (fire(w, u, shot)) { t.phase = 'retreat'; t.retreat = R.RETREAT_TICKS; }
+        if (fire(w, u, shot)) { t.phase = 'retreat'; t.retreat = R.WEAPONS[t.weapon].walker ? Math.max(R.RETREAT_TICKS, R.WEAPONS[t.weapon].life) : R.RETREAT_TICKS; }
       }
     }
+    // Dalahästen goes off when the player taps again.
+    if (input.fire && t.phase === 'retreat') for (const p of w.projectiles) if (p.kind === 'hast' && p.owner === u.id && p.fuse < 0 && p.age > 6) p.fuse = 1;
   }
+  for (const b of w.map.boulders) stepBoulder(w, b);
+  stepCart(w);
   for (const o of w.units) stepUnit(w, o);
+  // Projectiles made during the step (meatballs, the troll's stone) join after it.
   w.projectiles = w.projectiles.filter((p) => stepProjectile(w, p));
+  if (w.spawn.length) { w.projectiles.push(...w.spawn); w.spawn = []; }
   for (const c of w.clouds) c.X += w.wind * 2;
   for (const s of w.stones) {
     if (s.air === false && solidAt(w, px(s.X), px(s.Y) + 1)) continue;
@@ -330,6 +462,8 @@ export function fingerprint(w) {
   for (const p of w.projectiles) { mix(p.X); mix(p.Y); mix(p.VX); mix(p.VY); mix(p.fuse); }
   for (const c of w.clouds) { mix(c.X); mix(c.turns); }
   for (const l of w.map.lamps) mix(l.on);
+  for (const b of w.map.boulders) { mix(b.cx); mix(b.cy); }
+  if (w.cart) { mix(w.cart.X); mix(w.cart.Y); mix(w.cart.VX); }
   const s = w.map.solid;
   for (let i = 0; i < s.length; i += 7) mix(s[i] * (i + 1));
   mix(w.turn.team + 5); mix(w.turn.unit + 5); mix(w.turn.timer); mix(w.turn.round);

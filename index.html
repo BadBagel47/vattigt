@@ -34,9 +34,11 @@ button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:
 .row{display:flex;gap:8px}
 .row > button{flex:1}
 .big{min-height:88px;font-size:30px}
-#jump{min-height:72px;font-size:20px}
-.weapon{display:flex;align-items:center;justify-content:center;gap:6px;padding:4px;min-height:48px}
-.weapon canvas{width:30px;height:27px;image-rendering:pixelated;flex:none}
+#jump{min-height:64px;font-size:20px}
+#weapons{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.weapon{display:flex;align-items:center;justify-content:center;gap:2px;padding:2px;min-height:44px}
+.weapon small{font-size:13px}
+.weapon canvas{width:26px;height:23px;image-rendering:pixelated;flex:none}
 .weapon small{font-family:var(--display);font-size:15px;min-width:1ch}
 #drop{background:var(--team);border-color:var(--team);color:#fff;font-size:18px;min-height:56px}
 .stagewrap{display:flex;align-items:center;justify-content:center;min-width:0}
@@ -48,7 +50,8 @@ button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:
   padding:6px 12px;font-size:14px;color:var(--ink);pointer-events:none;white-space:nowrap;max-width:95%;overflow:hidden;text-overflow:ellipsis}
 #hint[hidden]{display:none}
 
-.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(8,10,24,.86);z-index:5;overflow:auto}
+.screen{position:fixed;inset:0;display:flex;align-items:flex-start;justify-content:center;padding:20px;background:rgba(8,10,24,.86);z-index:5;overflow:auto}
+.screen > .card{margin:auto}
 .screen[hidden]{display:none}
 .card{background:var(--panel);border:2px solid var(--line);padding:20px 24px;display:flex;flex-direction:column;gap:14px;max-width:560px;width:100%}
 .card h1{font-family:var(--display);font-weight:700;font-size:clamp(40px,9vh,64px);line-height:1;margin:0;color:var(--sun)}
@@ -69,7 +72,11 @@ input[type=text]:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 .qr{width:112px;height:112px;background:#fff;padding:4px;flex:none}
 .qr svg{width:100%;height:100%;display:block}
 .lobbyside,.lobbymain{display:flex;flex-direction:column;gap:10px;min-width:0}
-#netMoods button{font-size:14px;min-height:40px;padding:4px 8px}
+#netMoods button,#netMaps button,#netUnits button,#netTurn button,#netFlood button,#netWeapons button{font-size:14px;min-height:40px;padding:4px 8px}
+#ownerBox{display:flex;flex-direction:column;gap:8px;border:2px solid var(--line);padding:8px 10px}
+#ownerBox summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
+#ownerBox[open]{gap:8px}
+#ownerBox > *:not(summary){margin-top:6px}
 @media (min-width:640px){.lobbycard{display:grid;grid-template-columns:170px 1fr;gap:16px 22px;align-items:start}.lobbycard .lobbyhead{flex-direction:column;align-items:flex-start}}
 .teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .team{border:2px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
@@ -220,12 +227,19 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
     </div>
     <p class="small" id="watchers"></p>
     <p class="small" id="lobbyMap"></p>
-    <div id="ownerBox">
+    <details id="ownerBox">
+      <summary class="label">Inställningar för matchen</summary>
       <span class="label" id="l-netmood">Stämning</span>
       <div class="choices" role="group" aria-labelledby="l-netmood" id="netMoods"></div>
       <span class="label" id="l-netmap">Bana</span>
       <div class="choices" role="group" aria-labelledby="l-netmap" id="netMaps"></div>
-    </div>
+      <span class="label" id="l-netteams">Lagen</span>
+      <div class="inline" role="group" aria-labelledby="l-netteams"><select id="netTeam0" aria-label="Lag 1"></select><select id="netTeam1" aria-label="Lag 2"></select></div>
+      <span class="label" id="l-netunits">Vättar per lag</span><div class="choices" role="group" aria-labelledby="l-netunits" id="netUnits"></div>
+      <span class="label" id="l-netturn">Turtid</span><div class="choices" role="group" aria-labelledby="l-netturn" id="netTurn"></div>
+      <span class="label" id="l-netflood">Vårflod</span><div class="choices" role="group" aria-labelledby="l-netflood" id="netFlood"></div>
+      <span class="label" id="l-netweap">Vapen</span><div class="choices" role="group" aria-labelledby="l-netweap" id="netWeapons"></div>
+    </details>
     <button type="button" class="primary" id="startNet">Starta matchen</button>
     <p class="small" id="lobbyMsg" role="status"></p>
     </div>

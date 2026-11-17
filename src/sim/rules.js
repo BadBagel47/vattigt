@@ -38,8 +38,18 @@ export const CLOUD_TURNS = 6;          // three rounds with two teams
 export const WEAPONS = [
   { id: 'gurra', name: 'Kalle Gurra', speed: 9 * FP, wind: true, radius: 16, damage: 50, force: 5 * FP, aim: true, ammo: -1 },
   { id: 'strom', name: 'Surströmming', speed: 7 * FP, wind: false, radius: 8, damage: 15, force: 2 * FP, aim: true, ammo: -1, fuse: 3 * TPS },
-  { id: 'dyn', name: 'Dynamit-Alfred', speed: 0, wind: false, radius: 24, damage: 75, force: 6 * FP, aim: false, ammo: 2, fuse: 5 * TPS }
+  { id: 'dyn', name: 'Dynamit-Alfred', speed: 0, wind: false, radius: 24, damage: 75, force: 6 * FP, aim: false, ammo: 2, fuse: 5 * TPS },
+  // Köttbullar: a big one that splits into five small ones where it lands.
+  { id: 'bullar', name: 'Köttbullar', speed: 7 * FP, wind: false, radius: 12, damage: 30, force: 3 * FP, aim: true, ammo: 2 },
+  // Fallukorv: tap where on the map; five sausage rings fall, bounce and go off on the third bounce.
+  { id: 'korv', name: 'Fallukorv', speed: 0, wind: false, radius: 12, damage: 30, force: 3 * FP, aim: false, target: true, ammo: 1, fuse: 6 * TPS },
+  // Dalahästen: trots ahead, hops over what it cannot climb; tap again to set it off, or it goes off by itself.
+  { id: 'hast', name: 'Dalahästen', speed: 0, wind: false, radius: 20, damage: 60, force: 5 * FP, aim: false, walker: true, ammo: 1, life: 10 * TPS },
+  // Älgtestet: runs straight ahead, knocks over whoever is in the way, goes off at the first steep wall.
+  { id: 'alg', name: 'Älgtestet', speed: 0, wind: false, radius: 22, damage: 60, force: 6 * FP, aim: false, walker: true, ammo: 1, life: 8 * TPS }
 ];
+// The small meatballs from Köttbullar.
+export const MEATBALL = { id: 'ball', name: 'Köttbulle', wind: false, radius: 8, damage: 20, force: 2 * FP };
 
 // The troll in Trollskogen throws one of these back when it is woken at night.
 export const TROLLSTONE = { id: 'troll', name: 'Trollsten', wind: false, radius: 14, damage: 40, force: 4 * FP };
@@ -51,5 +61,5 @@ export const TEAMS = [
 
 // Settings for a match (eget spel). Everything that changes the match is here,
 // so every browser in an online room builds the same match from the same settings.
-export const DEFAULT_SETTINGS = { map: 'midsommar', night: true, units: UNITS_PER_TEAM, turn: 45, flood: FLOOD_ROUND, weapons: ['gurra', 'strom', 'dyn'] };
+export const DEFAULT_SETTINGS = { map: 'midsommar', night: true, units: UNITS_PER_TEAM, turn: 45, flood: FLOOD_ROUND, weapons: ['gurra', 'strom', 'dyn', 'bullar', 'korv', 'hast', 'alg'] };
 export const MAX_UNITS = 5;

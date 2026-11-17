@@ -3,7 +3,7 @@
 import { W, H, WEAPONS, FLOOD_ROUND, CLOUD_RADIUS } from '../sim/rules.js';
 import { px, activeUnit, teamHp } from '../sim/world.js';
 import { text, textW } from './font.js';
-import { VATTE, ICON_PAL, ICON_ROWS } from './sprites.js';
+import { VATTE, ICON_PAL, ICON_ROWS, HORSE, MOOSE } from './sprites.js';
 
 // Team colours to choose from in the team builder; teams 0 and 1 default to red and blue.
 export const TEAM_COLORS = [
@@ -262,7 +262,7 @@ export function createRenderer(scene, glow) {
         let c;
         if (m.mat[i] === 2) {
           let cx = x, cy = y, r = 4;
-          for (const [bx, by, br] of m.rocks) { const dx = x - bx, dy = y - by; if (dx * dx + dy * dy <= (br + 2) * (br + 2)) { cx = bx; cy = by; r = br; break; } }
+          for (const b of m.boulders) { if (b.gone) continue; const dx = x - b.cx, dy = y - b.cy; if (dx * dx + dy * dy <= (b.r + 3) * (b.r + 3)) { cx = b.cx; cy = b.cy; r = b.r; break; } }
           const sh = ((x - cx) + (y - cy)) / (2 * r) + (bay(x, y) - .5) * .4;
           c = sh < -.35 ? 0xa4a8b0 : sh < .1 ? 0x868a94 : sh < .45 ? 0x686c78 : 0x4e5260;
           const d = depthAt(x, y);
@@ -433,8 +433,20 @@ export function createRenderer(scene, glow) {
       rect(x - 1, sy - 31 - b, 3, 4, 0xffd66b);
     }
   }
+  // Trollskogen: the mist in the hollows hides the other team's vättar while a turn is on.
+  function inFog(w, u, act) {
+    if (w.map.id !== 'trollskogen' || !act || u.team === act.team || (w.turn.phase !== 'aim' && w.turn.phase !== 'retreat')) return false;
+    const x = px(u.X), y = px(u.Y) - 5;
+    return Math.abs(y - (214 - 10 * Math.sin(x / 70))) < 11;
+  }
   function drawAim(w, view) {
     const u = activeUnit(w), wp0 = WEAPONS[w.turn.weapon];
+    if (view.target != null && wp0.target && w.turn.phase === 'aim') {
+      const x = Math.round(view.target);
+      for (let y = 4; y < H; y += 4) if (!solid(x, y)) set(x, y, 0xff6a5a);
+      for (let j = 0; j < 4; j++) for (let i = -3 + j; i <= 3 - j; i++) set(x + i, 4 + j, 0xff6a5a);
+      return;
+    }
     if (!u || !u.alive || u.air || w.turn.phase !== 'aim' || !wp0.aim) return;
     const aim = view.aim || w.turn.aim, a = aim.angle * Math.PI / 180;
     const cx = px(u.X), cy = px(u.Y) - 5, len = 12 + aim.power * .5;
@@ -459,6 +471,18 @@ export function createRenderer(scene, glow) {
       } else if (p.kind === 'strom') {
         rect(x - 2, y - 2, 5, 4, 0xd8c060); rect(x - 2, y - 1, 5, 2, 0xc8382e); set(x - 1, y - 1, 0xffffff); set(x + 1, y - 1, 0xffffff);
         if (p.fuse < 60 && (t & 1)) set(x, y - 3, 0x9bd45a);
+      } else if (p.kind === 'bullar' || p.kind === 'ball') {
+        const r = p.kind === 'bullar' ? 2 : 1;
+        disc(x, y, r, 0x9a6038); set(x - 1, y - 1, 0xd09a68);
+      } else if (p.kind === 'korv') {
+        const k = (t + x) % 4;
+        for (const [dx, dy] of [[-1, -2], [0, -2], [1, -2], [2, -1], [2, 0], [2, 1], [1, 2], [0, 2], [-1, 2], [-2, 1], [-2, 0], [-2, -1]]) set(x + dx, y + dy, (dx + dy + k) % 3 ? 0x8a3a2a : 0xc8604a);
+      } else if (p.kind === 'hast') {
+        sprite(HORSE, { r: 0xe5533d, w: 0xffffff, b: 0x4fa3ff, g: 0x9bd45a }, x - 4, y - 7 - (still ? 0 : (t >> 1) % 2), p.dir < 0, true);
+      } else if (p.kind === 'alg') {
+        sprite(MOOSE[still ? 0 : (t >> 1) % 2], { a: 0xd8c8a0, b: 0x6a4430, n: 0x3a2418 }, x - 6, y - 7, p.dir < 0);
+      } else if (p.kind === 'troll') {
+        disc(x, y, 3, tn(0x868a94)); set(x - 1, y - 1, tn(0xa4a8b0));
       } else {
         rect(x - 1, y - 4, 3, 5, 0xd8442a); rect(x - 1, y - 2, 3, 1, 0xf4e8c0);
         set(x + 1, y - 5, 0xb0a080);
@@ -577,7 +601,12 @@ export function createRenderer(scene, glow) {
     art().lights(lights, t);
     drawStones(w);
     const act = activeUnit(w);
-    for (const u of w.units) if (u.alive) drawUnit(u, t, act && u.id === act.id, w, view);
+    if (w.cart) {
+      const x = px(w.cart.X), y = px(w.cart.Y);
+      rect(x - 7, y - 7, 15, 5, tn(0x6a707c)); rect(x - 6, y - 6, 13, 1, tn(0x9aa0aa)); rect(x - 6, y - 5, 13, 1, tn(0xb07a4a));
+      disc(x - 4, y - 1, 1, tn(0x3a3238)); disc(x + 4, y - 1, 1, tn(0x3a3238));
+    }
+    for (const u of w.units) if (u.alive && !inFog(w, u, act)) drawUnit(u, t, act && u.id === act.id, w, view);
     drawProjectiles(w, t);
     drawClouds(w, t);
     water(w, t);

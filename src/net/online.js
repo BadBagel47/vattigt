@@ -12,7 +12,10 @@ import { TPS } from '../sim/rules.js';
 export const TEAM_PLACES = ['lag1', 'lag2'];
 const NIGHT = new Set(['midsommar', 'vinter']);
 // The match settings come from the room's shared data, set by the owner in the lobby.
-export const optsFrom = (data) => ({ settings: { map: data?.map || 'midsommar', night: data?.mood ? NIGHT.has(data.mood) : true } });
+export const optsFrom = (data) => ({
+  settings: { ...(data?.settings || {}), map: data?.map || 'midsommar', night: data?.mood ? NIGHT.has(data.mood) : true },
+  teams: Array.isArray(data?.teams) ? data.teams : undefined
+});
 const BATCH_STEPS = 6;            // a batch every 0.1 s
 const SNAPSHOT_MS = 10000;        // the host's kept copy for a takeover or a reload
 
@@ -180,6 +183,8 @@ export function createOnline(server, hooks = {}) {
     },
     setMood(m) { mood = m; if (room?.isOwner || isHost()) room.setData({ ...(room.room?.data || {}), mood: m }); },
     setMap(m) { if (room?.isOwner || isHost()) room.setData({ ...(room.room?.data || {}), map: m }); },
+    // The owner's match settings and teams for everyone in the room (kept small: room data is at most 4 kB).
+    setSetup(settings, teams) { if (room?.isOwner || isHost()) room.setData({ ...(room.room?.data || {}), settings, teams }); },
     leave() { try { room?.leave(); } catch (e) { /* already gone */ } room = null; match = null; round = 0; },
   };
 }

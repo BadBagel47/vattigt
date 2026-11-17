@@ -62,6 +62,9 @@ export function createSound() {
       else if (e.t === 'turn') { eng.sting('tur'); }
       else if (e.t === 'over') { eng.sting('vinst'); }
       else if (e.t === 'death') tone(t, { f1: 440, f2: 110, gain: .12, dec: .5 });
+      else if (e.t === 'bump') { tone(t, { type: 'sine', f1: 120, f2: 60, gain: .4, dec: .15 }); noise(t, { f: 600, gain: .25, dec: .08 }); }
+      else if (e.t === 'troll') { tone(t, { type: 'sawtooth', f1: 90, f2: 60, gain: .25, dec: .6 }); }
+      else if (e.t === 'lamp') noise(t, { f: 4000, type: 'highpass', gain: .2, dec: .15 });
       else if (e.t === 'cloud') noise(t, { f: 500, gain: .3, dec: .6 });
     }
   }

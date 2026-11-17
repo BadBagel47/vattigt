@@ -81,9 +81,11 @@ function updatePanels() {
     b.querySelector('small').textContent = ammo < 0 ? '' : String(ammo);
     b.setAttribute('aria-label', `${WEAPONS[i].name}, ${ammo < 0 ? 'obegränsad' : ammo + ' kvar'}`);
   });
-  const dyn = !WEAPONS[t.weapon].aim;
-  $('drop').hidden = !dyn;
-  $('drop').disabled = !canAct || (u && u.air);
+  const wpn = WEAPONS[t.weapon], dyn = !wpn.aim && !wpn.target;
+  const horse = mine && t.phase === 'retreat' && w.projectiles.some((p) => p.kind === 'hast' && u && p.owner === u.id && p.age > 6);
+  $('drop').hidden = !(dyn || horse);
+  $('drop').textContent = horse ? 'Spräng!' : wpn.walker ? 'Släpp lös' : 'Lägg ut';
+  $('drop').disabled = !horse && (!canAct || (u && u.air));
   const moving = mine && (t.phase === 'aim' || t.phase === 'retreat') && u && u.alive;
   for (const id of ['walkL', 'walkR', 'jump']) $(id).disabled = !moving;
   if (!moving && (held.left || held.right)) { held.left = held.right = false; updateWalk(); }
@@ -97,7 +99,9 @@ function updatePanels() {
       hint = p ? `${p.name} spelar ${u ? u.name.charAt(0) + u.name.slice(1).toLowerCase() : ''}` : 'Ingen i laget är med just nu.';
     }
   }
-  if (!hint && canAct && !dyn && shotsFired < 2 && !view.aim) hint = 'Dra i bilden för att sikta. Släpp för att skjuta.';
+  if (!hint && canAct && wpn.target) hint = 'Tryck där korvarna ska falla.';
+  if (!hint && canAct && wpn.aim && shotsFired < 2 && !view.aim) hint = 'Dra i bilden för att sikta. Släpp för att skjuta.';
+  if (!hint && horse) hint = 'Tryck på Spräng! när hästen är framme.';
   $('hint').textContent = hint;
   $('hint').hidden = !hint;
 }
@@ -117,14 +121,15 @@ $('drop').addEventListener('click', () => { emit({ fire: true }); shotsFired++; 
 
 let drag = null;
 const toWorld = (e) => { const r = scene.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H]; };
-function canAim() {
+function canAim(kind = 'aim') {
   const w = world();
   if (!w || paused || !myTurn() || mode === 'title') return false;
   const u = activeUnit(w);
-  return w.turn.phase === 'aim' && u && u.alive && !u.air && WEAPONS[w.turn.weapon].aim;
+  return w.turn.phase === 'aim' && u && u.alive && !u.air && !!WEAPONS[w.turn.weapon][kind];
 }
 stage.addEventListener('pointerdown', (e) => {
   sound.unlock();
+  if (canAim('target')) { e.preventDefault(); stage.setPointerCapture?.(e.pointerId); drag = { id: e.pointerId, target: true }; view.target = toWorld(e)[0]; return; }
   if (!canAim()) return;
   e.preventDefault();
   stage.setPointerCapture?.(e.pointerId);
@@ -132,6 +137,7 @@ stage.addEventListener('pointerdown', (e) => {
 });
 stage.addEventListener('pointermove', (e) => {
   if (!drag || e.pointerId !== drag.id) return;
+  if (drag.target) { view.target = toWorld(e)[0]; return; }
   const [x, y] = toWorld(e), dx = x - drag.start[0], dy = y - drag.start[1], len = Math.hypot(dx, dy);
   if (len < 4) { view.aim = null; return; }
   const angle = ((Math.round(Math.atan2(-dy, dx) * 180 / Math.PI) % 360) + 360) % 360;
@@ -140,11 +146,12 @@ stage.addEventListener('pointermove', (e) => {
 });
 function endDrag(e) {
   if (!drag || e.pointerId !== drag.id) return;
+  if (drag.target) { if (canAim('target')) { emit({ fire: { tx: Math.round(Math.max(0, Math.min(W - 1, view.target))) } }); shotsFired++; } drag = null; view.target = null; return; }
   if (view.aim && view.aim.power >= 10 && canAim()) { emit({ fire: { ...view.aim } }); shotsFired++; }
   drag = null; view.aim = null;
 }
 stage.addEventListener('pointerup', endDrag);
-stage.addEventListener('pointercancel', (e) => { if (drag && e.pointerId === drag.id) { drag = null; view.aim = null; } });
+stage.addEventListener('pointercancel', (e) => { if (drag && e.pointerId === drag.id) { drag = null; view.aim = null; view.target = null; } });
 
 // Keyboard, for a computer: arrows to walk, space to jump, 1–3 for weapons, Enter to fire with the last aim.
 addEventListener('keydown', (e) => {
@@ -153,7 +160,7 @@ addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft') { held.left = true; updateWalk(); }
   else if (e.key === 'ArrowRight') { held.right = true; updateWalk(); }
   else if (e.key === ' ') { emit({ jump: true }); e.preventDefault(); }
-  else if (['1', '2', '3'].includes(e.key)) emit({ weapon: +e.key - 1 });
+  else if (/^[1-7]$/.test(e.key)) emit({ weapon: +e.key - 1 });
   else if (e.key === 'Enter' && e.target === document.body) emit({ fire: true });
   else return;
   sound.unlock();
@@ -412,6 +419,7 @@ async function enterRoom(fn) {
     mode = 'online'; local = null;
     $('netMsg').textContent = '';
     remember({ code: online.room.code, name });
+    netBuilt = false;
     updateLobby(online.room.room);
   } catch (err) {
     online = null;
@@ -455,8 +463,10 @@ function updateLobby(rm) {
   const lead = r.isOwner || r.isHost;
   $('ownerBox').hidden = !lead;
   const curMap = rm.data?.map || 'midsommar';
-  if (lead) choiceRow($('netMaps'), Object.keys(MAP_NAMES), (v) => (online.room?.room?.data?.map || 'midsommar') === v, (v) => online.setMap(v), (v) => MAP_NAMES[v]);
-  $('lobbyMap').textContent = `Bana: ${MAP_NAMES[curMap]}.`;
+  if (lead) netSetup();
+  const st = rm.data?.settings || {}, tms = rm.data?.teams;
+  $('lobbyMap').textContent = `Bana: ${MAP_NAMES[curMap]}. ${st.units || 3} vättar per lag, ${st.turn || 45} sekunder per tur.`;
+  document.querySelectorAll('.team').forEach((el, i) => { const t = tms && tms[i]; const h = el.querySelector('h3'); h.textContent = t ? t.name : TEAMS[i].name; h.style.color = TEAM_COLORS[t ? t.color : i].css; });
   const ready = TEAM_PLACES.every((pl) => (rm.places?.[pl] || []).length > 0);
   $('startNet').hidden = !lead;
   $('startNet').disabled = !ready || rm.phase === 'countdown';
@@ -464,6 +474,29 @@ function updateLobby(rm) {
   $('lobbyMsg').textContent = rm.phase === 'countdown' ? 'Matchen börjar …'
     : lead ? (ready ? 'Alla lag har spelare. Starta när ni är redo.' : 'Varje lag behöver minst en spelare. Bjud in med länken eller QR-koden.')
     : `Väntar på att ${owner ? owner.name : 'den som skapade rummet'} startar matchen.`;
+}
+// The room owner's choices: the same as in eget spel, sent to everyone in the room.
+let netBuilt = false;
+function pushSetup() {
+  if (!online) return;
+  const o = matchOpts();
+  online.setSetup({ units: o.settings.units, turn: o.settings.turn, flood: o.settings.flood, weapons: o.settings.weapons }, o.teams);
+}
+function netSetup() {
+  if (netBuilt) return;
+  netBuilt = true;
+  choiceRow($('netMaps'), Object.keys(MAP_NAMES), (v) => custom.map === v, (v) => { custom.map = v; online.setMap(v); }, (v) => MAP_NAMES[v]);
+  choiceRow($('netUnits'), [1, 2, 3, 4, MAX_UNITS], (v) => custom.units === v, (v) => { custom.units = v; pushSetup(); });
+  choiceRow($('netTurn'), [30, 45, 60, 90], (v) => custom.turn === v, (v) => { custom.turn = v; pushSetup(); }, (v) => v + ' s');
+  choiceRow($('netFlood'), [0, 6, 8, 12], (v) => custom.flood === v, (v) => { custom.flood = v; pushSetup(); }, (v) => (v ? 'Runda ' + v : 'Av'));
+  choiceRow($('netWeapons'), WEAPONS.map((w) => w.id), (v) => custom.weapons.has(v), (v) => { if (custom.weapons.has(v) && custom.weapons.size > 1) custom.weapons.delete(v); else custom.weapons.add(v); pushSetup(); }, (v) => WEAPONS.find((w) => w.id === v).name);
+  for (const [i, sel] of [[0, $('netTeam0')], [1, $('netTeam1')]]) {
+    sel.innerHTML = '';
+    savedTeams.forEach((t, k) => { const o = document.createElement('option'); o.value = k; o.textContent = t.name; sel.append(o); });
+    sel.value = String(Math.min(i ? custom.team1 : custom.team0, savedTeams.length - 1));
+    sel.onchange = () => { custom['team' + i] = +sel.value; pushSetup(); };
+  }
+  online.setMap(custom.map); pushSetup();
 }
 $('startNet').addEventListener('click', () => { sound.unlock(); online?.room?.start(); });
 $('leave').addEventListener('click', () => toTitle());
