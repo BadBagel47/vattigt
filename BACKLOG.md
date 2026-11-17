@@ -8,23 +8,25 @@ Prioritet: Hög, Medel, Låg.
 | ID | Prio | Status | Beskrivning |
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
-| F-029 | Låg | Pågår (2026-11-17, session Vättigt, main) | Metspöt: kasta, haka fast och svinga sig vidare. Kräver ny styrning på telefonen. |
+| F-032 | Medel | Förslag | Spellägen ur designförslaget: Boet (skydda ert bo), Kubb (fäll motståndarens kubbar och sist kungen) och Stången (håll platsen vid midsommarstången). |
+| F-033 | Låg | Förslag | Pratbubblor där lagen pratar dialekt (skånska, göteborgska, norrländska). |
+| F-034 | Låg | Förslag | Fler banor ur designförslaget: Fjället, Slätten, Raukarna, Takåsarna, Älven, Villaområdet. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
 
-Prioriterat för: att det som finns fungerar bra på riktiga telefoner, innan mer läggs till.
+Prioriterat för: att det som finns fungerar bra på riktiga telefoner innan mer läggs till.
 
-- **A** – standardmodell, medelnivå – Typsnitt och ny network-kit
-  - F-031 – Ta in network-kit v0.5.1, så att den som tappat kontakten länge får tillbaka sin plats i laget
-  - D-006 – Lägg typsnitten i spelet i stället för att hämta dem från Google, så att spelarnas webbläsare inte kontaktar Google och spelet laddar snabbare
-- **B** – stark modell, hög nivå – Spela ensam
-  - F-030 – En datormotståndare, så att man kan öva och spela utan vänner
-  - Fråga: Hur svår? Rekommendation: tre nivåer (lätt, lagom, svår) där den lätta missar ofta.
-- **C** – stark modell, hög nivå – Metspöt
-  - F-029 – Svingrep för att ta sig fram, med en egen styrning på telefonen
+- **A** – stark modell, hög nivå – Spellägen
+  - F-032 – Boet, Kubb och Stången, så att matcherna kan vinnas på fler sätt än att vara sist kvar
+  - Fråga: Vilket läge först? Rekommendation: Kubb, eftersom det är mest svenskt och lättast att förstå.
+- **B** – standardmodell, medelnivå – Pratbubblor
+  - F-033 – Vättarna säger saker på dialekt när de skjuter, träffas och vinner
+- **C** – stark modell, hög nivå – Fler banor
+  - F-034 – Två eller tre banor till ur designförslaget
+  - Fråga: Vilka? Rekommendation: Fjället (snö som rasar) och Takåsarna (tak och tunnelbana).
 
-Användarens provspel kan ge punkter som går före.
+Användarens provspel går före allt detta.
 
 Parkerat: D-012 (musik).
 
@@ -33,6 +35,7 @@ Parkerat: D-012 (musik).
 | ID | Klart | Beskrivning |
 |---|---|---|
 | D-001 | 2026-11-13 | Första designförslaget: stil, banor, arsenal, väsen, spelidéer (docs/DESIGN.md). |
+| F-029 | 2026-11-17 | Metspöt: kasta ut linan, svinga med pilarna, släpp med Hoppa; avslutar inte turen. |
 | F-030 | 2026-11-17 | Datormotståndare i tre nivåer (lätt, lagom, svår): "Spela mot datorn" på startsidan och Motståndare i eget spel. Bara på en telefon, inte online. |
 | F-031 | 2026-11-17 | network-kit v0.5.1 inne (felrättningar: platsen i laget tillbaka efter lång frånvaro, namnet syns direkt). |
 | D-006 | 2026-11-17 | Typsnitten ligger i spelet med licenser; inga anrop till Google från någon sida. |

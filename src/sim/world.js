@@ -96,8 +96,35 @@ function hurt(w, u, n) {
   if (u.hp <= 0) kill(w, u, 'hp');
 }
 
+function stepRope(w, u) {
+  const r = u.rope;
+  if (!solidAt(w, px(r.AX), px(r.AY))) { u.rope = null; return; }
+  u.VY += R.GRAVITY;
+  u.VX -= Math.trunc(u.VX / 160);
+  u.VX = Math.max(-R.ROPE_MAX_SPEED, Math.min(R.ROPE_MAX_SPEED, u.VX));
+  u.VY = Math.max(-R.ROPE_MAX_SPEED, Math.min(R.ROPE_MAX_SPEED, u.VY));
+  let nx = u.X + u.VX, ny = u.Y + u.VY;
+  const hand = 6 * FP, dx = nx - r.AX, dy = ny - hand - r.AY, d = isqrt(dx * dx + dy * dy);
+  if (d > r.L && d > 0) {
+    nx = r.AX + Math.trunc((dx * r.L) / d); ny = r.AY + Math.trunc((dy * r.L) / d) + hand;
+    const vr = Math.trunc((u.VX * dx + u.VY * dy) / d);
+    if (vr > 0) { u.VX -= Math.trunc((vr * dx) / d); u.VY -= Math.trunc((vr * dy) / d); }
+  }
+  if (bodyFree(w, px(nx), px(ny))) { u.X = nx; u.Y = ny; }
+  else if (bodyFree(w, px(u.X), px(ny))) { u.Y = ny; u.VX = -Math.trunc(u.VX / 3); }
+  else if (bodyFree(w, px(nx), px(u.Y))) { u.X = nx; u.VY = 0; }
+  else { u.VX = Math.trunc(u.VX / 2); u.VY = 0; }
+}
+
 function stepUnit(w, u) {
   if (!u.alive || u.away) return;
+  if (u.rope) {
+    stepRope(w, u);
+    const x = px(u.X), y = px(u.Y);
+    if (y > w.water) { u.rope = null; kill(w, u, 'water'); w.events.push({ t: 'splash', x, y: w.water }); }
+    else if (x < -20 || x > W + 20) { u.rope = null; kill(w, u, 'edge'); }
+    return;
+  }
   let x = px(u.X), y = px(u.Y);
   if (!u.air && !standing(w, x, y)) { u.air = true; u.VX = 0; u.VY = 0; }
   if (u.air) {
@@ -137,8 +164,25 @@ function walk(w, u, dir) {
 }
 
 /* ---------- weapons ---------- */
+function castRope(w, u, wp, shot) {
+  const angle = ((shot.angle % 360) + 360) % 360, dx = cos(angle), dy = -sin(angle);
+  const hx = px(u.X), hy = px(u.Y) - 6;
+  for (let d = 6; d <= wp.reach; d++) {
+    const x = hx + Math.trunc((dx * d) / 1024), y = hy + Math.trunc((dy * d) / 1024);
+    if (x < 0 || x >= W || y < 0 || y >= H) break;
+    if (!solidAt(w, x, y)) continue;
+    const L = Math.max(10, isqrt((x - hx) * (x - hx) + (y - hy) * (y - hy)));
+    u.rope = { AX: x * FP, AY: y * FP, L: L * FP }; u.air = true; u.face = dx < 0 ? -1 : 1;
+    w.events.push({ t: 'rope', x, y });
+    return true;
+  }
+  w.events.push({ t: 'rope-miss', x: hx, y: hy });
+  return false;
+}
+
 function fire(w, u, shot) {
   const t = w.turn, wp = R.WEAPONS[t.weapon], team = w.teams[u.team];
+  if (wp.tool) return castRope(w, u, wp, shot === true ? t.aim : shot);
   if (team.ammo[t.weapon] === 0) return false;
   if (team.ammo[t.weapon] > 0) team.ammo[t.weapon]--;
   const cx = u.X, cy = u.Y - 5 * FP;
@@ -633,11 +677,17 @@ export function step(w, input = {}) {
     if (!u.air) {
       if (input.jump && standing(w, px(u.X), px(u.Y))) { u.air = true; u.VX = u.face * R.JUMP_VX; u.VY = R.JUMP_VY; w.events.push({ t: 'jump', x: px(u.X), y: px(u.Y) }); }
       else if (input.walk === 1 || input.walk === -1) { u.walk++; if (u.walk % R.WALK_EVERY === 0) walk(w, u, input.walk); }
-      if (input.fire && t.phase === 'aim' && !u.air) {
+      if (input.fire && t.phase === 'aim' && !u.air && !R.WEAPONS[t.weapon].tool) {
         const shot = input.fire === true ? t.aim : input.fire;
         if (fire(w, u, shot)) { t.phase = 'retreat'; t.retreat = R.WEAPONS[t.weapon].walker ? Math.max(R.RETREAT_TICKS, R.WEAPONS[t.weapon].life) : R.RETREAT_TICKS; }
       }
     }
+    // Metspöt: cast (also in the air), swing with the arrows, jump to let go.
+    if (u.rope) {
+      if (input.jump) { u.rope = null; w.events.push({ t: 'rope-off', x: px(u.X), y: px(u.Y) }); }
+      else if (input.walk === 1 || input.walk === -1) { u.VX += input.walk * R.ROPE_SWING; u.face = input.walk; }
+    }
+    if (input.fire && t.phase === 'aim' && R.WEAPONS[t.weapon].tool && typeof input.fire === 'object') fire(w, u, input.fire);
     // Dalahästen goes off when the player taps again.
     if (input.fire && t.phase === 'retreat') for (const p of w.projectiles) if (p.kind === 'hast' && p.owner === u.id && p.fuse < 0 && p.age > 6) p.fuse = 1;
   }
@@ -663,6 +713,7 @@ export function step(w, input = {}) {
   if (t.phase === 'aim') { if (--t.timer <= 0) t.phase = 'settle'; }
   else if (t.phase === 'retreat') { t.timer = Math.max(0, t.timer - 1); if (--t.retreat <= 0) t.phase = 'settle'; }
   if ((t.phase === 'aim' || t.phase === 'retreat') && !(u && u.alive)) t.phase = 'settle';
+  if (t.phase !== 'aim' && t.phase !== 'retreat') for (const o of w.units) if (o.rope) { o.rope = null; o.air = true; }
   if (t.phase === 'aim' && u && u.alive && u.air && px(u.Y) > w.water) t.phase = 'settle';
   if (t.phase === 'settle' || t.phase === 'start') {
     t.quiet = busy(w) ? 0 : t.quiet + 1;
@@ -690,7 +741,7 @@ export function fingerprint(w) {
   if (w.cart) { mix(w.cart.X); mix(w.cart.Y); mix(w.cart.VX); }
   for (const c of w.crates) { mix(c.X); mix(c.Y); mix(c.weapon + 2); }
   for (const f of w.fires) { mix(f.X); mix(f.turns); }
-  for (const u of w.units) mix(u.away | 0);
+  for (const u of w.units) { mix(u.away | 0); if (u.rope) { mix(u.rope.AX); mix(u.rope.AY); mix(u.rope.L); } }
   for (const m of w.mines) { mix(m.X); mix(m.Y); mix(m.arm); }
   if (w.knalle) { mix(w.knalle.X); mix(w.knalle.Y); mix(w.knalle.dir); }
   const s = w.map.solid;

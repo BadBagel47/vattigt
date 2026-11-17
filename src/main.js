@@ -124,6 +124,8 @@ function updatePanels() {
     }
   }
   if (!hint && aiTurn() && t.phase === 'aim') hint = 'Datorn tänker …';
+  if (!hint && mine && u && u.rope) hint = 'Svinga med pilarna. Hoppa släpper.';
+  else if (!hint && canAct && wpn.tool) hint = 'Dra mot ett tak eller en vägg och släpp för att kasta ut linan.';
   if (!hint && canAct && wpn.target) hint = wpn.ticket ? 'Tryck på vätten som ska till Borås.' : wpn.build ? 'Tryck där plankan ska ligga.' : wpn.water ? 'Tryck där hinken ska tömmas.' : wpn.id === 'jas' ? 'Tryck där planet ska fälla laddningarna.' : 'Tryck där korvarna ska falla.';
   if (!hint && canAct && wpn.aim && shotsFired < 2 && !view.aim) hint = 'Dra i bilden för att sikta. Släpp för att skjuta.';
   if (!hint && horse) hint = 'Tryck på Spräng! när hästen är framme.';
@@ -150,7 +152,8 @@ function canAim(kind = 'aim') {
   const w = world();
   if (!w || paused || !myTurn() || mode === 'title') return false;
   const u = activeUnit(w);
-  return w.turn.phase === 'aim' && u && u.alive && !u.air && !!WEAPONS[w.turn.weapon][kind];
+  const wp = WEAPONS[w.turn.weapon];
+  return w.turn.phase === 'aim' && u && u.alive && (!u.air || (kind === 'aim' && wp.tool)) && !!wp[kind];
 }
 stage.addEventListener('pointerdown', (e) => {
   sound.unlock();

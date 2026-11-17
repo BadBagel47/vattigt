@@ -140,3 +140,27 @@ test('Snöbollen rolls and leaves a heap of snow', () => {
   assert.ok(ev.some((e) => e.t === 'snow' || e.t === 'splash'));
   if (ev.some((e) => e.t === 'snow')) { let snow = 0; for (let i = 0; i < w.map.mat.length; i++) if (w.map.solid[i] && w.map.mat[i] === 4) snow++; assert.ok(snow > 10, `${snow} snow pixels`); }
 });
+
+test('Metspöt: hook on, swing, let go; it does not end the turn', () => {
+  const w = settle(newMatch(61, { settings: { map: 'gruvan' } }));
+  const u = activeUnit(w), n = w.turn.number;
+  step(w, { weapon: idx('rope') });
+  step(w, { fire: { angle: 70, power: 50 } });
+  assert.ok(u.rope, 'hooked to the roof of the tunnel');
+  for (let i = 0; i < 40; i++) step(w, { walk: 1 });
+  const x1 = u.X;
+  for (let i = 0; i < 40; i++) step(w, { walk: -1 });
+  assert.notEqual(u.X, x1, 'swinging moves the vätte');
+  step(w, { jump: true });
+  assert.equal(u.rope, null, 'let go');
+  assert.equal(w.turn.phase, 'aim'); assert.equal(w.turn.number, n, 'still the same turn');
+});
+
+test('Metspöt misses when nothing is in reach', () => {
+  const w = settle(newMatch(62, { settings: { map: 'kobbarna' } }));
+  const u = activeUnit(w);
+  step(w, { weapon: idx('rope') });
+  step(w, { fire: { angle: 90, power: 50 } });
+  assert.ok(!u.rope);
+  assert.equal(w.turn.phase, 'aim');
+});

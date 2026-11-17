@@ -66,6 +66,8 @@ export function createSound() {
       else if (e.t === 'troll') { tone(t, { type: 'sawtooth', f1: 90, f2: 60, gain: .25, dec: .6 }); }
       else if (e.t === 'lamp') noise(t, { f: 4000, type: 'highpass', gain: .2, dec: .15 });
       else if (e.t === 'cloud') noise(t, { f: 500, gain: .3, dec: .6 });
+      else if (e.t === 'rope') tone(t, { type: 'triangle', f1: 1200, f2: 300, gain: .12, dec: .12 });
+      else if (e.t === 'rope-miss') tone(t, { type: 'triangle', f1: 600, f2: 200, gain: .08, dec: .2 });
       else if (e.t === 'pour') noise(t, { f: 900, type: 'bandpass', gain: .4, dec: 1.2, q: .6 });
       else if (e.t === 'nip') { tone(t, { f1: 900, f2: 500, gain: .12, dec: .08 }); tone(t + .08, { f1: 900, f2: 500, gain: .12, dec: .08 }); }
       else if (e.t === 'snow') noise(t, { f: 1500, gain: .25, dec: .25 });

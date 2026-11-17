@@ -41,6 +41,7 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 | Skurhinken | Tryck där hinken ska tömmas. Vattnet rinner längs marken, spolar med sig vättar (högst 15 skada per tur) och släcker eld. Tar ingen terräng. | upp till 15 | – | 1 |
 | Kräftskivan | Dra för att sikta. Där den landar blir fyra kräftor kvar som nyper den som går förbi. | 10 per nyp | – | 1 |
 | Snöbollen | Dra för att sikta. Rullar nedför och växer, välter den som står i vägen och blir en snöhög där den stannar. | 5–14 | – | 2 |
+| Metspöt | Verktyg. Dra mot ett tak eller en vägg och släpp: linan hakar fast inom 130 pixlar. Svinga med pilarna och släpp med Hoppa. Kan kastas ut igen i luften. Avslutar inte turen. | – | – | obegränsat |
 | Älgtestet | Släpps lös och rusar rakt fram. Den välter vättar den springer på (10 skada och en knuff) och smäller mot första branta väggen, eller efter 8 sekunder. | upp till 60 | medelstor | 1 |
 
 - Skadan är störst mitt i smällen och minskar utåt. Smällen kastar iväg vättar som står nära.
@@ -77,4 +78,4 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 
 ## Inte med än
 
-Metspöt, resten av vapnen ur designförslaget och datormotståndare.
+Resten av vapnen ur designförslaget, spellägen (Boet, Kubb, Stången) och fler banor.

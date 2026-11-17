@@ -69,6 +69,9 @@ WEAPONS.push(
   // Snöbollen: rolls downhill and grows; knocks over, and becomes a heap of snow where it stops.
   { id: 'sno', name: 'Snöbollen', speed: 7 * FP, wind: false, radius: 0, damage: 5, force: 0, aim: true, ammo: 2 }
 );
+// Metspöt: a tool, not a weapon. Cast it, hook on, swing with the arrows, jump to let go. It does not end the turn.
+WEAPONS.push({ id: 'rope', name: 'Metspöt', speed: 0, wind: false, radius: 0, damage: 0, force: 0, aim: true, tool: true, ammo: -1, reach: 130 });
+export const ROPE_SWING = 45, ROPE_MAX_SPEED = 4 * FP;
 export const WASH_MAX = 15, NIP_DAMAGE = 10, MINE_ARM = 60;
 export const FIRE_DAMAGE = 10, FIRE_RADIUS = 16, FIRE_TURNS = 4;
 export const TICKET_TURNS = 2, TICKET_DAMAGE = 10;
@@ -89,5 +92,5 @@ export const TEAMS = [
 
 // Settings for a match (eget spel). Everything that changes the match is here,
 // so every browser in an online room builds the same match from the same settings.
-export const DEFAULT_SETTINGS = { map: 'midsommar', night: true, units: UNITS_PER_TEAM, turn: 45, flood: FLOOD_ROUND, weapons: ['gurra', 'strom', 'dyn', 'bullar', 'korv', 'hast', 'alg', 'jas', 'tarta', 'platt', 'halm', 'biljett', 'hink', 'kraft', 'sno'], crates: true };
+export const DEFAULT_SETTINGS = { map: 'midsommar', night: true, units: UNITS_PER_TEAM, turn: 45, flood: FLOOD_ROUND, weapons: ['gurra', 'strom', 'dyn', 'bullar', 'korv', 'hast', 'alg', 'jas', 'tarta', 'platt', 'halm', 'biljett', 'hink', 'kraft', 'sno', 'rope'], crates: true };
 export const MAX_UNITS = 5;

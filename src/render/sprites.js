@@ -17,7 +17,8 @@ export const ICON_ROWS = [
   ['..........', 'tttttttttt', 'tTTTTTTTTt', 'tT.rrr..Tt', 'tT.rrr..Tt', 'tTTTTTTTTt', 'tttttttttt', '..........', '..........'],
   ['..hhhhhh..', '.h......h.', '.gggggggg.', '.gwwwwwwg.', '.gggggggg.', '..gggggg..', '..gggggg..', '...gggg...', '....w.w...'],
   ['r.r....r.r', '.r......r.', '..rrrrrr..', '.rRRRRRRr.', 'rrrrrrrrrr', '.rRRRRRRr.', '..rrrrrr..', '.r.r..r.r.', '..........'],
-  ['...wwww...', '..wWWWWw..', '.wWWWWWWw.', '.wWWWWWWw.', '.wWWWWWsw.', '.wWWWWssw.', '..wwssss..', '...wwww...', '..........']
+  ['...wwww...', '..wWWWWw..', '.wWWWWWWw.', '.wWWWWWWw.', '.wWWWWWsw.', '.wWWWWssw.', '..wwssss..', '...wwww...', '..........'],
+  ['........w.', '.......w.l', '......w..l', '.....w...l', '....w....l', '...w.....l', '..w.....hl', '.w......hh', 'w.........']
 ];
 export const HORSE = ['......rr.', '.....rrrr', '.....rr..', 'rrrrrrr..', 'rwbrrgr..', 'rrrrrrr..', 'rr...rr..', 'rr...rr..'];
 export const MOOSE = [['.........a.a', '.........aa.', '........bbb.', 'bbbbbbbbbbbn', 'bbbbbbbbbbb.', '.bbbbbbbbb..', '.b.b...b.b..', '.b.b...b.b..'], ['.........a.a', '.........aa.', '........bbb.', 'bbbbbbbbbbbn', 'bbbbbbbbbbb.', '.bbbbbbbbb..', '..b.b..b.b..', '.b...b.b...b']];
@@ -36,5 +37,6 @@ export const ICON_PAL = [
   { t: 0x4fa3ff, T: 0xd8e8ff, r: 0xd8382a },
   { h: 0x8a8f9a, g: 0x6a9ad8, w: 0xbfe6f4 },
   { r: 0xd8382a, R: 0xff7a5a },
-  { w: 0xc4d3ea, W: 0xffffff, s: 0x9fb4d8 }
+  { w: 0xc4d3ea, W: 0xffffff, s: 0x9fb4d8 },
+  { w: 0xd09a68, l: 0xd8dde8, h: 0xe5533d }
 ];

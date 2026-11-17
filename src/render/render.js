@@ -691,6 +691,11 @@ export function createRenderer(scene, glow) {
       if (c.kind === 'post') { rect(x - 3, y - 6, 7, 6, tn(0xb07a4a)); rect(x - 3, y - 4, 7, 1, tn(0xffd23a)); rect(x, y - 6, 1, 6, tn(0xffd23a)); }
       else { rect(x - 3, y - 5, 7, 5, tn(0xd8b06a)); rect(x - 2, y - 7, 5, 1, tn(0x8a6a3a)); for (let i = -3; i <= 3; i += 2) set(x + i, y - 5, tn(0xd8382a)); }
     }
+    for (const u of w.units) if (u.alive && !u.away && u.rope) {
+      const x0 = px(u.X), y0 = px(u.Y) - 6, x1 = px(u.rope.AX), y1 = px(u.rope.AY), n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+      for (let k = 0; k <= n; k++) set(x0 + ((x1 - x0) * k) / n, y0 + ((y1 - y0) * k) / n, k % 3 ? 0xd8dde8 : 0xa8b0c0);
+      set(x1, y1, 0xe5533d); set(x1 + 1, y1 + 1, 0x9aa0aa);
+    }
     for (const u of w.units) if (u.alive && !u.away && !inFog(w, u, act)) drawUnit(u, t, act && u.id === act.id, w, view);
     if (w.knalle) {
       const k = w.knalle, x = px(k.X), y = px(k.Y);
