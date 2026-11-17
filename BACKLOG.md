@@ -10,9 +10,9 @@ Prioritet: Hög, Medel, Låg.
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
 | D-006 | Låg | Förslag | Bestäm hur typsnitt ska levereras (egen fil i stället för Google Fonts) inför publicering. |
 | D-010 | Medel | Väntar på användaren | Borås i spelet: bana, verktyget Enkel biljett till Borås, stämpeln Bara i Borås och Knallen. Förslag i docs/DESIGN.md; användaren väljer vilka delar som ska med. |
-| F-021 | Medel | Förslag | Fler inställningar i onlinelobbyn: turtid, vättar per lag, vårflod, vapen och egna lag från lagbyggaren (i dag bara bana och stämning). |
-| F-022 | Låg | Förslag | Banornas extra regler som saknas: flyttblock som rullar, gruvvagnen som rullar på rälsen, dimman i Trollskogen som döljer vättar. |
-| F-023 | Medel | Förslag | Fler vapen ur designförslaget i spelet, till exempel Fallukorv, Dalahästen, Älgtestet och Köttbullar. |
+| F-021 | Medel | Pågår (2026-11-17, session Vättigt, main) | Fler inställningar i onlinelobbyn: turtid, vättar per lag, vårflod, vapen och egna lag från lagbyggaren (i dag bara bana och stämning). |
+| F-022 | Låg | Pågår (2026-11-17, session Vättigt, main) | Banornas extra regler som saknas: flyttblock som rullar, gruvvagnen som rullar på rälsen, dimman i Trollskogen som döljer vättar. |
+| F-023 | Medel | Pågår (2026-11-17, session Vättigt, main) | Fler vapen ur designförslaget i spelet, till exempel Fallukorv, Dalahästen, Älgtestet och Köttbullar. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
