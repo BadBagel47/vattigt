@@ -1,0 +1,47 @@
+// Game rules and tuning values (D-009). Described in plain words in docs/RULES.md;
+// keep the two in step when a number changes.
+//
+// Units: the simulation runs 60 steps a second. Positions and speeds are whole
+// numbers in 1/1024 of a pixel ("fp"), so every browser computes the same match.
+
+export const TPS = 60;                 // simulation steps per second
+export const FP = 1024;                // fixed-point scale
+
+export const W = 480, H = 270;         // map size in pixels
+export const WATER_START = 246;        // water surface, pixel row
+
+export const UNITS_PER_TEAM = 3;
+export const HP = 100;
+
+export const TURN_TICKS = 45 * TPS;    // time for a turn
+export const RETREAT_TICKS = 3 * TPS;  // time to get away after firing
+export const SETTLE_QUIET_TICKS = 40;  // everything must be still this long before the next turn
+
+export const GRAVITY = 160;            // fp per step², about 0.16 px
+export const WIND_MAX = 10;            // wind is a whole number from -WIND_MAX to WIND_MAX
+export const WIND_ACCEL = 3;           // fp per step² per wind unit, halved (see world.js)
+
+export const WALK_EVERY = 2;           // one pixel every second step: 30 px a second
+export const CLIMB = 3;                // highest step a vätte walks up
+export const JUMP_VX = 1229;           // 1.2 px per step
+export const JUMP_VY = -2253;          // 2.2 px per step upwards
+export const FALL_SAFE_VY = 4608;      // landing faster than 4.5 px per step hurts
+export const FALL_DAMAGE_PER_PX = 10;  // damage per px/step above the safe speed
+
+export const FLOOD_ROUND = 8;          // from this round the spring flood raises the water
+export const FLOOD_PX = 5;             // pixels per turn
+
+export const CLOUD_DAMAGE = 5;         // surströmming cloud, per turn of the vätte's own team
+export const CLOUD_RADIUS = 20;
+export const CLOUD_TURNS = 6;          // three rounds with two teams
+
+export const WEAPONS = [
+  { id: 'gurra', name: 'Kalle Gurra', speed: 9 * FP, wind: true, radius: 16, damage: 50, force: 5 * FP, aim: true, ammo: -1 },
+  { id: 'strom', name: 'Surströmming', speed: 7 * FP, wind: false, radius: 8, damage: 15, force: 2 * FP, aim: true, ammo: -1, fuse: 3 * TPS },
+  { id: 'dyn', name: 'Dynamit-Alfred', speed: 0, wind: false, radius: 24, damage: 75, force: 6 * FP, aim: false, ammo: 2, fuse: 5 * TPS }
+];
+
+export const TEAMS = [
+  { name: 'Vettvillingarna', units: ['MÄRTA', 'STINA', 'GÖSTA'] },
+  { name: 'Vätternrundan', units: ['ALVA', 'VERA', 'SIXTEN'] }
+];

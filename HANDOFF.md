@@ -3,7 +3,7 @@
 Rules version: 1.9 (uppdaterad 2026-11-16, inga ändringar behövdes)
 Inventory: 2026-11-13
 Project language: svenska (beslut 2026-11-17), både i spelet och i README. Kod, kodkommentarer och commits på engelska.
-Publishing method: GitHub Pages från main, roten (godkänt 2026-11-17, väntar på att användaren slår på det, se Engångsåtgärder). Mockuper och musikverkstad är fristående HTML-filer under docs/.
+Publishing method: GitHub Pages från main, roten (godkänt 2026-11-17). Spelet: https://badbagel47.github.io/vattigt/ Mockuper och musikverkstad är fristående HTML-filer under docs/.
 
 ## Mål
 
@@ -11,13 +11,15 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 
 ## Nuläge
 
-- Projektet är i designfasen. Ingen spelkod finns.
-- Första designförslaget finns i [docs/DESIGN.md](docs/DESIGN.md).
-- Första mockupen av en spelscen (Midsommarängen, fyra stämningar, sprängbar terräng) finns i [docs/mockup/index.html](docs/mockup/index.html).
+- Första spelbara versionen finns (F-013, 2026-11-17): en match på samma skärm, för mobil i liggande läge, på Midsommarängen. Två lag med tre vättar, Kalle Gurra, Surströmming och Dynamit-Alfred, sprängbar terräng, vind, turtid, vårflod och vinst. Musiken (utkast 1) och ljudeffekter är med.
+- Spelet ligger i repots rot (`index.html`, `src/`). Fysiken i `src/sim/` räknar bara med heltal, så samma startvärde och samma knapptryck ger samma match överallt (D-011). Tester: `npm test`.
+- Grundreglerna står i [docs/RULES.md](docs/RULES.md) (D-009).
+- Provat i en telefonsimulering (iPhone och Pixel i liggande läge). Inte provat på en riktig telefon.
+- Designförslaget finns i [docs/DESIGN.md](docs/DESIGN.md), mockupen i [docs/mockup/index.html](docs/mockup/index.html).
 
 ## Nästa steg
 
-- Användaren svarar på de öppna frågorna nedan och väljer bland förslagen i DESIGN.md.
+- Användaren provspelar på telefonen och säger vad som ska ändras.
 - Därefter: se "Proposed runs" i [BACKLOG.md](BACKLOG.md).
 
 ## Öppna frågor till användaren
@@ -27,7 +29,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 
 ## Arbetssätt
 
-- Design först. Kod påbörjas inte förrän användaren säger till.
+- Kod skrivs i körningar som användaren godkänt. Spelet är ren JavaScript utan byggsteg.
 - Multiplayer byggs före singleplayer, så att datormotståndare inte behövs från start.
 - Multiplayer byggs på network-kit (`BadBagel47/network-kit`), användarens gemensamma rumsserver på Cloudflare. Vättigt tar en egen kopia av en fast version. Allmänna behov löses i network-kit, inte här. Förslag på hur Vättigt passar in: [docs/NETWORK.md](docs/NETWORK.md).
 
@@ -72,6 +74,10 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 ## Dokumentationskarta
 
 - [docs/DESIGN.md](docs/DESIGN.md) – designförslaget: stil, banor, arsenal, väsen, spelidéer.
+- [index.html](index.html) och [src/](src/) – spelet. `src/sim/` är matchen (regler, fysik), `src/render/` grafiken, `src/audio/` ljudet, `src/main.js` kontroller och skärmar.
+- [tests/](tests/) – tester av matchen (`npm test`).
+- [docs/RULES.md](docs/RULES.md) – grundreglerna med siffror (D-009).
+- [README.md](README.md) – kort om spelet och hur det körs lokalt.
 - [docs/mockup/index.html](docs/mockup/index.html) – mockup av spelscen.
 - [docs/NETWORK.md](docs/NETWORK.md) – hur Vättigt använder network-kit.
 - [docs/music/index.html](docs/music/index.html) – musikverkstad med Midsommarpolskan, utkast 1.
