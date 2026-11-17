@@ -16,20 +16,25 @@ Prioritet: Hög, Medel, Låg.
 | D-009 | Låg | Förslag | Regelbeskrivning för grundspelet: turordning, skada, vind, lådor, vårflod. |
 | D-010 | Medel | Väntar på användaren | Borås i spelet: bana, verktyget Enkel biljett till Borås, stämpeln Bara i Borås och Knallen. Förslag i docs/DESIGN.md; användaren väljer vilka delar som ska med. |
 | D-011 | Hög | Väntar på användaren | Hur Vättigt använder network-kit: värdstyrda rum, alla räknar samma fysik, lag som places. Förslag i docs/NETWORK.md. Användaren godkänner riktningen. |
-| D-012 | Medel | Väntar på användaren | Musik: chiptune möter svensk folkmusik. Agenten komponerar och producerar allt, användaren lyssnar och styr. Utkast 1 av Midsommarpolskan finns i docs/music/index.html; väntar på användarens synpunkter. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
+| D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
+| F-013 | Hög | Förslag | Första spelbara versionen, lokalt på samma skärm: Midsommarängen, två lag med tre vättar, gå och hoppa, sikta och skjuta med Kalle Gurra, Dynamit-Alfred och Surströmming, sprängbar terräng, vatten som dödar, vind, turtid och vinst. Fysiken räknar exakt likadant varje gång, så att online kan läggas till sedan (D-011). Publiceras så att den kan spelas via en länk. |
 
 ## Proposed runs
 
-- **A** – standardmodell, medelnivå – Fler banor som mockup
+- **A** – stark modell, hög nivå – Första spelbara versionen
+  - F-013 – Bygg en spelbar match på samma skärm, så att spelet går att prova på riktigt
+  - D-009 – Skriv in grundreglerna (turordning, skada, vind, vatten) som versionen följer, så att siffrorna går att justera efter provspel
+- **B** – standardmodell, medelnivå – Fler banor som mockup
   - D-004 – Rita två till tre banor till, så att stilen prövas på olika miljöer
-- **B** – stark modell, hög nivå – Figurer och skärmar
+- **C** – stark modell, hög nivå – Figurer och skärmar
   - D-007 – Rita vättarna i större format med rörelser, så att de får personlighet
   - D-008 – Rita meny och eget spel, så att reglagen för stämning går att bedöma
-- **C** – standardmodell, medelnivå – Regler och namn
-  - D-009 – Skriv ner grundreglerna, så att spelet går att börja bygga
+- **D** – standardmodell, medelnivå – Namn
   - D-005 – Kontrollera namnen mot varumärken, så att inget behöver döpas om senare
 
-D-003 (val och svar från användaren) behövs före B och C. D-006 (typsnitt) tas inför publicering.
+A behöver svar på plattform, språk och publicering (HANDOFF.md, öppna frågor) samt att D-011 godkänns. D-006 (typsnitt) tas inför publicering.
+
+Parkerat: D-012 (musik).
 
 ## Klart
 
