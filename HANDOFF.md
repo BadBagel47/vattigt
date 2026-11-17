@@ -1,6 +1,6 @@
 # HANDOFF – Vättigt
 
-Rules version: 1.9 (uppdaterad 2026-11-16, inga ändringar behövdes)
+Rules version: 1.12 (uppdaterad 2026-11-17: körförslagets format och frågor, Pågår-markeringar)
 Inventory: 2026-11-13
 Project language: svenska (beslut 2026-11-17), både i spelet och i README. Kod, kodkommentarer och commits på engelska.
 Publishing method: just nu GitHub Pages från main, roten: https://badbagel47.github.io/vattigt/ (igång och kontrollerat 2026-11-17). Ska ersättas av en Cloudflare Worker som också kör rummen (beslut 2026-11-17, F-014). Mockuper och musikverkstad är fristående HTML-filer under docs/.

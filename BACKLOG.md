@@ -20,12 +20,14 @@ Prioritet: Hög, Medel, Låg.
 
 ## Proposed runs
 
-- **A** – stark modell, hög nivå – Spel över nätet
+Prioriterat för: spela med vänner på var sin telefon så snabbt som möjligt.
+
+- **A** – stark modell, hög nivå – Spel över nätet – publiceringen väntar på Cloudflare-nyckeln
   - F-014 – Flytta spelet till Cloudflare tillsammans med rummen, så att allt finns på en adress
   - F-015 – Spela över nätet med rumskod eller länk, så att man inte behöver dela telefon
-  - Fråga A1: Vilken adress? Rekommendation: Cloudflares gratisadress (vattigt.<konto>.workers.dev) nu, egen domän senare.
-  - Fråga A2: Hur många spelare online? Rekommendation: två lag med en eller flera spelare per lag, plus åskådare; fler lag senare.
-  - Fråga A3: Vad händer med GitHub Pages? Rekommendation: stängs av när Cloudflare-versionen är kontrollerad, så att det bara finns en adress.
+  - Fråga: Vilken adress? Rekommendation: Cloudflares gratisadress (vattigt.<konto>.workers.dev) nu, egen domän senare.
+  - Fråga: Hur många spelare online? Rekommendation: två lag med en eller flera spelare per lag, plus åskådare; fler lag senare.
+  - Fråga: Vad händer med GitHub Pages? Rekommendation: stängs av när Cloudflare-versionen är kontrollerad, så att det bara finns en adress.
 - **B** – standardmodell, medelnivå – Fler banor som mockup
   - D-004 – Rita två till tre banor till, så att stilen prövas på olika miljöer
 - **C** – stark modell, hög nivå – Figurer och skärmar
