@@ -570,7 +570,10 @@ export class NetworkRoom {
         this.rawSend({ t: 'cmd', c: 'alive' });
         break;
       case 'ev':
-        this.emit('peer', { event: msg.e, id: msg.id, why: msg.why, player: this.player(msg.id) });
+        this.emit('peer', {
+          event: msg.e, id: msg.id, why: msg.why, name: msg.name ?? this.player(msg.id)?.name ?? null,
+          returning: msg.returning === true, player: this.player(msg.id),
+        });
         break;
       case 'ok':
         this.emit('ok', { command: msg.c, n: msg.n });

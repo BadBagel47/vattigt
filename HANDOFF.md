@@ -67,7 +67,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 ## Lagar och regler (kort genomgång 2026-11-13)
 
 - Varumärken och upphovsrätt: spelet får inte använda namn, figurer eller utseende från Worms, och vapennamn får inte vara verkliga varumärken. Hanteras genom egna namn. Bevakas i B/F/D-listan (D-005).
-- Typsnitt, ljud och bilder måste ha licens som tillåter användningen. Mockupen laddar två typsnitt från Google Fonts (öppen licens), vilket också innebär att besökarens webbläsare kontaktar Google. Tas upp inför publicering (D-006).
+- Typsnitt, ljud och bilder måste ha licens som tillåter användningen. Typsnitten Albert Sans och Pixelify Sans (SIL Open Font License) ligger i spelet med licenstexterna i `fonts/` (D-006, 2026-11-17), så ingen sida hämtar något från Google. Ljud och musik skapas i webbläsaren och har inga externa källor.
 - Spel över nätet hanterar smeknamn och IP-adresser hos Cloudflare (rum i EU, raderas ett dygn efter sista spelaren). Spelet säger det på skärmen för spel över nätet. Webbläsarens lagring används för att komma tillbaka in i ett rum efter omladdning (sessionStorage, försvinner när fliken stängs) och för lagen i lagbyggaren (localStorage, bara på enheten). Båda behövs för funktioner som spelaren själv väljer, så samtycke bedöms inte behövas (lagen om elektronisk kommunikation 9 kap. 28 §); ingen spårning eller analys finns. Ingen juridisk säkerhet.
 - Ingen juridisk säkerhet utlovas. Frågor om varumärken kan behöva juridisk rådgivning (PRV är officiell källa).
 
@@ -100,5 +100,6 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - [docs/characters/index.html](docs/characters/index.html) – vättarna i större format med rörelser (D-007).
 - [docs/screens/index.html](docs/screens/index.html) – mockup av startmeny, eget spel och lagbyggare (D-008).
 - [docs/NAMES.md](docs/NAMES.md) – namnen mot varumärken (D-005).
+- [fonts/](fonts/) – spelets typsnitt med licenser.
 - [docs/NETWORK.md](docs/NETWORK.md) – hur Vättigt använder network-kit.
 - [docs/music/index.html](docs/music/index.html) – musikverkstad med Midsommarpolskan, utkast 1.

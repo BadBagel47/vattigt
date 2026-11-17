@@ -707,6 +707,7 @@ export class RoomCore {
     // The owner had another seat already and now claims the room from this one.
     const oldOwnerSeat = isOwner && ownerSeat && ownerSeat !== player ? ownerSeat : null;
     const isNew = !player;
+    let returning = false;
     let reloaded = false;
 
     if (isNew) {
@@ -760,6 +761,14 @@ export class RoomCore {
         id, pkh, name, role, waiting, status: 'online', place: null, joinedAt: now, awaySince: null,
         sid: msg.sid, lastN: known && known.sid === msg.sid ? known.lastN : 0,
       };
+      // Back after the grace period: the same participant as before (B-044).
+      returning = Boolean(standing && standing.id === id && standing.role === role);
+      // Their place is given back if nobody has taken it meanwhile.
+      const place = returning && !waiting ? standing.place : null;
+      if (place && own(o.places, place)
+        && Object.values(s.players).filter((p) => p.place === place).length < o.places[place]) {
+        player.place = place;
+      }
       s.players[id] = player;
     } else {
       // The same participant connected again: the newest connection wins.
@@ -840,9 +849,6 @@ export class RoomCore {
       lastN: player.lastN,
       room: this.view(player.id),
     });
-    if (isNew) this.event(player.waiting ? 'waiting' : 'join', player.id);
-    else this.event('back', player.id);
-
     if (tookOver) {
       await this.takeOver(player.id);
     } else {
@@ -850,6 +856,10 @@ export class RoomCore {
       // Repeated on every hello until the host confirms with host-ready.
       if (o.mode === 'host' && player.id === s.hostId && s.hostPending) await this.sendHost(player.id);
     }
+    // After the room's new list, so the others already know who it is (B-043).
+    const about = { name: player.name, ...(returning ? { returning: true } : {}) };
+    if (isNew) this.event(player.waiting ? 'waiting' : 'join', player.id, about);
+    else this.event('back', player.id, about);
 
     if (oldOwnerSeat) await this.removePlayer(oldOwnerSeat, 'moved');
 
@@ -863,7 +873,8 @@ export class RoomCore {
   remember(p) {
     const s = this.state;
     s.known[p.pkh] = {
-      id: p.id, sid: p.sid, lastN: p.lastN, role: p.role, admitted: !p.waiting, round: s.round, at: this.host.now(),
+      id: p.id, sid: p.sid, lastN: p.lastN, role: p.role, place: p.place ?? null,
+      admitted: !p.waiting, round: s.round, at: this.host.now(),
     };
     const entries = Object.entries(s.known);
     if (entries.length > KNOWN_MAX) {
@@ -906,7 +917,7 @@ export class RoomCore {
       else if (o.closeAfterHostAwayMs !== null) this.setTimer('hostaway', o.closeAfterHostAwayMs);
     }
     this.touch();
-    this.event('drop', p.id);
+    this.event('drop', p.id, { name: p.name });
     this.broadcastRoom();
     if (o.mode === 'server') await this.callRules('onDrop', this.rulesPlayer(p));
   }
@@ -923,7 +934,7 @@ export class RoomCore {
     this.clearTimer('grace', p.id);
     this.clearTimer('autopause', p.id);
     this.touch();
-    this.event('gone', p.id, { why });
+    this.event('gone', p.id, { why, name: p.name });
     if (p.id === s.ownerId) {
       s.ownerId = null; // the owner is absent; the owner key still brings them back
       if (o.passOwnerAfterMs !== null && !this.hasTimer('ownerpass')) this.setTimer('ownerpass', o.passOwnerAfterMs);
@@ -976,7 +987,7 @@ export class RoomCore {
       s.paused = null;
     }
     this.touch();
-    this.event('host', next.id);
+    this.event('host', next.id, { name: next.name });
     this.broadcastRoom();
     await this.sendHost(next.id);
     return true;
@@ -1036,7 +1047,7 @@ export class RoomCore {
     if (this.options.mode === 'server') s.hostId = p.id;
     this.touch();
     this.sendTo(p.id, JSON.stringify({ t: 'owner', key: s.ownerKey }));
-    this.event('owner', p.id);
+    this.event('owner', p.id, { name: p.name });
   }
 
   /** Pass ownership on: to the host if there is one, else to whoever has been here longest. */
@@ -1427,7 +1438,7 @@ export class RoomCore {
       if (!p.waiting) continue;
       p.waiting = false;
       this.remember(p);
-      this.event('join', p.id);
+      this.event('join', p.id, { name: p.name });
       if (this.options.mode === 'server') await this.callRules('onJoin', this.rulesPlayer(p));
     }
     this.touch();
