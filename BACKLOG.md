@@ -9,9 +9,9 @@ Prioritet: Hög, Medel, Låg.
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
 | D-006 | Låg | Förslag | Bestäm hur typsnitt ska levereras (egen fil i stället för Google Fonts) inför publicering. |
-| D-026 | Låg | Förslag | Resten av Borås: banan Borås (regn, parkeringshus, slukhål) och Knallen som byter vapen. |
-| F-027 | Låg | Förslag | Vapen som kräver mer: Skurhinken (vatten som rinner), Metspöt (svingrep), Kräftskivan, Snöbollen. |
-| F-028 | Medel | Förslag | Inställning på skärmen för lådor av/på i eget spel och online. |
+| D-026 | Låg | Pågår (2026-11-17, session Vättigt, main) | Resten av Borås: banan Borås (regn, parkeringshus, slukhål) och Knallen som byter vapen. |
+| F-027 | Låg | Pågår (2026-11-17, session Vättigt, main) | Vapen som kräver mer: Skurhinken (vatten som rinner), Metspöt (svingrep), Kräftskivan, Snöbollen. |
+| F-028 | Medel | Pågår (2026-11-17, session Vättigt, main) | Inställning på skärmen för lådor av/på i eget spel och online. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
