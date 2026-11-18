@@ -87,6 +87,13 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 - **Boet:** varje lag har ett bo (150 i liv) längst bak på sin sida. Smällar skadar boet på samma sätt som en vätte, och en direktträff smäller vid boet. Ett bo som faller i vattnet är förstört. Laget vars bo förstörs förlorar; förstörs båda samtidigt blir det oavgjort. Ett lag utan vättar förlorar som vanligt.
 - **Stången:** en midsommarstång står nära mitten, med en ring på 28 pixlar runt sig. När en runda är slut får det lag som har flest vättar inom ringen en poäng (lika eller ingen: ingen poäng). Först till 5 poäng vinner. Ett lag utan vättar förlorar som vanligt.
 
+## Valbara regler
+
+Båda är av från början och väljs i eget spel och i lobbyn.
+
+- **Lagom-zon:** i början av varje tur blir ett band på elva procent av styrkan lagom (mitten slumpas mellan 30 och 80). Ett siktat skott med styrka inom bandet tas inte av vinden. Bandet visas överst och vid reglaget.
+- **Jantelagen:** när en vätte i det lag som har mest liv kvar (strikt mer än alla andra lag) tar en låda, är vartannat postpaket (slumpat) fel vara och en fikakorg ger halva livet.
+
 ## Pratbubblor
 
 Varje lag pratar en dialekt, vald i lagbyggaren: göteborgska (med ordvitsar), skånska, norrländska (bara "jo") eller tyst. Vättarna säger något ibland när de skjuter, när de träffas, när turen börjar och när laget vinner. Bubblorna påverkar inte matchen.

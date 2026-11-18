@@ -92,7 +92,7 @@ export const TEAMS = [
 
 // Settings for a match (eget spel). Everything that changes the match is here,
 // so every browser in an online room builds the same match from the same settings.
-export const DEFAULT_SETTINGS = { map: 'midsommar', night: true, units: UNITS_PER_TEAM, turn: 45, flood: FLOOD_ROUND, weapons: ['gurra', 'strom', 'dyn', 'bullar', 'korv', 'hast', 'alg', 'jas', 'tarta', 'platt', 'halm', 'biljett', 'hink', 'kraft', 'sno', 'rope'], crates: true, mode: 'klassiskt' };
+export const DEFAULT_SETTINGS = { map: 'midsommar', night: true, units: UNITS_PER_TEAM, turn: 45, flood: FLOOD_ROUND, weapons: ['gurra', 'strom', 'dyn', 'bullar', 'korv', 'hast', 'alg', 'jas', 'tarta', 'platt', 'halm', 'biljett', 'hink', 'kraft', 'sno', 'rope'], crates: true, mode: 'klassiskt', lagom: false, jante: false };
 export const MAX_UNITS = 5;
 
 // Game modes (F-032). Kubb: knock down the other team's five kubbar, then the king.
@@ -119,3 +119,9 @@ export const RAUK_HOLD = 40;         // percent of the foot that must remain
 export const RAUK_DAMAGE = 35;
 // Slätten (F-036): the windmill's sails turn with the wind and hit shots back.
 export const SAIL_HIT_COOLDOWN = 12;
+
+// Valbara regler (F-037).
+// Lagom: each turn a band on the strength meter is lagom; a shot fired with a strength in it is not moved by the wind.
+export const LAGOM_HALF = 5;          // the band is 11 steps wide
+export const LAGOM_MIN = 30, LAGOM_MAX = 80;
+// Jantelagen: the team that leads (more life in all) gets worse crates: every second post parcel is the wrong goods, a fika basket gives half.

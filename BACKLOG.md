@@ -8,23 +8,15 @@ Prioritet: Hög, Medel, Låg.
 | ID | Prio | Status | Beskrivning |
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
-| F-037 | Låg | Pågår (2026-11-18, session Vättigt, main) | Valbara regler ur designförslaget: Lagom-zonen på kraftmätaren och Jantelagen (laget som leder får sämre lådor). |
 | F-041 | Låg | Förslag | Fler banor ur designförslaget: Älven och Villaområdet (flyttat från F-036). |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
 
-Prioriterat för: att det nya provas på riktiga telefoner, och att onlinespelet blir stabilare, innan mer läggs till.
+Prioriterat för: att allt nytt provas på riktiga telefoner innan mer läggs till.
 
-- **A** – standardmodell, medelnivå – Stabilare onlinespel
-  - F-040 – Ta in den nya nätverksgrunden: snabbare turbyte när den som kör matchen försvinner och tappad kontakt märks efter några sekunder
-- **B** – stark modell, hög nivå – Fler spellägen
-  - F-035 – Boet och Stången, som Kubb ett val under Spelläge
-- **C** – stark modell, hög nivå – Fler banor
-  - F-036 – Två banor till
-  - Fråga: Vilka? Rekommendation: Raukarna (pelare som välter) och Slätten (vinden avgör, kvarnvingar slår tillbaka skott).
-- **D** – standardmodell, medelnivå – Valbara regler
-  - F-037 – Lagom-zonen och Jantelagen som val i eget spel och i lobbyn
+- **A** – stark modell, hög nivå – Fler banor
+  - F-041 – Älven (stockar som flyter, en damm som kan sprängas) och Villaområdet (studsmatta, robotgräsklippare)
 
 Användarens provspel går före allt detta.
 
@@ -34,6 +26,7 @@ Parkerat: D-012 (musik).
 
 | ID | Klart | Beskrivning |
 |---|---|---|
+| F-037 | 2026-11-18 | Valbara regler: Lagom-zonen (skott med lagom styrka tas inte av vinden) och Jantelagen (laget som leder får sämre lådor), i eget spel och lobbyn. Datorn använder lagom-zonen på lagom och svår nivå. |
 | F-036 | 2026-11-18 | Banorna Raukarna (raukar som välter när foten skjuts bort) och Slätten (dubbel vind, kvarnvingar som slår tillbaka skott). Älven och Villaområdet flyttade till F-041. |
 | F-035 | 2026-11-18 | Spellägena Boet (laget vars bo förstörs förlorar) och Stången (flest vättar vid midsommarstången efter en runda ger en poäng, först till fem vinner). Val i eget spel och lobbyn; datorn spelar båda och går mot stången. |
 | F-040 | 2026-11-18 | network-kit v0.6.0 inne: en telefon som tappar nätet märks på ungefär 5 sekunder, och den vars tur det är tar över först om den som kör matchen försvinner. |

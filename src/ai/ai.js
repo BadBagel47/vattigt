@@ -15,13 +15,13 @@ const px = (v) => Math.floor(v / FP);
 const idx = (id) => WEAPONS.findIndex((w) => w.id === id);
 
 // Where a shot lands: [x, y] of the hit, or null if it leaves the map or drowns.
-function flight(w, u, wp, angle, power) {
+function flight(w, u, wp, angle, power, noWind = false) {
   const solid = w.map.solid;
   const isSolid = (x, y) => x >= 0 && x < W && y >= 0 && y < H && solid[y * W + x] === 1;
   const v = Math.trunc((wp.speed * power) / 100), dx = cos(angle), dy = -sin(angle);
   let X = u.X + dx * 7, Y = u.Y - 5 * FP + dy * 7, VX = Math.trunc((dx * v) / 1024), VY = Math.trunc((dy * v) / 1024);
   for (let t = 0; t < 420; t++) {
-    if (wp.wind) VX += Math.trunc((w.wind * WIND_ACCEL * (w.map.windScale || 1)) / 2);
+    if (wp.wind && !noWind) VX += Math.trunc((w.wind * WIND_ACCEL * (w.map.windScale || 1)) / 2);
     VY += GRAVITY;
     const n = Math.max(1, Math.trunc((Math.max(Math.abs(VX), Math.abs(VY)) + FP - 1) / FP));
     for (let i = 0; i < n; i++) {
@@ -107,9 +107,10 @@ export function planTurn(w, level = 'lagom', opts = {}) {
     const wp = WEAPONS[i];
     if (id === 'tarta' && enemies.length < 2 && level !== 'svar') continue;
     for (let angle = 10; angle <= 170; angle += 4) for (let power = 25; power <= 100; power += 5) {
-      const hit = flight(w, u, wp, angle, power);
+      const lag = w.settings.lagom && t.lagom != null && Math.abs(power - t.lagom) <= 5;
+      const hit = flight(w, u, wp, angle, power, lag);
       if (!hit) continue;
-      const s = score(w, team, hit[0], hit[1], wp) - (id === 'gurra' ? 0 : 10);
+      const s = score(w, team, hit[0], hit[1], wp) - (id === 'gurra' ? 0 : 10) + (lag && level !== 'latt' ? 6 : 0);
       if (s > 0) options.push({ weapon: i, angle, power, s });
     }
   }

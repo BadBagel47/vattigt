@@ -142,3 +142,41 @@ test('boet and stången: the computer finishes matches and replays match', async
     assert.equal(fingerprint(copy.world), fingerprint(m.world), mode);
   }
 });
+
+test('lagom: a shot with lagom strength is not moved by the wind; off by default', () => {
+  assert.equal(matchSettings({}).lagom, false);
+  assert.equal(matchSettings({}).jante, false);
+  const flightX = (lagomOn, inBand) => {
+    const w = newMatch(9, { settings: { map: 'slatten', lagom: lagomOn } });
+    settle(w);
+    for (const u of w.units) u.hp = 1000;
+    w.wind = 10;
+    const power = lagomOn ? (inBand ? w.turn.lagom : (w.turn.lagom > 55 ? w.turn.lagom - 20 : w.turn.lagom + 20)) : 60;
+    const evs = [];
+    step(w, { fire: { angle: 80, power } }); evs.push(...w.events);
+    let maxX = 0;
+    for (let i = 0; i < 300 && w.projectiles.length; i++) { const p = w.projectiles[0]; maxX = Math.max(maxX, Math.abs(p.VX)); step(w); evs.push(...w.events); }
+    return { lagomShot: evs.some((e) => e.t === 'lagom'), w, power };
+  };
+  const a = flightX(true, true), b = flightX(true, false);
+  assert.ok(a.lagomShot, 'in the band: lagom');
+  assert.ok(!b.lagomShot, 'outside: not lagom');
+  assert.ok(a.w.turn.lagom >= 30 && a.w.turn.lagom <= 80);
+});
+
+test('jantelagen: the leading team gets worse crates', () => {
+  const w = newMatch(9, { settings: { map: 'midsommar', jante: true } });
+  settle(w);
+  const u = w.units.find((o) => o.team === 0);
+  for (const o of w.units) if (o.team === 1) o.hp = 10;     // team 0 leads
+  u.hp = 50;
+  const evs = [];
+  for (let k = 0; k < 6; k++) {
+    w.crates.push({ kind: k % 2 ? 'fika' : 'post', weapon: 0, X: u.X, Y: u.Y, VY: 0, rest: true });
+    step(w); evs.push(...w.events);
+  }
+  assert.ok(evs.filter((e) => e.t === 'jante').length >= 6, 'every crate was under Jantelagen');
+  const fika = evs.filter((e) => e.t === 'crate' && e.kind === 'fika');
+  assert.ok(fika.every((e) => e.n <= 12), 'fika gives half');
+  assert.ok(evs.some((e) => e.t === 'crate' && e.kind === 'wrong'), 'some parcels are the wrong goods');
+});

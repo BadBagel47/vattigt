@@ -33,7 +33,9 @@ export function matchSettings(opts = {}) {
     flood: clamp(s.flood, 0, 99, d.flood),
     weapons: weapons.length ? weapons : ['gurra'],
     crates: s.crates !== false,
-    mode: R.MODES.includes(s.mode) ? s.mode : 'klassiskt'
+    mode: R.MODES.includes(s.mode) ? s.mode : 'klassiskt',
+    lagom: s.lagom === true,
+    jante: s.jante === true
   };
 }
 
@@ -508,7 +510,9 @@ function fire(w, u, shot) {
     const v = Math.trunc((wp.speed * power) / 100);
     const dx = cos(angle), dy = -sin(angle);
     u.face = dx < 0 ? -1 : 1;
-    w.projectiles.push({ kind: wp.id, X: cx + dx * 7, Y: cy + dy * 7, VX: Math.trunc((dx * v) / 1024), VY: Math.trunc((dy * v) / 1024), owner: u.id, age: 0, fuse: wp.fuse || -1, rest: false });
+    const lagom = w.settings.lagom && t.lagom != null && Math.abs(power - t.lagom) <= R.LAGOM_HALF;
+    w.projectiles.push({ kind: wp.id, X: cx + dx * 7, Y: cy + dy * 7, VX: Math.trunc((dx * v) / 1024), VY: Math.trunc((dy * v) / 1024), owner: u.id, age: 0, fuse: wp.fuse || -1, rest: false, lagom: lagom ? 1 : 0 });
+    if (lagom) w.events.push({ t: 'lagom', x: px(u.X), y: px(u.Y) });
   } else {
     w.projectiles.push({ kind: wp.id, X: u.X + u.face * 4 * FP, Y: u.Y - 3 * FP, VX: u.face * 200, VY: 0, owner: u.id, age: 0, fuse: wp.fuse, rest: false });
   }
@@ -692,6 +696,13 @@ function stepCrates(w) {
     for (const u of w.units) {
       if (!u.alive || u.away || c.taken || Math.abs(px(u.X) - x) > 6 || Math.abs(px(u.Y) - px(c.Y)) > 9) continue;
       c.taken = 1;
+      // Jantelagen: the leading team gets worse crates
+      const lead = w.settings.jante && w.teams.every((tm) => tm.index === u.team || teamHp(w, u.team) > teamHp(w, tm.index));
+      if (lead) {
+        w.events.push({ t: 'jante', unit: u.id, x, y: px(c.Y) - 18 });
+        if (c.kind === 'fika') { const n = Math.min(R.FIKA_HP >> 1, R.HP_MAX - u.hp); u.hp += n; w.events.push({ t: 'crate', kind: 'fika', unit: u.id, n, x, y: px(c.Y) }); continue; }
+        if (randInt(w, 2) === 0) { w.events.push({ t: 'crate', kind: 'wrong', unit: u.id, x, y: px(c.Y) }); continue; }
+      }
       if (c.kind === 'fika') { const n = Math.min(R.FIKA_HP, R.HP_MAX - u.hp); u.hp += n; w.events.push({ t: 'crate', kind: 'fika', unit: u.id, n, x, y: px(c.Y) }); }
       else if (c.weapon < 0) w.events.push({ t: 'crate', kind: 'wrong', unit: u.id, x, y: px(c.Y) });
       else { const tm = w.teams[u.team]; if (tm.ammo[c.weapon] >= 0) tm.ammo[c.weapon]++; w.events.push({ t: 'crate', kind: 'post', unit: u.id, weapon: c.weapon, x, y: px(c.Y) }); }
@@ -831,7 +842,7 @@ function stepProjectile(w, p) {
   if (p.rest) {
     if (!solidAt(w, px(p.X), px(p.Y) + 1)) p.rest = false; else return true;
   }
-  if (wp.wind) p.VX += Math.trunc((w.wind * R.WIND_ACCEL * (w.map.windScale || 1)) / 2);
+  if (wp.wind && !p.lagom) p.VX += Math.trunc((w.wind * R.WIND_ACCEL * (w.map.windScale || 1)) / 2);
   // Slätten: a sail hits the shot back the way it came, and up
   if (w.map.mill && !(p.sailHit > 0) && sailAt(w, px(p.X), px(p.Y)) >= 0) {
     p.VX = -p.VX - Math.sign(p.VX || 1) * 300; p.VY = Math.min(p.VY, 0) - 900; p.sailHit = R.SAIL_HIT_COOLDOWN; p.owner = -1;
@@ -949,6 +960,7 @@ function nextTurn(w) {
   if (tm.ammo[t.weapon] === 0) t.weapon = Math.max(0, tm.ammo.findIndex((a) => a !== 0));
   t.aim = { angle: pick.face > 0 ? 45 : 135, power: 60 };
   w.wind = randInt(w, R.WIND_MAX * 2 + 1) - R.WIND_MAX;
+  if (w.settings.lagom) t.lagom = R.LAGOM_MIN + randInt(w, R.LAGOM_MAX - R.LAGOM_MIN + 1);
   w.events.push({ t: 'turn', team, unit: pick.id, wind: w.wind, round: t.round });
 }
 function gameOver(w, living) {
@@ -1054,7 +1066,7 @@ export function fingerprint(w) {
   if (w.knalle) { mix(w.knalle.X); mix(w.knalle.Y); mix(w.knalle.dir); }
   const s = w.map.solid;
   for (let i = 0; i < s.length; i += 7) mix(s[i] * (i + 1));
-  mix(w.turn.team + 5); mix(w.turn.unit + 5); mix(w.turn.timer); mix(w.turn.round);
+  mix(w.turn.team + 5); mix(w.turn.unit + 5); mix((w.turn.lagom ?? -1) + 2); mix(w.turn.timer); mix(w.turn.round);
   return h.toString(16).padStart(8, '0');
 }
 export const unitsNearPole = nearPole;

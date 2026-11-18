@@ -119,7 +119,8 @@ function updatePanels() {
   $('power').disabled = !aimable; $('powerBox').setAttribute('aria-disabled', String(!aimable));
   if (document.activeElement !== $('power')) {
     const pw = (view.aim || view.keyAim || t.aim).power;
-    if ($('power').value !== String(pw)) { $('power').value = String(pw); $('powerLabel').textContent = `Styrka ${pw} %`; }
+    const lg = w.settings.lagom && t.lagom != null ? ` (lagom ${t.lagom - 5}–${t.lagom + 5})` : '';
+    if ($('power').value !== String(pw) || $('powerLabel').dataset.lg !== lg) { $('power').value = String(pw); $('powerLabel').textContent = `Styrka ${pw} %${lg}`; $('powerLabel').dataset.lg = lg; }
   }
   if (!moving && (held.left || held.right)) { held.left = held.right = false; updateWalk(); }
   let hint = '';
@@ -180,7 +181,8 @@ function setPower(p) {
   if (!canAim()) return;
   const w = world(), cur = view.keyAim || w.turn.aim, power = Math.max(10, Math.min(100, Math.round(p)));
   view.keyAim = { angle: cur.angle, power }; view.aimed = true;
-  $('power').value = String(power); $('powerLabel').textContent = `Styrka ${power} %`;
+  const t = w.turn, lg = w.settings.lagom && t.lagom != null ? ` (lagom ${t.lagom - 5}–${t.lagom + 5})` : '';
+  $('power').value = String(power); $('powerLabel').textContent = `Styrka ${power} %${lg}`; $('powerLabel').dataset.lg = lg;
   emit({ aim: view.keyAim });
 }
 $('power').addEventListener('input', () => { sound.unlock(); setPower(+$('power').value); });
@@ -318,7 +320,7 @@ function resetView() { view.aim = null; view.keyAim = null; view.aimed = false; 
 
 /* ---------- settings (eget spel) and saved teams (lagbyggaren) ---------- */
 const NIGHT_MOODS = new Set(['midsommar', 'vinter']);
-const custom = { opponent: 'spelare', mode: 'klassiskt', crates: true, map: DEFAULT_SETTINGS.map, units: DEFAULT_SETTINGS.units, turn: DEFAULT_SETTINGS.turn, flood: DEFAULT_SETTINGS.flood, weapons: new Set(DEFAULT_SETTINGS.weapons), team0: 0, team1: 1 };
+const custom = { opponent: 'spelare', mode: 'klassiskt', lagom: false, jante: false, crates: true, map: DEFAULT_SETTINGS.map, units: DEFAULT_SETTINGS.units, turn: DEFAULT_SETTINGS.turn, flood: DEFAULT_SETTINGS.flood, weapons: new Set(DEFAULT_SETTINGS.weapons), team0: 0, team1: 1 };
 const TEAM_KEY = 'vattigt-teams';
 const defaultTeams = () => TEAMS.map((t, i) => ({ name: t.name, color: t.color, hat: t.hat, dialect: defaultDialect(i), units: t.units.map((n) => n.charAt(0) + n.slice(1).toLowerCase()) }));
 let savedTeams = (() => { try { const v = JSON.parse(localStorage.getItem(TEAM_KEY) || 'null'); if (Array.isArray(v) && v.length >= 2) return v; } catch (e) { /* storage off */ } return defaultTeams(); })();
@@ -326,7 +328,7 @@ function saveTeams() { try { localStorage.setItem(TEAM_KEY, JSON.stringify(saved
 function matchOpts() {
   const pick = (i) => savedTeams[i] || savedTeams[0];
   return {
-    settings: { map: custom.map, night: NIGHT_MOODS.has(moodName), units: custom.units, turn: custom.turn, flood: custom.flood, weapons: [...custom.weapons], crates: custom.crates, mode: custom.mode },
+    settings: { map: custom.map, night: NIGHT_MOODS.has(moodName), units: custom.units, turn: custom.turn, flood: custom.flood, weapons: [...custom.weapons], crates: custom.crates, mode: custom.mode, lagom: custom.lagom, jante: custom.jante },
     teams: [pick(custom.team0), pick(custom.team1)].map((t, i) => ({ name: t.name, color: t.color, hat: t.hat, units: t.units, dialect: t.dialect || defaultDialect(i) }))
   };
 }
@@ -423,6 +425,8 @@ function setupCustom() {
   choiceRow(row('turn'), [30, 45, 60, 90], (v) => custom.turn === v, (v) => { custom.turn = v; }, (v) => v + ' s');
   choiceRow(row('flood'), [0, 6, 8, 12], (v) => custom.flood === v, (v) => { custom.flood = v; }, (v) => (v ? 'Runda ' + v : 'Av'));
   choiceRow(row('opponent'), ['spelare', 'latt', 'lagom', 'svar'], (v) => custom.opponent === v, (v) => { custom.opponent = v; }, (v) => (v === 'spelare' ? 'En spelare till' : 'Dator: ' + LEVELS[v].name.toLowerCase()));
+  choiceRow(row('lagom'), [true, false], (v) => custom.lagom === v, (v) => { custom.lagom = v; }, (v) => (v ? 'På' : 'Av'));
+  choiceRow(row('jante'), [true, false], (v) => custom.jante === v, (v) => { custom.jante = v; }, (v) => (v ? 'På' : 'Av'));
   choiceRow(row('crates'), [true, false], (v) => custom.crates === v, (v) => { custom.crates = v; }, (v) => (v ? 'På' : 'Av'));
   choiceRow(row('weapons'), WEAPONS.map((w) => w.id), (v) => custom.weapons.has(v), (v) => { if (custom.weapons.has(v) && custom.weapons.size > 1) custom.weapons.delete(v); else custom.weapons.add(v); }, (v) => WEAPONS.find((w) => w.id === v).name);
   for (const [i, sel] of [[0, $('cTeam0')], [1, $('cTeam1')]]) {
@@ -443,6 +447,8 @@ function customNote() {
     stangen: `Stången: efter varje runda får laget med flest vättar vid midsommarstången en poäng. Först till ${POLE_WIN} vinner.`
   };
   if (modeNotes[custom.mode]) n = modeNotes[custom.mode] + ' ' + n;
+  if (custom.lagom) n += ' Lagom-zon: varje tur är ett band på styrkan lagom. Skjuter man med lagom styrka tar vinden inte skottet.';
+  if (custom.jante) n += ' Jantelagen: laget som leder får sämre lådor.';
   if (custom.team0 === custom.team1) n += ' Välj två olika lag.';
   $('cNote').textContent = n.trim();
   $('cStart').disabled = custom.team0 === custom.team1;
@@ -604,7 +610,7 @@ let netBuilt = false;
 function pushSetup() {
   if (!online) return;
   const o = matchOpts();
-  online.setSetup({ units: o.settings.units, turn: o.settings.turn, flood: o.settings.flood, weapons: o.settings.weapons, crates: o.settings.crates, mode: o.settings.mode }, o.teams);
+  online.setSetup({ units: o.settings.units, turn: o.settings.turn, flood: o.settings.flood, weapons: o.settings.weapons, crates: o.settings.crates, mode: o.settings.mode, lagom: o.settings.lagom, jante: o.settings.jante }, o.teams);
 }
 function netSetup() {
   if (netBuilt) return;
@@ -614,6 +620,8 @@ function netSetup() {
   choiceRow($('netUnits'), [1, 2, 3, 4, MAX_UNITS], (v) => custom.units === v, (v) => { custom.units = v; pushSetup(); });
   choiceRow($('netTurn'), [30, 45, 60, 90], (v) => custom.turn === v, (v) => { custom.turn = v; pushSetup(); }, (v) => v + ' s');
   choiceRow($('netFlood'), [0, 6, 8, 12], (v) => custom.flood === v, (v) => { custom.flood = v; pushSetup(); }, (v) => (v ? 'Runda ' + v : 'Av'));
+  choiceRow($('netLagom'), [true, false], (v) => custom.lagom === v, (v) => { custom.lagom = v; pushSetup(); }, (v) => (v ? 'På' : 'Av'));
+  choiceRow($('netJante'), [true, false], (v) => custom.jante === v, (v) => { custom.jante = v; pushSetup(); }, (v) => (v ? 'På' : 'Av'));
   choiceRow($('netCrates'), [true, false], (v) => custom.crates === v, (v) => { custom.crates = v; pushSetup(); }, (v) => (v ? 'På' : 'Av'));
   choiceRow($('netWeapons'), WEAPONS.map((w) => w.id), (v) => custom.weapons.has(v), (v) => { if (custom.weapons.has(v) && custom.weapons.size > 1) custom.weapons.delete(v); else custom.weapons.add(v); pushSetup(); }, (v) => WEAPONS.find((w) => w.id === v).name);
   for (const [i, sel] of [[0, $('netTeam0')], [1, $('netTeam1')]]) {

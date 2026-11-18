@@ -640,6 +640,10 @@ export function createRenderer(scene, glow) {
       } else if (e.t === 'metro') {
         floaters.push({ x: e.x, y: e.y - 30, s: 'TUNNELBANAN!', c: 0x8ad0ff, age: 0 });
         for (let i = 0; i < 10; i++) parts.push({ x: e.x, y: e.y - 4, vx: (rnd() - .5) * 1.4, vy: -rnd(), g: -.005, life: 40, c: 0x9aa0aa, kind: 'smoke', r: 1 });
+      } else if (e.t === 'lagom') {
+        floaters.push({ x: e.x, y: e.y - 30, s: 'LAGOM!', c: 0x9bd45a, age: 0 });
+      } else if (e.t === 'jante') {
+        floaters.push({ x: e.x, y: e.y, s: 'JANTELAGEN!', c: 0xff6a5a, age: 0 });
       } else if (e.t === 'rauk') {
         banner = { s: 'RAUKEN VÄLTER!', c: 0xe8e2d0, age: 0 }; shake = Math.max(shake, 8);
         for (let i = 0; i < 30; i++) parts.push({ x: e.x + e.dir * rnd() * 60, y: e.y + (rnd() - .5) * 40, vx: (rnd() - .5) * 1.4, vy: -rnd() * .8, g: -.004, life: 70, c: 0xd8d2c0, kind: 'smoke', r: 1 + rnd() * 2 });
@@ -727,7 +731,8 @@ export function createRenderer(scene, glow) {
     }
     const ex = Math.round(cx + Math.cos(a) * (len + 3)), ey = Math.round(cy - Math.sin(a) * (len + 3));
     for (const [dx, dy] of [[-3, 0], [-2, 0], [2, 0], [3, 0], [0, -3], [0, -2], [0, 2], [0, 3]]) set(ex + dx, ey + dy, 0xffffff);
-    if (view.aim || view.keyAim) text(P, aim.power + '%', cx, cy - 32, 0xffe38a, 1, 1);
+    const inLagom = w.settings.lagom && w.turn.lagom != null && Math.abs(aim.power - w.turn.lagom) <= 5;
+    if (view.aim || view.keyAim) text(P, aim.power + '%' + (inLagom ? ' LAGOM' : ''), cx, cy - 32, inLagom ? 0x9bd45a : 0xffe38a, 1, 1);
   }
   function drawProjectiles(w, t) {
     for (const p of w.projectiles) {
@@ -912,6 +917,7 @@ export function createRenderer(scene, glow) {
       if (u) text(P, possessive(u.name) + ' TUR', W / 2, 24, teamColor(w, u.team).c, 1, 1);
       const wn = WEAPONS[tr.weapon], am = w.teams[u ? u.team : 0].ammo[tr.weapon];
       text(P, wn.name.toUpperCase() + (am >= 0 ? ' (' + am + ')' : ''), W / 2, 33, 0xd8dde8, 1, 1);
+      if (w.settings.lagom && tr.lagom != null && wn.aim && !wn.tool) text(P, 'LAGOM ' + (tr.lagom - 5) + '-' + (tr.lagom + 5) + '%', W / 2, 42, 0x9bd45a, 1, 1);
     } else if (tr.phase === 'retreat') {
       text(P, String(Math.ceil(tr.retreat / 60)), W / 2, 6, 0xffe38a, 2, 1);
       text(P, 'SPRING!', W / 2, 24, 0xffe38a, 1, 1);
