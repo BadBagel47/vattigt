@@ -437,6 +437,8 @@ function land(w, u) {
 }
 function walk(w, u, dir) {
   const x = px(u.X), y = px(u.Y);
+  // turning round while aiming: the aim turns with the vätte (B-048)
+  if (u.face !== dir && w.turn.unit === u.id && w.turn.aim) w.turn.aim = { angle: ((180 - w.turn.aim.angle) % 360 + 360) % 360, power: w.turn.aim.power };
   u.face = dir;
   for (let c = 0; c <= R.CLIMB; c++) {
     if (!bodyFree(w, x + dir, y - c)) continue;

@@ -17,6 +17,7 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 - Fall: den som landar hårt tar skada, ungefär från ett fall på 65 pixlar och uppåt.
 - Vatten och kanten: en vätte som hamnar i vattnet eller faller ut över kanten är ute direkt.
 - En vätte som dör lämnar en runsten efter sig.
+- Sikta och skjuta (D-047): ▲ ▼ (eller dra i bilden) ställer vinkeln på den sida vätten tittar åt. Vänds vätten med ◀ ▶ speglas siktet till den nya sidan (B-048). Styrkan fylls från 5 till 100 procent på 1,6 sekunder medan Skjut hålls in; skottet går när knappen släpps, eller av sig självt vid full styrka. Metspöt kastas fortfarande genom att dra och släppa.
 
 ## Vind
 
@@ -91,7 +92,7 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 
 Båda är av från början och väljs i eget spel och i lobbyn.
 
-- **Lagom-zon:** i början av varje tur blir ett band på elva procent av styrkan lagom (mitten slumpas mellan 30 och 80). Ett siktat skott med styrka inom bandet tas inte av vinden. Bandet visas överst och vid reglaget.
+- **Lagom-zon:** i början av varje tur blir ett band på elva procent av styrkan lagom (mitten slumpas mellan 30 och 80). Ett siktat skott med styrka inom bandet tas inte av vinden. Bandet visas överst och i styrkemätaren.
 - **Jantelagen:** när en vätte i det lag som har mest liv kvar (strikt mer än alla andra lag) tar en låda, är vartannat postpaket (slumpat) fel vara och en fikakorg ger halva livet.
 
 ## Pratbubblor

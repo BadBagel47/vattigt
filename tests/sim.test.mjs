@@ -125,3 +125,18 @@ test('a match played with random inputs ends, thanks to the spring flood', () =>
   assert.equal(w.turn.phase, 'over');
   assert.ok(w.turn.round >= 2);
 });
+
+test('turning round mirrors the aim to the new side (B-048)', async () => {
+  const { newMatch, step } = await import('../src/sim/world.js');
+  const w = newMatch(5, {});
+  for (let i = 0; i < 600 && w.turn.phase !== 'aim'; i++) step(w);
+  const u = w.units.find((o) => o.id === w.turn.unit);
+  step(w, { aim: { angle: u.face > 0 ? 40 : 140, power: 70 } });
+  const before = w.turn.aim.angle;
+  const back = -u.face;
+  for (let i = 0; i < 4; i++) step(w, { walk: back });
+  step(w, { walk: 0 });
+  assert.equal(u.face, back);
+  assert.equal(w.turn.aim.angle, (180 - before + 360) % 360, 'mirrored');
+  assert.equal(w.turn.aim.power, 70, 'strength kept');
+});

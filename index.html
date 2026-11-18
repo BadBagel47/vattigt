@@ -28,19 +28,36 @@ button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:
 #game{position:fixed;inset:0;display:grid;grid-template-columns:var(--side) auto var(--side);justify-content:center;align-items:stretch;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 .pad{display:flex;flex-direction:column;justify-content:space-between;gap:8px;padding:8px;border-color:var(--team);min-width:0}
-.pad .top,.pad .bottom{display:flex;flex-direction:column;gap:8px}
+.pad .top{display:flex;flex-direction:column;gap:8px}
 .row{display:flex;gap:8px}
 .row > button{flex:1}
-.big{min-height:88px;font-size:30px}
-#jump{min-height:64px;font-size:20px}
-.power{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--ink);text-align:center}
-.power input{width:100%;min-height:36px;accent-color:#ffd66b;touch-action:manipulation;margin:0}
-.power[aria-disabled=true]{opacity:.4}
+/* D-047: the controls as a handheld: a cross on the left, a big round Skjut on the right */
+.icons{display:flex;gap:8px}
+.ico{width:40px;min-height:40px;height:40px;padding:0;font-size:19px;border-radius:10px;display:grid;place-items:center;font-family:var(--body)}
+#mute[aria-pressed=true]{background:var(--panel);border-color:var(--line);color:var(--dim);background-image:linear-gradient(135deg,transparent 46%,var(--team) 46% 54%,transparent 54%)}
+.dpad{--cell:calc((var(--side) - 22px) / 3);display:grid;grid-template-columns:repeat(3,var(--cell));grid-template-rows:repeat(3,var(--cell));gap:3px;align-self:center}
+.dpad button{min-height:0;padding:0;font-size:calc(var(--cell) * .45);border-radius:8px}
+.dpad .u{grid-area:1/2}.dpad .l{grid-area:2/1}.dpad .r{grid-area:2/3}.dpad .d{grid-area:3/2}
+.dpad .u,.dpad .d{color:var(--sun)}
+.dpad .c{grid-area:2/2;display:grid;place-items:center;text-align:center;color:var(--dim);font-family:var(--display);font-size:calc(var(--cell) * .26);line-height:1.1}
+.meter{display:flex;flex-direction:column;gap:3px}
+.meter .bar{position:relative;height:14px;background:#2a3155;border:2px solid var(--line);border-radius:7px;overflow:hidden}
+.meter .bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--sun)}
+.meter .bar i.last{opacity:.45}
+.meter .bar b{position:absolute;top:0;bottom:0;background:rgba(155,212,90,.55)}
+.meter span{font-family:var(--display);font-size:12px;color:var(--dim);text-align:center;line-height:1.1}
+.meter[aria-disabled=true]{opacity:.4}
+.acts{position:relative;height:calc(var(--side) * 1.12);min-height:118px}
+.round{border-radius:50%;padding:0;display:grid;place-items:center;text-align:center;line-height:1.05}
+#jump{position:absolute;left:0;top:0;width:calc(var(--side) * .44);height:calc(var(--side) * .44);min-height:0;font-size:14px}
+#drop{position:absolute;right:5px;bottom:5px;width:calc(var(--side) * .7);height:calc(var(--side) * .7);min-height:0;background:var(--team);border:none;color:#fff;font-size:calc(var(--side) * .15);box-shadow:0 0 0 3px rgba(0,0,0,.25)}
+#drop.charging{box-shadow:0 0 0 4px var(--sun)}
+#drop small{display:block;font-size:11px;opacity:.9;font-family:var(--body)}
 #weaponMenu{position:absolute;inset:5% 5%;background:rgba(12,16,34,.95);border:2px solid var(--line);padding:8px;overflow:auto;z-index:3}
 #weaponMenu[hidden]{display:none}
 .wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
 .wgrid .weapon{justify-content:flex-start;gap:8px;font-size:14px;text-align:left;font-family:var(--display)}
-.weapon.cur{flex-direction:column;min-height:84px;font-size:13px;line-height:1.1;text-align:center;overflow-wrap:anywhere}
+.weapon.cur{gap:6px;min-height:44px;padding:4px 6px;font-size:12px;line-height:1.1;text-align:left;justify-content:flex-start;border-radius:10px;overflow-wrap:normal;hyphens:manual}
 #stamp{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) rotate(-10deg);font-family:var(--display);font-weight:700;font-size:clamp(26px,6vw,60px);line-height:1;color:#e5332d;border:6px solid #e5332d;padding:6px 18px;background:rgba(255,255,255,.1);pointer-events:none;letter-spacing:.06em;white-space:nowrap;z-index:2;text-transform:uppercase}
 #stamp[hidden]{display:none}
 @media (prefers-reduced-motion:no-preference){#stamp:not([hidden]){animation:stampIn .25s ease-out}}
@@ -49,7 +66,6 @@ button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:
 .weapon small{font-size:13px}
 .weapon canvas{width:26px;height:23px;image-rendering:pixelated;flex:none}
 .weapon small{font-family:var(--display);font-size:15px;min-width:1ch}
-#drop{background:var(--team);border-color:var(--team);color:#fff;font-size:18px;min-height:56px}
 .stagewrap{display:flex;align-items:center;justify-content:center;min-width:0}
 #stage{position:relative;touch-action:none;border-left:3px solid var(--team);border-right:3px solid var(--team)}
 #stage > canvas{position:absolute;inset:0;width:100%;height:100%}
@@ -121,19 +137,16 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
 
 <div id="game" aria-label="Vättigt">
   <div class="pad" id="left">
-    <div class="top">
-      <button type="button" id="menu">Meny</button>
-      <button type="button" id="mute" aria-pressed="false">Ljud av</button>
+    <div class="icons">
+      <button type="button" class="ico" id="menu" aria-label="Meny" title="Meny">☰</button>
+      <button type="button" class="ico" id="mute" aria-pressed="false" aria-label="Ljud av" title="Ljud av">♪</button>
     </div>
-    <div class="bottom">
-      <div class="row">
-        <button type="button" class="big" id="aimUp" aria-label="Sikta högre">▲</button>
-        <button type="button" class="big" id="aimDown" aria-label="Sikta lägre">▼</button>
-      </div>
-      <div class="row">
-        <button type="button" class="big" id="walkL" aria-label="Gå vänster">◀</button>
-        <button type="button" class="big" id="walkR" aria-label="Gå höger">▶</button>
-      </div>
+    <div class="dpad" role="group" aria-label="Gå och sikta">
+      <button type="button" class="u" id="aimUp" aria-label="Sikta högre">▲</button>
+      <button type="button" class="l" id="walkL" aria-label="Gå vänster">◀</button>
+      <span class="c" aria-hidden="true">GÅ<br>SIKTA</span>
+      <button type="button" class="r" id="walkR" aria-label="Gå höger">▶</button>
+      <button type="button" class="d" id="aimDown" aria-label="Sikta lägre">▼</button>
     </div>
   </div>
 
@@ -141,18 +154,20 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
     <div id="stage">
       <canvas id="scene" width="480" height="270" role="img" aria-label="Spelplanen: Midsommarängen med två lag vättar"></canvas>
       <canvas id="glow" aria-hidden="true"></canvas>
-      <div id="hint" hidden>Dra i bilden för att sikta. Släpp för att skjuta.</div>
+      <div id="hint" hidden>▲ ▼ siktar. Håll in Skjut, släpp för att skjuta.</div>
       <div id="weaponMenu" hidden role="dialog" aria-label="Välj vapen"><div class="wgrid" id="weapons"></div></div>
       <div id="stamp" hidden aria-live="polite">Bara i Borås</div>
     </div>
   </div>
 
   <div class="pad" id="right">
-    <div class="top"><button type="button" class="weapon cur" id="weaponBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="weaponMenu"><canvas id="weaponIcon"></canvas><span id="weaponName"></span></button>
-      <label class="power" id="powerBox"><span id="powerLabel">Styrka 60 %</span><input type="range" id="power" min="10" max="100" step="5" value="60" aria-describedby="powerLabel"></label></div>
-    <div class="bottom">
-      <button type="button" id="drop" hidden>Lägg ut</button>
-      <button type="button" id="jump">Hoppa</button>
+    <div class="top">
+      <button type="button" class="weapon cur" id="weaponBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="weaponMenu"><canvas id="weaponIcon"></canvas><span id="weaponName"></span></button>
+      <div class="meter" id="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="meterLabel"><div class="bar"><b id="meterLagom" hidden></b><i id="meterFill"></i></div><span id="meterLabel">Styrka</span></div>
+    </div>
+    <div class="acts">
+      <button type="button" class="round" id="jump">Hoppa</button>
+      <button type="button" class="round" id="drop">Skjut</button>
     </div>
   </div>
 </div>

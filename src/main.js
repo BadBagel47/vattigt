@@ -25,6 +25,7 @@ let online = null;                        // the online session
 let backdrop = null;                      // a still match behind the start screen
 let paused = false, moodName = 'midsommar', shotsFired = 0, overTimer = null;
 const view = { aim: null };
+let charge = null, lastPower = 0;     // Skjut being held (D-047), and the strength of the last shot
 let walkDir = 0;
 const held = { left: false, right: false };
 
@@ -43,14 +44,15 @@ function emit(ev) {
 }
 function updateWalk() {
   const d = held.left === held.right ? 0 : held.left ? -1 : 1;
-  if (d !== walkDir) { walkDir = d; emit({ walk: d }); }
+  if (d !== walkDir) { walkDir = d; if (d) view.keyAim = null; emit({ walk: d }); }   // turning round mirrors the aim in the match (B-048)
 }
 
 /* ---------- layout: scene as large as fits, panels at the sides ---------- */
 let scale = 1, rotateDismissed = false;
 function layout() {
   const vw = innerWidth, vh = innerHeight;
-  const side = Math.max(96, Math.min(150, Math.floor((vw - vh * W / H) / 2)));
+  // the side panels hold the cross and the round Skjut button (D-047), so they are at least ~130 px on a phone
+  const side = Math.max(Math.min(144, Math.floor(vw * 0.2)), Math.min(160, Math.floor((vw - vh * W / H) / 2)));
   scale = Math.min((vw - 2 * side) / W, vh / H);
   if (scale <= 0.3) scale = vw / W;
   const cw = Math.floor(W * scale), ch = Math.floor(H * scale);
@@ -108,20 +110,25 @@ function updatePanels() {
   if (!canAct && !$('weaponMenu').hidden) menu(false);
   const wpn = WEAPONS[t.weapon], dyn = !wpn.aim && !wpn.target;
   const horse = mine && t.phase === 'retreat' && w.projectiles.some((p) => p.kind === 'hast' && u && p.owner === u.id && p.age > 6);
-  const shoot = !horse && wpn.aim && view.aimed && canAct;
-  $('drop').hidden = !(dyn || horse || shoot);
-  $('drop').textContent = horse ? 'Spräng!' : shoot ? 'Skjut' : wpn.walker ? 'Släpp lös' : 'Lägg ut';
-  $('drop').disabled = !horse && (!canAct || (u && u.air));
+  // The round button (D-047): Skjut for aimed weapons (hold for strength), otherwise what the weapon does.
+  const aimed = wpn.aim && !wpn.tool;
+  const label = horse ? 'Spräng!' : aimed ? 'Skjut' : wpn.walker ? 'Släpp lös' : dyn ? 'Lägg ut' : 'Skjut';
+  const sub = horse || !aimed ? '' : charge ? `${chargePower()} %` : 'håll in';
+  if ($('drop').dataset.l !== label + sub) { $('drop').dataset.l = label + sub; $('drop').innerHTML = `<span>${label}${sub ? `<small>${sub}</small>` : ''}</span>`; }
+  $('drop').disabled = !horse && (!canAct || (u && u.air) || !(aimed || dyn));
   const moving = mine && (t.phase === 'aim' || t.phase === 'retreat') && u && u.alive;
   for (const id of ['walkL', 'walkR', 'jump']) $(id).disabled = !moving;
-  const aimable = canAct && wpn.aim && !wpn.tool && !(u && u.air);
+  const aimable = canAct && aimed && !(u && u.air);
   for (const id of ['aimUp', 'aimDown']) $(id).disabled = !aimable;
-  $('power').disabled = !aimable; $('powerBox').setAttribute('aria-disabled', String(!aimable));
-  if (document.activeElement !== $('power')) {
-    const pw = (view.aim || view.keyAim || t.aim).power;
-    const lg = w.settings.lagom && t.lagom != null ? ` (lagom ${t.lagom - 5}–${t.lagom + 5})` : '';
-    if ($('power').value !== String(pw) || $('powerLabel').dataset.lg !== lg) { $('power').value = String(pw); $('powerLabel').textContent = `Styrka ${pw} %${lg}`; $('powerLabel').dataset.lg = lg; }
-  }
+  // the strength meter under the weapon: fills while Skjut is held; shows the last shot faintly
+  const pw = charge ? chargePower() : lastPower;
+  $('meterFill').style.width = pw + '%'; $('meterFill').classList.toggle('last', !charge);
+  $('meter').setAttribute('aria-valuenow', String(pw)); $('meter').setAttribute('aria-disabled', String(!aimable));
+  const lagom = w.settings.lagom && t.lagom != null && aimed;
+  $('meterLagom').hidden = !lagom;
+  if (lagom) { $('meterLagom').style.left = (t.lagom - 5) + '%'; $('meterLagom').style.width = '11%'; }
+  const ml = charge ? `Styrka ${pw} %` : lagom ? `Lagom ${t.lagom - 5}–${t.lagom + 5} %` : lastPower ? `Senast ${lastPower} %` : 'Styrka';
+  if ($('meterLabel').textContent !== ml) $('meterLabel').textContent = ml;
   if (!moving && (held.left || held.right)) { held.left = held.right = false; updateWalk(); }
   let hint = '';
   if (mode === 'online' && online.room) {
@@ -137,7 +144,7 @@ function updatePanels() {
   if (!hint && mine && u && u.rope) hint = 'Svinga med pilarna. Hoppa släpper.';
   else if (!hint && canAct && wpn.tool) hint = 'Dra mot ett tak eller en vägg och släpp för att kasta ut linan.';
   if (!hint && canAct && wpn.target) hint = wpn.ticket ? 'Tryck på vätten som ska till Borås.' : wpn.build ? 'Tryck där plankan ska ligga.' : wpn.water ? 'Tryck där hinken ska tömmas.' : wpn.id === 'jas' ? 'Tryck där planet ska fälla laddningarna.' : 'Tryck där korvarna ska falla.';
-  if (!hint && canAct && wpn.aim && shotsFired < 2 && !view.aim && !view.aimed) hint = 'Dra i bilden för att sikta, eller använd ▲ ▼. Släpp för att skjuta.';
+  if (!hint && canAct && aimed && shotsFired < 2 && !charge) hint = '▲ ▼ siktar. Håll in Skjut, släpp för att skjuta.';
   if (!hint && horse) hint = 'Tryck på Spräng! när hästen är framme.';
   $('hint').textContent = hint;
   $('hint').hidden = !hint;
@@ -163,7 +170,6 @@ function nudgeAim(dir) {
   if (u.face > 0) a = Math.max(-80, Math.min(90, (a > 90 ? 180 - a : a < -90 ? -180 - a : a) + dir * AIM_STEP));
   else { let b = a < 0 ? a + 360 : a; if (b < 90) b = 180 - b; else if (b > 270) b = 540 - b; a = Math.max(91, Math.min(260, b - dir * AIM_STEP)); }
   view.keyAim = { angle: ((a % 360) + 360) % 360, power: cur.power };
-  view.aimed = true;
   emit({ aim: view.keyAim });
 }
 function holdAim(el, dir) {
@@ -176,19 +182,47 @@ function holdAim(el, dir) {
 }
 holdAim($('aimUp'), 1); holdAim($('aimDown'), -1);
 
-// Strength without dragging (F-039): the slider, or Shift with the left and right arrows.
-function setPower(p) {
-  if (!canAim()) return;
-  const w = world(), cur = view.keyAim || w.turn.aim, power = Math.max(10, Math.min(100, Math.round(p)));
-  view.keyAim = { angle: cur.angle, power }; view.aimed = true;
-  const t = w.turn, lg = w.settings.lagom && t.lagom != null ? ` (lagom ${t.lagom - 5}–${t.lagom + 5})` : '';
-  $('power').value = String(power); $('powerLabel').textContent = `Styrka ${power} %${lg}`; $('powerLabel').dataset.lg = lg;
-  emit({ aim: view.keyAim });
+// Skjut (D-047): hold to fill the strength meter, let go to fire. At full strength it fires by itself.
+// Weapons that are not aimed (dynamite, the horse) act on a plain tap.
+const CHARGE_MS = 1600;
+const chargePower = () => (charge ? Math.min(100, Math.round(5 + (95 * (performance.now() - charge.t0)) / CHARGE_MS)) : 0);
+function startCharge() {
+  const w = world();
+  if (!w || charge || !canAim() || WEAPONS[w.turn.weapon].tool) return false;
+  charge = { t0: performance.now() }; $('drop').classList.add('charging');
+  return true;
 }
-$('power').addEventListener('input', () => { sound.unlock(); setPower(+$('power').value); });
+function releaseCharge(fire = true) {
+  if (!charge) return;
+  const power = chargePower(), w = world();
+  charge = null; $('drop').classList.remove('charging'); view.keyAim = null;
+  if (!fire || !w || !canAim()) return;
+  lastPower = power;
+  emit({ fire: { angle: w.turn.aim.angle, power } }); shotsFired++;
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+function chargeTick() {
+  if (!charge) return;
+  const w = world();
+  if (!w || !canAim()) { releaseCharge(false); return; }
+  view.keyAim = { angle: w.turn.aim.angle, power: chargePower() };     // the aim line shows the strength while it fills
+  if (chargePower() >= 100) releaseCharge(true);
+}
+$('drop').addEventListener('pointerdown', (e) => {
+  e.preventDefault(); sound.unlock();
+  const w = world();
+  if (!w) return;
+  const wp = WEAPONS[w.turn.weapon], horse = w.turn.phase === 'retreat';
+  if (wp.aim && !wp.tool && !horse) { if (startCharge()) $('drop').setPointerCapture?.(e.pointerId); return; }
+  emit({ fire: true }); if (!horse) shotsFired++;
+});
+$('drop').addEventListener('pointerup', () => releaseCharge(true));
+$('drop').addEventListener('pointercancel', () => releaseCharge(false));
+$('drop').addEventListener('lostpointercapture', () => releaseCharge(true));
+$('drop').addEventListener('click', (e) => { if (e.detail === 0) { const w = world(); if (w && WEAPONS[w.turn.weapon].aim) { if (startCharge()) { charge.t0 -= CHARGE_MS * .55; releaseCharge(true); } } else emit({ fire: true }); } });
+$('drop').addEventListener('contextmenu', (e) => e.preventDefault());
 $('jump').addEventListener('pointerdown', (e) => { e.preventDefault(); emit({ jump: true }); sound.unlock(); });
 $('jump').addEventListener('click', (e) => { if (e.detail === 0) emit({ jump: true }); });
-$('drop').addEventListener('click', () => { const w = world(); emit({ fire: WEAPONS[w.turn.weapon].aim && view.keyAim ? { ...view.keyAim } : true }); shotsFired++; view.aimed = false; });
 
 let drag = null;
 const toWorld = (e) => { const r = scene.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H]; };
@@ -214,37 +248,41 @@ stage.addEventListener('pointermove', (e) => {
   const [x, y] = toWorld(e), dx = x - drag.start[0], dy = y - drag.start[1], len = Math.hypot(dx, dy);
   if (len < 4) { view.aim = null; return; }
   const angle = ((Math.round(Math.atan2(-dy, dx) * 180 / Math.PI) % 360) + 360) % 360;
-  const power = Math.max(1, Math.min(100, Math.round(len / 70 * 100)));
-  if (!view.aim || view.aim.angle !== angle || view.aim.power !== power) { view.aim = { angle, power }; view.keyAim = null; view.aimed = false; emit({ aim: view.aim }); }
+  // Dragging sets the angle only (D-047); the fishing rod still uses the length for how far it throws.
+  const w = world(), tool = w && WEAPONS[w.turn.weapon].tool;
+  const power = tool ? Math.max(1, Math.min(100, Math.round(len / 70 * 100))) : w.turn.aim.power;
+  if (!view.aim || view.aim.angle !== angle || view.aim.power !== power) { view.aim = { angle, power }; view.keyAim = null; emit({ aim: view.aim }); }
 });
 function endDrag(e) {
   if (!drag || e.pointerId !== drag.id) return;
   if (drag.target) { if (canAim('target')) { emit({ fire: { tx: Math.round(Math.max(0, Math.min(W - 1, view.target))), ty: Math.round(Math.max(0, Math.min(H - 1, view.targetY))) } }); shotsFired++; } drag = null; view.target = null; return; }
-  if (view.aim && view.aim.power >= 10 && canAim()) { emit({ fire: { ...view.aim } }); shotsFired++; }
+  const w = world();
+  if (view.aim && w && WEAPONS[w.turn.weapon].tool && view.aim.power >= 10 && canAim()) { emit({ fire: { ...view.aim } }); shotsFired++; }
   drag = null; view.aim = null;
 }
 stage.addEventListener('pointerup', endDrag);
 stage.addEventListener('pointercancel', (e) => { if (drag && e.pointerId === drag.id) { drag = null; view.aim = null; view.target = null; } });
 
-// Keyboard, for a computer: arrows to walk, up and down to aim, Shift with left and right for strength, space to jump, 1–9 for weapons, Enter to fire.
+// Keyboard, for a computer: arrows to walk, up and down to aim, space to jump, 1–9 for weapons,
+// hold Enter for strength and let go to fire (D-047).
 addEventListener('keydown', (e) => {
   if (mode === 'title' || paused || e.target.tagName === 'INPUT') return;
   if (e.repeat && !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
-  if (e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { const w = world(); if (w) setPower((view.keyAim || w.turn.aim).power + (e.key === 'ArrowRight' ? 5 : -5)); e.preventDefault(); }
-  else if (e.key === 'ArrowLeft') { held.left = true; updateWalk(); }
+  if (e.key === 'ArrowLeft') { held.left = true; updateWalk(); }
   else if (e.key === 'ArrowRight') { held.right = true; updateWalk(); }
   else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { nudgeAim(e.key === 'ArrowUp' ? 1 : -1); e.preventDefault(); }
   else if (e.key === ' ') { emit({ jump: true }); e.preventDefault(); }
   else if (/^[1-9]$/.test(e.key)) emit({ weapon: +e.key - 1 });
   else if (e.key === 'v' || e.key === 'V') menu($('weaponMenu').hidden);
   else if (e.key === 'Escape') menu(false);
-  else if (e.key === 'Enter' && e.target === document.body) { const w = world(); emit({ fire: w && WEAPONS[w.turn.weapon].aim && view.keyAim ? { ...view.keyAim } : true }); view.aimed = false; }
+  else if (e.key === 'Enter' && e.target === document.body) { const w = world(); if (w && WEAPONS[w.turn.weapon].aim && !WEAPONS[w.turn.weapon].tool && w.turn.phase !== 'retreat') startCharge(); else emit({ fire: true }); }
   else return;
   sound.unlock();
 });
 addEventListener('keyup', (e) => {
   if (e.key === 'ArrowLeft') { held.left = false; updateWalk(); }
   if (e.key === 'ArrowRight') { held.right = false; updateWalk(); }
+  if (e.key === 'Enter') releaseCharge(true);
 });
 
 /* ---------- the loop ---------- */
@@ -265,7 +303,7 @@ function handle(evs, w) {
     else if (e.t === 'boom' && ++boras.booms === 5) stamp();
     else if (e.t === 'death' && w.units[e.unit] && w.units[e.unit].team === boras.team) stamp();
     else if (e.t === 'ticket') stamp();
-    if (e.t === 'turn') { view.aim = null; view.keyAim = null; view.aimed = false; drag = null; walkDir = 0; }
+    if (e.t === 'turn') { view.aim = null; view.keyAim = null; releaseCharge(false); drag = null; walkDir = 0; }
     if (e.t === 'over') showOver();
   }
 }
@@ -278,6 +316,7 @@ function musicLevel(w) {
 let last = 0, acc = 0;
 function loop(ms) {
   requestAnimationFrame(loop);
+  chargeTick();
   const dt = Math.min(.25, (ms - last) / 1000); last = ms;
   if (mode === 'local' && local && !paused) {
     // the computer's turn: plan once, then feed its taps in over time
@@ -316,7 +355,7 @@ function loop(ms) {
 /* ---------- screens ---------- */
 const screens = ['title', 'pause', 'over', 'net', 'lobby', 'custom', 'teams'];
 function show(id) { for (const s of screens) $(s).hidden = s !== id; if (id) $(id).querySelector('button.primary, input, button')?.focus(); }
-function resetView() { view.aim = null; view.keyAim = null; view.aimed = false; drag = null; held.left = held.right = false; walkDir = 0; shotsFired = 0; renderer.reset(); }
+function resetView() { view.aim = null; view.keyAim = null; charge = null; lastPower = 0; $('drop').classList.remove('charging'); drag = null; held.left = held.right = false; walkDir = 0; shotsFired = 0; renderer.reset(); }
 
 /* ---------- settings (eget spel) and saved teams (lagbyggaren) ---------- */
 const NIGHT_MOODS = new Set(['midsommar', 'vinter']);
@@ -509,7 +548,7 @@ $('overTitle').addEventListener('click', () => toTitle());
 $('anyway').addEventListener('click', () => { rotateDismissed = true; layout(); });
 $('mute').addEventListener('click', () => {
   const m = !sound.muted; sound.setMuted(m);
-  $('mute').setAttribute('aria-pressed', String(m)); $('mute').textContent = m ? 'Ljud på' : 'Ljud av';
+  $('mute').setAttribute('aria-pressed', String(m)); $('mute').setAttribute('aria-label', m ? 'Ljud på' : 'Ljud av'); $('mute').title = m ? 'Ljud på' : 'Ljud av';
 });
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { sound.suspend(); if (mode === 'local' && !paused) setPaused(true); held.left = held.right = false; updateWalk(); }
