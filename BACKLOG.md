@@ -8,6 +8,7 @@ Prioritet: Hög, Medel, Låg.
 | ID | Prio | Status | Beskrivning |
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
+| F-038 | Hög | Pågår (2026-11-18, session Vättigt, main) | Sikta med pil upp och pil ner: på tangentbordet och med knappar på skärmen, och skjut med Enter eller en Skjut-knapp. |
 | F-035 | Medel | Förslag | Spellägena Boet (skydda ert bo, förstör motståndarens) och Stången (håll platsen vid midsommarstången flest rundor). |
 | F-036 | Låg | Förslag | Fler banor ur designförslaget: Slätten, Raukarna, Älven, Villaområdet. |
 | F-037 | Låg | Förslag | Valbara regler ur designförslaget: Lagom-zonen på kraftmätaren och Jantelagen (laget som leder får sämre lådor). |
