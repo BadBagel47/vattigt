@@ -9,7 +9,7 @@ Prioritet: Hög, Medel, Låg.
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
 | F-041 | Låg | Förslag | Fler banor ur designförslaget: Älven och Villaområdet (flyttat från F-036). |
-| F-042 | Medel | Förslag | Ta in network-kit v0.8.0 (meddelat av network-kit-sessionen 2026-11-18; innehåller v0.7.0): gränser per besökare som standard, av/på och nödstopp från adminsidan via en servicebindning, frivilliga anonyma mätningar av anslutningen, och rumskoder på 6 tecken som standard (codeLength: 4 behåller 4). Lokala tester från en adress kan behöva limits: null. |
+| F-042 | Medel | Pågår (2026-11-18, session Vättigt, main) | Ta in network-kit v0.8.0 (meddelat av network-kit-sessionen 2026-11-18; innehåller v0.7.0): gränser per besökare som standard, av/på och nödstopp från adminsidan via en servicebindning, frivilliga anonyma mätningar av anslutningen, och rumskoder på 6 tecken som standard (codeLength: 4 behåller 4). Lokala tester från en adress kan behöva limits: null. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
