@@ -11,18 +11,21 @@ Prioritet: Hög, Medel, Låg.
 | F-035 | Medel | Förslag | Spellägena Boet (skydda ert bo, förstör motståndarens) och Stången (håll platsen vid midsommarstången flest rundor). |
 | F-036 | Låg | Förslag | Fler banor ur designförslaget: Slätten, Raukarna, Älven, Villaområdet. |
 | F-037 | Låg | Förslag | Valbara regler ur designförslaget: Lagom-zonen på kraftmätaren och Jantelagen (laget som leder får sämre lådor). |
+| F-040 | Medel | Förslag | Ta in network-kit v0.6.0 (meddelat av network-kit-sessionen 2026-11-18): vem som tar över först om den som kör matchen försvinner (network-kit F-040, t.ex. den vars tur det är), snabbare upptäckt av tappad kontakt (network-kit F-051), läget sparat för den som kommer tillbaka (network-kit F-030). Nytt: rum stängs efter en timme i bakgrunden. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
 
-Prioriterat för: att det nya (Kubb, Fjället, Takåsarna, pratbubblorna) provas på riktiga telefoner innan mer läggs till.
+Prioriterat för: att det nya provas på riktiga telefoner, och att onlinespelet blir stabilare, innan mer läggs till.
 
-- **A** – stark modell, hög nivå – Fler spellägen
+- **A** – standardmodell, medelnivå – Stabilare onlinespel
+  - F-040 – Ta in den nya nätverksgrunden: snabbare turbyte när den som kör matchen försvinner och tappad kontakt märks efter några sekunder
+- **B** – stark modell, hög nivå – Fler spellägen
   - F-035 – Boet och Stången, som Kubb ett val under Spelläge
-- **B** – stark modell, hög nivå – Fler banor
+- **C** – stark modell, hög nivå – Fler banor
   - F-036 – Två banor till
   - Fråga: Vilka? Rekommendation: Raukarna (pelare som välter) och Slätten (vinden avgör, kvarnvingar slår tillbaka skott).
-- **C** – standardmodell, medelnivå – Valbara regler
+- **D** – standardmodell, medelnivå – Valbara regler
   - F-037 – Lagom-zonen och Jantelagen som val i eget spel och i lobbyn
 
 Användarens provspel går före allt detta.
