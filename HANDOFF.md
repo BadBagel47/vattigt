@@ -3,7 +3,7 @@
 Rules version: 1.12 (uppdaterad 2026-11-17: körförslagets format och frågor, Pågår-markeringar)
 Inventory: 2026-11-13
 Project language: svenska (beslut 2026-11-17), både i spelet och i README. Kod, kodkommentarer och commits på engelska.
-Publishing method: Cloudflare Worker från main (arbetsflödet deploy.yml, hemligheten CLOUDFLARE_API_TOKEN, samma nyckel som network-kits demo enligt användarens beslut). Spelet: https://vattigt.l8p1.workers.dev. Arbetsflödet kontrollerar att spelet visas och att rum kan skapas; agentens miljö når inte workers.dev. GitHub Pages stängdes av 2026-11-17 men är påslaget igen (kontrollerat 2026-11-18: varje push bygger Pages och https://badbagel47.github.io/vattigt/ visar spelet, utan onlinedelen). Väntar på användaren: stäng av under Settings > Pages.
+Publishing method: Cloudflare Worker från main (arbetsflödet deploy.yml, hemligheten CLOUDFLARE_API_TOKEN, samma nyckel som network-kits demo enligt användarens beslut). Spelet: https://vattigt.l8p1.workers.dev. Arbetsflödet kontrollerar att spelet visas och att rum kan skapas; agentens miljö når inte workers.dev. GitHub Pages är avstängt (2026-11-17; påslaget igen en tid och avstängt av användaren 2026-11-18, kontrollerat med en push).
 
 ## Mål
 
