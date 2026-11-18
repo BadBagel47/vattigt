@@ -8,8 +8,8 @@ Prioritet: Hög, Medel, Låg.
 | ID | Prio | Status | Beskrivning |
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
-| F-036 | Låg | Pågår (2026-11-18, session Vättigt, main) | Fler banor ur designförslaget: Slätten, Raukarna, Älven, Villaområdet. |
 | F-037 | Låg | Pågår (2026-11-18, session Vättigt, main) | Valbara regler ur designförslaget: Lagom-zonen på kraftmätaren och Jantelagen (laget som leder får sämre lådor). |
+| F-041 | Låg | Förslag | Fler banor ur designförslaget: Älven och Villaområdet (flyttat från F-036). |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
@@ -34,6 +34,7 @@ Parkerat: D-012 (musik).
 
 | ID | Klart | Beskrivning |
 |---|---|---|
+| F-036 | 2026-11-18 | Banorna Raukarna (raukar som välter när foten skjuts bort) och Slätten (dubbel vind, kvarnvingar som slår tillbaka skott). Älven och Villaområdet flyttade till F-041. |
 | F-035 | 2026-11-18 | Spellägena Boet (laget vars bo förstörs förlorar) och Stången (flest vättar vid midsommarstången efter en runda ger en poäng, först till fem vinner). Val i eget spel och lobbyn; datorn spelar båda och går mot stången. |
 | F-040 | 2026-11-18 | network-kit v0.6.0 inne: en telefon som tappar nätet märks på ungefär 5 sekunder, och den vars tur det är tar över först om den som kör matchen försvinner. |
 | F-039 | 2026-11-18 | Styrkan går att ändra utan att dra i bilden: reglaget Styrka under vapnet, eller Skift + pil vänster/höger på tangentbordet. |

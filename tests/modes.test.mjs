@@ -16,7 +16,7 @@ test('settings: classic by default, kubb when asked, anything else is classic', 
 });
 
 test('kubb: five kubbar per team and a king on every map, standing still', () => {
-  for (const map of ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras', 'fjallet', 'takasarna']) for (const seed of [1, 42]) {
+  for (const map of ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras', 'fjallet', 'takasarna', 'raukarna', 'slatten']) for (const seed of [1, 42]) {
     const w = newMatch(seed, { settings: { map, mode: 'kubb' } });
     for (const ti of [0, 1]) assert.equal(w.kubbs.filter((k) => k.team === ti).length, KUBBS, `${map}: team ${ti}`);
     assert.ok(w.king, `${map}: a king`);
@@ -89,7 +89,7 @@ test('kubb: the same inputs give the same match (fingerprints) and the computer 
 });
 
 test('boet: a nest per team on its own side; destroying one ends the match', () => {
-  for (const map of ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras', 'fjallet', 'takasarna']) {
+  for (const map of ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras', 'fjallet', 'takasarna', 'raukarna', 'slatten']) {
     const w = newMatch(4, { settings: { map, mode: 'boet' } });
     assert.equal(w.nests.length, 2, map);
     assert.ok(px(w.nests[0].X) < 240 && px(w.nests[1].X) > 240, `${map}: nests on their sides`);

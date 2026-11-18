@@ -2,6 +2,7 @@
 // Nothing here affects the match; it only reads the simulation state.
 import { W, H, WEAPONS, FLOOD_ROUND, CLOUD_RADIUS, NEST_HP, POLE_RADIUS, POLE_WIN } from '../sim/rules.js';
 import { px, activeUnit, teamHp } from '../sim/world.js';
+import { sin as isin, cos as icos } from '../sim/trig.js';
 import { text, textW, plain } from './font.js';
 import { speechFrom } from './speech.js';
 import { VATTE, ICON_PAL, ICON_ROWS, HORSE, MOOSE } from './sprites.js';
@@ -466,6 +467,93 @@ export function createRenderer(scene, glow) {
     },
     lights(L) { for (const st of world.map.stations || []) L.push([st.x + 6, st.y - 22, 18, '120,170,255', lit() ? .7 : .25]); }
   };
+  // Raukarna: grey limestone stacks, a town wall, poppies on the shore.
+  ART.raukarna = {
+    background() {
+      for (let x = 0; x < W; x++) { const h = Math.max(0, 5 + 4 * Math.sin(x / 41) + 2 * Math.sin(x / 13)); for (let y = Math.round(world.map.water - 18 - h); y < world.map.water; y++) set(x, y, mix(mood.hill[0], mood.water[0], .5)); }
+    },
+    color(x, y) {
+      const i = y * W + x, m = world.map, mt = m.mat[i];
+      let c;
+      if (mt === 5) {
+        const band = vnoise(x * .5, y * 1.6, 7) * .6 + bay(x, y) * .25 + (y % 9 === 0 ? .25 : 0);
+        c = band < .38 ? 0xd8d2c0 : band < .62 ? 0xbcb6a6 : band < .8 ? 0x9e998c : 0x7e7a70;
+        if (!solid(x, y - 1)) c = 0xe8e2d0; else if (!solid(x - 1, y) || !solid(x + 1, y)) c = mix(c, 0x5a5650, .3);
+        if (hash(x, y) < .02) c = 0x6a8a5a;
+      } else if (mt === 2) { c = (y % 4 === 0 || (x + (y >> 2) * 3) % 8 === 0) ? 0x7e7466 : bay(x, y) > .5 ? 0xa89c88 : 0xb4a894; if (!solid(x, y - 1)) c = 0xc8bca8; }
+      else { const d = depthAt(x, y); c = d === 0 ? (mood.snow ? 0xf4f8ff : mood.grass[0]) : d < 2 ? mood.grass[1] : 0x8a7a5a; }
+      if (m.burnt[i]) c = mix(c, 0x241816, .55);
+      c = tn(c);
+      if (y >= world.water) c = mix(c, mood.water[1], .6);
+      return c;
+    },
+    decor() {
+      if (mood.snow) return;
+      for (let k = 0; k < 26; k++) { const x = 6 + (k * 37) % 128; if (x > 12 && x < 72) continue; const gy = surf(x); if (!anchored(x)) continue; wp(x, gy - 2, 0x3f8a3c); wp(x, gy - 1, 0x3f8a3c); wp(x, gy - 3, 0xd8382a); wp(x + 1, gy - 3, 0xe5533d); if (k % 3 === 0) wp(x - 1, gy - 3, 0xd8382a); }
+    },
+    after() {},
+    lights() {}
+  };
+  // Slätten: rapeseed yellow on top of the fields, pollard willows, a half-timbered house, the mill.
+  function willow(x) {
+    if (!anchored(x)) return;
+    const gy = surf(x);
+    rect(x - 1, gy - 12, 3, 12, tn(0x5a4a3a)); rect(x - 2, gy - 14, 5, 3, tn(0x4a3a2a));
+    for (let k = 0; k < 13; k++) {
+      const a = -.6 + k * .1, len = 9 + ((k * 5) % 4) * 2;
+      for (let d = 1; d <= len; d++) { const xx = x + Math.round(Math.sin(a) * d), yy = gy - 14 - Math.round(Math.cos(a) * d); set(xx, yy, tn(d < 3 ? 0x6a5a40 : mood.leaf ? 0x8aa060 : 0x8a7a5a)); if (mood.leaf && d > 3 && (d + k) % 3 === 0) set(xx + (k < 6 ? -1 : 1), yy, tn(0xa8bc78)); }
+    }
+  }
+  function timberHouse(x) {
+    if (!anchored(x) || !anchored(x + 34)) return;
+    const gy = Math.min(surf(x), surf(x + 34));
+    rect(x, gy - 18, 36, 18, tn(0xf0e6d0));
+    for (const bx of [0, 8, 17, 26, 35]) rect(x + bx, gy - 18, 1, 18, tn(0x4a3a2a));
+    rect(x, gy - 18, 36, 1, tn(0x4a3a2a)); rect(x, gy - 9, 36, 1, tn(0x4a3a2a));
+    for (let k = 0; k < 4; k++) for (let j = 0; j < 8; j++) set(x + k * 9 + j, gy - 17 + j, tn(0x4a3a2a));
+    for (let j = 0; j < 10; j++) for (let i = -2 + j; i < 38 - j; i++) set(x + i, gy - 19 - (9 - j), tn(j > 7 ? 0x9a8a5a : 0xc8b070));
+    rect(x + 20, gy - 7, 4, 7, tn(0x5a3a2a)); rect(x + 4, gy - 15, 3, 3, lit() ? 0xffd68a : tn(0x3a4a5a)); rect(x + 28, gy - 15, 3, 3, lit() ? 0xffd68a : tn(0x3a4a5a));
+  }
+  ART.slatten = {
+    background() {
+      for (let x = 0; x < W; x++) { const h = 4 + 3 * Math.sin(x / 57) + 2 * Math.sin(x / 17); for (let y = Math.round(206 - h); y < 230; y++) set(x, y, mix(mood.hill[0], mood.hill[1], .3)); }
+      for (let k = 0; k < 12; k++) { const x = 10 + k * 41; for (let j = 0; j < 4; j++) for (let i = -3 + j; i <= 3 - j; i++) set(x + i, 200 - j, mood.forest); }
+    },
+    color(x, y) {
+      const i = y * W + x, m = world.map;
+      let c;
+      if (m.mat[i] === 3) { c = (x + y) % 7 === 0 ? 0x2a2220 : 0x3a302c; if (!solid(x, y - 1)) c = 0x5a4a40; }
+      else {
+        const d = depthAt(x, y), field = Math.floor(x / 60) % 2 === 0;
+        c = d === 0 ? (mood.snow ? 0xf4f8ff : field ? (hash(x, y) < .5 ? 0xffe14a : 0xe8c830) : mood.grass[0]) : d < 2 ? (mood.snow ? 0xdfe8f6 : field ? 0x9ab83a : mood.grass[1]) : d < 3 ? mood.grass[2] : (vnoise(x, y, 8) > .55 ? 0x4a3628 : 0x3a2a20);
+      }
+      if (m.burnt[i]) c = mix(c, 0x241816, .55);
+      c = tn(c);
+      if (y >= world.water) c = mix(c, mood.water[1], .6);
+      return c;
+    },
+    decor() { for (const x of [30, 96, 154, 330, 390, 452]) willow(x); timberHouse(60); },
+    after() {
+      const mi = world.map.mill;
+      if (!mi || !solid(mi.x, mi.y + 3)) return;
+      rect(mi.x - 2, mi.y + 8, 5, 7, tn(0x6a4a34)); rect(mi.x - 1, mi.y + 18, 3, 3, lit() ? 0xffd68a : tn(0x2a2230));
+    },
+    lights() {}
+  };
+  // The sails, every frame (they turn).
+  function drawSails(w) {
+    const mi = w.map.mill;
+    if (!mi || mi.broken) return;
+    for (let k = 0; k < 4; k++) {
+      const a = ((w.sail || 0) + k * 90) % 360, c = icos(a) / 1024, s = isin(a) / 1024;
+      for (let d = 3; d <= mi.len; d++) {
+        const x = mi.x + c * d, y = mi.y - s * d;
+        set(x, y, tn(0x5a3a2a));
+        if (d > 8) for (let o = 1; o <= 3; o++) { const xx = x + s * o, yy = y + c * o; set(xx, yy, tn((d + o) % 3 === 0 ? 0x8a6a4a : 0xf0e8d8)); }
+      }
+    }
+    disc(mi.x, mi.y, 2, tn(0x3a2a20));
+  }
   const art = () => ART[world.map.id] || ART.midsommar;
 
   // Gruvan: everything below ground is dark except where light reaches.
@@ -552,6 +640,13 @@ export function createRenderer(scene, glow) {
       } else if (e.t === 'metro') {
         floaters.push({ x: e.x, y: e.y - 30, s: 'TUNNELBANAN!', c: 0x8ad0ff, age: 0 });
         for (let i = 0; i < 10; i++) parts.push({ x: e.x, y: e.y - 4, vx: (rnd() - .5) * 1.4, vy: -rnd(), g: -.005, life: 40, c: 0x9aa0aa, kind: 'smoke', r: 1 });
+      } else if (e.t === 'rauk') {
+        banner = { s: 'RAUKEN VÄLTER!', c: 0xe8e2d0, age: 0 }; shake = Math.max(shake, 8);
+        for (let i = 0; i < 30; i++) parts.push({ x: e.x + e.dir * rnd() * 60, y: e.y + (rnd() - .5) * 40, vx: (rnd() - .5) * 1.4, vy: -rnd() * .8, g: -.004, life: 70, c: 0xd8d2c0, kind: 'smoke', r: 1 + rnd() * 2 });
+      } else if (e.t === 'sail') {
+        floaters.push({ x: e.x, y: e.y - 6, s: 'TILLBAKA!', c: 0xffe38a, age: 0 });
+      } else if (e.t === 'mill-broken') {
+        banner = { s: 'KVARNEN STANNAR', c: 0xffe38a, age: 0 };
       } else if (e.t === 'nest') {
         floaters.push({ x: e.x, y: e.y - 8, s: '-' + e.n, c: 0xffa040, age: 0 });
       } else if (e.t === 'nest-down') {
@@ -885,6 +980,7 @@ export function createRenderer(scene, glow) {
       text(P, 'KNALLEN', x, y - 24, 0xffd66b, 1, 1);
     }
     for (const u of w.units) if (u.alive && !u.away && u.wet) { const x = px(u.X), y = px(u.Y) - 15; for (let i = -5; i <= 5; i++) set(x + i, y + Math.round(i * i / 10), i % 2 ? 0x4fa3ff : 0x2a6fd0); for (let j = 1; j < 6; j++) set(x, y + j, 0x3a2c28); }
+    drawSails(w);
     drawProjectiles(w, t);
     drawClouds(w, t);
     water(w, t);

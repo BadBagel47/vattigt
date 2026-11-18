@@ -3,7 +3,7 @@
 // (whole numbers only, no Math.random, no Math.sin), so online play can send
 // inputs only (D-011).
 import * as R from './rules.js';
-import { makeMap, blast, isSolid, ROCK, SNOW, MAP_NAMES } from './terrain.js';
+import { makeMap, blast, isSolid, ROCK, SNOW, LIME, MAP_NAMES } from './terrain.js';
 import { sin, cos, isqrt } from './trig.js';
 
 const { FP, W, H } = R;
@@ -134,6 +134,73 @@ function stepSlide(w) {
     if (s.age % 4 === 0) w.mapVersion++;
   } else s.quiet++;
   if (s.quiet >= 3 || s.age > R.AVALANCHE_MAX_TICKS) { if (s.moved) w.mapVersion++; w.slide = null; }
+}
+
+/* ---------- Raukarna: stacks that topple (F-036) ---------- */
+// After a blast: a stack whose foot has less than RAUK_HOLD % left falls away from the blast.
+// It turns a quarter round about its foot and lands lying down; what it falls on is hurt.
+function checkRaukar(w, bx) {
+  const m = w.map;
+  for (const r of m.raukar || []) {
+    if (r.fallen) continue;
+    const wide = 12;
+    let foot = 0;
+    const orig = r.foot0;
+    for (let j = 1; j <= R.RAUK_FOOT; j++) for (let x = r.x - wide; x <= r.x + wide; x++) { const i = (r.base - j) * W + x; if (x >= 0 && x < W && m.solid[i] && m.mat[i] === LIME) foot++; }
+    if (foot * 100 >= orig * R.RAUK_HOLD) continue;
+    // topple: take the stack's pixels above the foot
+    const dir = r.x >= bx ? 1 : -1, pts = [];
+    for (let y = r.base - R.RAUK_FOOT - 1; y >= r.base - r.h - 12 && y >= 0; y--) for (let x = r.x - 16; x <= r.x + 16; x++) {
+      const i = y * W + x;
+      if (x >= 0 && x < W && m.solid[i] && m.mat[i] === LIME) { pts.push([x - r.x, r.base - y]); m.solid[i] = 0; m.mat[i] = 0; }
+    }
+    r.fallen = 1;
+    if (!pts.length) continue;
+    // lying down: height becomes distance, sideways becomes height
+    let placed = pts.map(([dx, h]) => [r.x + dir * h, r.base - R.RAUK_FOOT - 1 + dx * dir]);
+    // drop it until it rests
+    const free = (pl, dy) => pl.every(([x, y]) => x < 0 || x >= W || y + dy >= H || y + dy < 0 || !m.solid[(y + dy) * W + x]);
+    let drop = 0;
+    while (drop < H && free(placed, drop + 1)) drop++;
+    placed = placed.map(([x, y]) => [x, y + drop]);
+    const x1 = Math.min(...placed.map((p) => p[0])), x2 = Math.max(...placed.map((p) => p[0]));
+    const y1 = Math.min(...placed.map((p) => p[1])) - (r.h + 10), y2 = Math.max(...placed.map((p) => p[1]));
+    for (const u of w.units) {
+      if (!u.alive || u.away) continue;
+      const ux = px(u.X), uy = px(u.Y);
+      if (ux < Math.min(r.x, x1) - 3 || ux > Math.max(r.x, x2) + 3 || uy < y1 || uy > y2 + 2) continue;
+      hurt(w, u, R.RAUK_DAMAGE);
+      if (u.alive) { u.VX = dir * 2 * FP; u.VY = -2 * FP; u.air = true; }
+    }
+    for (const [x, y] of placed) if (x >= 0 && x < W && y >= 0 && y < H) { const i = y * W + x; m.solid[i] = 1; m.mat[i] = LIME; }
+    // vättar now inside rock are lifted out
+    for (const u of w.units) if (u.alive && !u.away && !bodyFree(w, px(u.X), px(u.Y))) { let y = px(u.Y); while (y > 3 && !bodyFree(w, px(u.X), y)) y--; u.Y = y * FP; u.air = true; }
+    w.mapVersion++;
+    w.events.push({ t: 'rauk', x: r.x, y: r.base - (r.h >> 1), dir });
+  }
+}
+
+/* ---------- Slätten: the windmill (F-036) ---------- */
+// The sails turn with the wind (whole degrees per step) and hit shots back.
+function stepMill(w) {
+  const mi = w.map.mill;
+  if (!mi || mi.broken) return;
+  if (!solidAt(w, mi.x, mi.y + 3)) { mi.broken = 1; w.mapVersion++; w.events.push({ t: 'mill-broken', x: mi.x, y: mi.y }); return; }
+  const turn = w.wind === 0 ? 1 : Math.sign(w.wind) * (1 + (Math.abs(w.wind) >> 1));
+  w.sail = (((w.sail || 0) - turn) % 360 + 360) % 360;
+}
+// Does the point (x, y) touch a sail? Returns the blade's angle or -1.
+export function sailAt(w, x, y) {
+  const mi = w.map.mill;
+  if (!mi || mi.broken) return -1;
+  const dx = x - mi.x, dy = y - mi.y;
+  if (dx * dx + dy * dy > (mi.len + 2) * (mi.len + 2)) return -1;
+  for (let k = 0; k < 4; k++) {
+    const a = ((w.sail || 0) + k * 90) % 360, c = cos(a), s = sin(a);
+    const along = Math.trunc((dx * c - dy * s) / 1024), across = Math.abs(Math.trunc((dx * s + dy * c) / 1024));
+    if (along >= 4 && along <= mi.len && across <= 2) return a;
+  }
+  return -1;
 }
 
 /* ---------- Takåsarna: the underground (F-034) ---------- */
@@ -468,6 +535,7 @@ function explode(w, x, y, wp) {
   blastPieces(w, x, y, r);
   blastNests(w, x, y, wp);
   if (w.map.avalanche) startSlide(w, x, y, r);
+  if (w.map.raukar) checkRaukar(w, x);
   const reach = r + 12;
   for (const u of w.units) {
     if (!u.alive) continue;
@@ -763,7 +831,13 @@ function stepProjectile(w, p) {
   if (p.rest) {
     if (!solidAt(w, px(p.X), px(p.Y) + 1)) p.rest = false; else return true;
   }
-  if (wp.wind) p.VX += Math.trunc((w.wind * R.WIND_ACCEL) / 2);
+  if (wp.wind) p.VX += Math.trunc((w.wind * R.WIND_ACCEL * (w.map.windScale || 1)) / 2);
+  // Slätten: a sail hits the shot back the way it came, and up
+  if (w.map.mill && !(p.sailHit > 0) && sailAt(w, px(p.X), px(p.Y)) >= 0) {
+    p.VX = -p.VX - Math.sign(p.VX || 1) * 300; p.VY = Math.min(p.VY, 0) - 900; p.sailHit = R.SAIL_HIT_COOLDOWN; p.owner = -1;
+    w.events.push({ t: 'sail', x: px(p.X), y: px(p.Y) });
+  }
+  if (p.sailHit > 0) p.sailHit--;
   p.VY += R.GRAVITY;
   const n = Math.max(1, Math.trunc((Math.max(Math.abs(p.VX), Math.abs(p.VY)) + FP - 1) / FP));
   const sx = Math.trunc(p.VX / n), sy = Math.trunc(p.VY / n);
@@ -924,6 +998,7 @@ export function step(w, input = {}) {
   stepCart(w);
   stepPieces(w);
   stepSlide(w);
+  stepMill(w);
   for (const o of w.units) stepUnit(w, o);
   stepStations(w);
   // Projectiles made during the step (meatballs, the troll's stone) join after it.
@@ -975,6 +1050,7 @@ export function fingerprint(w) {
   for (const m of w.mines) { mix(m.X); mix(m.Y); mix(m.arm); }
   for (const k of pieces(w)) { mix(k.X); mix(k.Y); mix(k.down); mix(k.hp | 0); }
   if (w.pole) for (const p of w.pole.points) mix(p);
+  mix(w.sail | 0);
   if (w.knalle) { mix(w.knalle.X); mix(w.knalle.Y); mix(w.knalle.dir); }
   const s = w.map.solid;
   for (let i = 0; i < s.length; i += 7) mix(s[i] * (i + 1));

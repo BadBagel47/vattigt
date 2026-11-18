@@ -7,7 +7,7 @@ import * as R from '../src/sim/rules.js';
 
 const settle = (w, max = 3000) => { for (let i = 0; i < max && w.turn.phase !== 'aim' && w.turn.phase !== 'over'; i++) step(w); return w; };
 
-for (const map of ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras', 'fjallet', 'takasarna']) {
+for (const map of ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras', 'fjallet', 'takasarna', 'raukarna', 'slatten']) {
   test(`${map}: every vätte lands on the map and the first turn starts`, () => {
     for (const units of [1, 3, 5]) {
       const w = settle(newMatch(99, { settings: { map, units } }));
@@ -170,4 +170,45 @@ test('takasarna: the underground takes a vätte to the next station the way it f
 test('the new maps are allowed in the settings', () => {
   assert.equal(matchSettings({ settings: { map: 'fjallet' } }).map, 'fjallet');
   assert.equal(matchSettings({ settings: { map: 'takasarna' } }).map, 'takasarna');
+});
+
+test('raukarna: cutting the foot of a stack topples it, the same way every time', () => {
+  const run = () => {
+    const w = settle(newMatch(3, { settings: { map: 'raukarna' } }));
+    const r = w.map.raukar[1], u = w.units.find((o) => o.id === w.turn.unit);
+    u.X = (r.x - 6) * 1024; u.Y = (r.base - 2) * 1024; u.air = true;
+    for (let i = 0; i < 60; i++) step(w);
+    step(w, { weapon: 2 }); step(w, { fire: true });
+    const evs = [];
+    for (let i = 0; i < 2000 && w.turn.phase !== 'aim' && w.turn.phase !== 'over'; i++) { step(w); evs.push(...w.events); }
+    return { w, r, evs };
+  };
+  const a = run(), b = run();
+  assert.equal(a.r.fallen, 1, 'it fell');
+  assert.ok(a.evs.some((e) => e.t === 'rauk'));
+  assert.equal(fingerprint(a.w), fingerprint(b.w));
+  // the stack now lies to the right of its foot
+  let right = 0; for (let y = 150; y < a.w.water; y++) for (let x = a.r.x + 20; x < a.r.x + 80; x++) if (a.w.map.solid[y * R.W + x] && a.w.map.mat[y * R.W + x] === 5) right++;
+  assert.ok(right > 200, 'lying down beside it');
+});
+
+test('slatten: the sails turn with the wind and hit a shot back', async () => {
+  const { sailAt } = await import('../src/sim/world.js');
+  const w = settle(newMatch(3, { settings: { map: 'slatten' } }));
+  assert.equal(w.map.windScale, 2);
+  const s0 = w.sail;
+  for (let i = 0; i < 10; i++) step(w);
+  assert.notEqual(w.sail, s0, 'the sails turn');
+  const mi = w.map.mill;
+  // a point on a blade
+  const a = w.sail, x = mi.x + Math.round((Math.cos(a * Math.PI / 180) * 20)), y = mi.y - Math.round(Math.sin(a * Math.PI / 180) * 20);
+  assert.ok(sailAt(w, x, y) >= 0, 'a point on a blade is a sail');
+  assert.equal(sailAt(w, mi.x + 60, mi.y), -1);
+  // a shot flying into the mill comes back
+  const u = w.units.find((o) => o.id === w.turn.unit);
+  const evs = [];
+  w.projectiles.push({ kind: 'gurra', X: (mi.x - 40) * 1024, Y: mi.y * 1024, VX: 3 * 1024, VY: -170, owner: -1, age: 20, fuse: -1, rest: false });
+  w.wind = 0;
+  for (let i = 0; i < 60 && w.projectiles.length; i++) { step(w); evs.push(...w.events); }
+  assert.ok(evs.some((e) => e.t === 'sail' || e.t === 'boom'), 'it hit a sail or the mill');
 });

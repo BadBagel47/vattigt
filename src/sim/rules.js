@@ -112,3 +112,10 @@ export const KING_H = 13;    // the king is 5 px wide and 14 px tall
 // Fjället (F-034): snow near a blast slides down steep slopes as an avalanche.
 export const AVALANCHE_DAMAGE = 12;
 export const AVALANCHE_MAX_TICKS = 900;
+
+// Raukarna (F-036): a limestone stack whose foot is mostly gone topples; it hurts what it falls on.
+export const RAUK_FOOT = 6;          // rows at the foot that hold it up
+export const RAUK_HOLD = 40;         // percent of the foot that must remain
+export const RAUK_DAMAGE = 35;
+// Slätten (F-036): the windmill's sails turn with the wind and hit shots back.
+export const SAIL_HIT_COOLDOWN = 12;

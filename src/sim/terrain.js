@@ -3,7 +3,7 @@
 import { W, H } from './rules.js';
 import { sin, isqrt } from './trig.js';
 
-export const SOIL = 1, ROCK = 2, WOOD = 3, SNOW = 4;   // materials: ROCK takes half the crater, WOOD breaks easily
+export const SOIL = 1, ROCK = 2, WOOD = 3, SNOW = 4, LIME = 5;   // materials: ROCK takes half the crater, WOOD breaks easily, LIME (limestone) like soil
 
 export function hash32(x, y, seed) {
   let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(seed | 0, 1442695041)) | 0;
@@ -25,7 +25,7 @@ export function noise(x, y, s, seed) {
 }
 
 function blank(id, name, water) {
-  return { id, name, water, solid: new Uint8Array(W * H), mat: new Uint8Array(W * H), cave: new Uint8Array(W * H), burnt: new Uint8Array(W * H), surface: new Int16Array(W), lamps: [], troll: null, roof: 0, spawns: [[], []], boulders: [], cart: null, rain: 0, sinkholes: 0, crateEvery: 0, wrongGoods: 0, knalle: null, statue: null, avalanche: 0, stations: null };
+  return { id, name, water, solid: new Uint8Array(W * H), mat: new Uint8Array(W * H), cave: new Uint8Array(W * H), burnt: new Uint8Array(W * H), surface: new Int16Array(W), lamps: [], troll: null, roof: 0, spawns: [[], []], boulders: [], cart: null, rain: 0, sinkholes: 0, crateEvery: 0, wrongGoods: 0, knalle: null, statue: null, avalanche: 0, stations: null, raukar: null, mill: null, windScale: 1 };
 }
 const fill = (m, x, y, mat) => { if (x >= 0 && x < W && y >= 0 && y < H) { const i = y * W + x; m.solid[i] = 1; m.mat[i] = mat; } };
 function finish(m) {
@@ -231,8 +231,69 @@ function takasarna(seed) {
   return m;
 }
 
-export const MAPS = { midsommar, kobbarna, trollskogen, gruvan, boras, fjallet, takasarna };
-export const MAP_NAMES = { midsommar: 'Midsommarängen', kobbarna: 'Kobbarna', trollskogen: 'Trollskogen', gruvan: 'Gruvan', boras: 'Borås', fjallet: 'Fjället', takasarna: 'Takåsarna' };
+/* ---------- Raukarna (Gotland): limestone stacks in the sea, a shore with a town wall, a cliff ---------- */
+// A stack whose foot is cut through topples (F-036, see world.js).
+function raukarna(seed) {
+  const m = blank('raukarna', 'Raukarna', 238);
+  const WL = m.water;
+  // the shore on the left: a low limestone shelf; the cliff (klint) on the right
+  for (let x = 0; x < W; x++) {
+    let top = H;
+    if (x < 132) top = 190 + Math.trunc((x * 6) / 132) + Math.trunc(((noise(x, 0, 12, seed) - 512) * 4) / 1024);
+    else if (x < 150) top = 196 + Math.trunc(((x - 132) * 52) / 18);
+    else if (x > 392) top = 150 + Math.trunc(((480 - x) * 4) / 88) + Math.trunc(((noise(x, 1, 9, seed) - 512) * 6) / 1024);
+    else if (x > 376) top = 150 + Math.trunc(((392 - x) * 96) / 16);
+    for (let y = top; y < H; y++) fill(m, x, y, y - top < 3 && x < 150 ? SOIL : LIME);
+  }
+  // the town wall on the shore, with battlements
+  for (let x = 14; x <= 70; x++) { const top = x % 8 < 4 ? 160 : 164; for (let y = top; y < 192; y++) fill(m, x, y, ROCK); }
+  for (let y = 176; y < 192; y++) for (let x = 36; x <= 46; x++) { m.solid[y * W + x] = 0; m.mat[y * W + x] = 0; }   // the gate
+  // the stacks: [foot x, height, width at the top, width at the foot]; the sea floor under them
+  const stacks = [[178, 70, 16, 8], [222, 92, 20, 10], [266, 60, 14, 8], [310, 84, 18, 9], [350, 66, 15, 8]];
+  m.raukar = [];
+  for (const [cx, h0, wt, wf] of stacks) {
+    const h = h0 + Math.trunc(((hash32(cx, 3, seed) & 15) - 8)), base = WL - 4, pts = [];
+    for (let y = base + 1; y < H; y++) for (let x = cx - wf - 4; x <= cx + wf + 4; x++) fill(m, x, y, ROCK);   // the shelf it stands on
+    for (let j = 0; j <= h; j++) {
+      const t = Math.trunc((j * 1024) / h), hw = Math.trunc((wf * (1024 - t) + wt * t) / 2048) + (j > h - 8 ? 1 : 0) + ((hash32(cx, j >> 2, seed) & 3) === 0 ? 1 : 0);
+      const off = Math.trunc((sin(j * 3 + cx) * 2) / 1024);
+      for (let x = cx - hw + off; x <= cx + hw + off; x++) { fill(m, x, base - j, LIME); pts.push([x - cx, j]); }
+    }
+    let foot0 = 0;
+    for (let j = 1; j <= 6; j++) for (let x = cx - 12; x <= cx + 12; x++) if (m.mat[(base - j) * W + x] === LIME) foot0++;
+    m.raukar.push({ x: cx, base, h, foot0, fallen: 0 });
+  }
+  m.spawns = [[[30, 150], [60, 150], [100, 180], [120, 180], [178, 100], [222, 80]], [[420, 130], [450, 130], [400, 130], [465, 130], [310, 100], [350, 110]]];
+  m.spawns = m.spawns.map((list) => list.map(([x]) => [x, 0]));
+  finish(m);
+  m.spawns = m.spawns.map((list) => list.map(([x]) => [x, m.surface[x] - 1]));
+  return m;
+}
+
+/* ---------- Slätten (Skåne): rapeseed fields, pollard willows, a windmill whose sails hit shots back ---------- */
+function slatten(seed) {
+  const m = blank('slatten', 'Slätten', 246);
+  const ground = (x) => {
+    let y = 206 + Math.trunc(((noise(x, 0, 40, seed) - 512) * 10) / 1024) + Math.trunc(((noise(x, 2, 9, seed) - 512) * 3) / 1024);
+    const d = Math.abs(x - 240); if (d < 46) y -= Math.trunc(((46 - d) * (46 - d) * 22) / 2116);   // the mill hill
+    if (x > 120 && x < 132) y += 10 - Math.abs(x - 126);                                          // a ditch
+    return y;
+  };
+  for (let x = 0; x < W; x++) for (let y = ground(x); y < H; y++) fill(m, x, y, SOIL);
+  // the windmill: a tarred wooden body on the hill; the sails turn on the cap
+  const mx = 240, mb = ground(mx);
+  for (let j = 0; j < 46; j++) { const hw = 10 - Math.trunc((j * 4) / 46); for (let x = mx - hw; x <= mx + hw; x++) fill(m, x, mb - j, WOOD); }
+  for (let j = 46; j < 52; j++) { const hw = 6 - (j - 46); for (let x = mx - hw; x <= mx + hw; x++) fill(m, x, mb - j, WOOD); }
+  m.mill = { x: mx, y: mb - 44, len: 30, base: mb };
+  m.windScale = 2;
+  m.spawns = [[[20, 150], [50, 150], [80, 150], [110, 150], [150, 150], [180, 150]], [[460, 150], [430, 150], [400, 150], [370, 150], [330, 150], [300, 150]]];
+  finish(m);
+  m.spawns = m.spawns.map((list) => list.map(([x]) => [x, m.surface[x] - 1]));
+  return m;
+}
+
+export const MAPS = { midsommar, kobbarna, trollskogen, gruvan, boras, fjallet, takasarna, raukarna, slatten };
+export const MAP_NAMES = { midsommar: 'Midsommarängen', kobbarna: 'Kobbarna', trollskogen: 'Trollskogen', gruvan: 'Gruvan', boras: 'Borås', fjallet: 'Fjället', takasarna: 'Takåsarna', raukarna: 'Raukarna', slatten: 'Slätten' };
 export function makeMap(seed, id = 'midsommar') { return (MAPS[id] || MAPS.midsommar)(seed); }
 
 export const isSolid = (map, x, y) => x >= 0 && x < W && y >= 0 && y < H && map.solid[y * W + x] === 1;

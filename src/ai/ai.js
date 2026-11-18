@@ -21,7 +21,7 @@ function flight(w, u, wp, angle, power) {
   const v = Math.trunc((wp.speed * power) / 100), dx = cos(angle), dy = -sin(angle);
   let X = u.X + dx * 7, Y = u.Y - 5 * FP + dy * 7, VX = Math.trunc((dx * v) / 1024), VY = Math.trunc((dy * v) / 1024);
   for (let t = 0; t < 420; t++) {
-    if (wp.wind) VX += Math.trunc((w.wind * WIND_ACCEL) / 2);
+    if (wp.wind) VX += Math.trunc((w.wind * WIND_ACCEL * (w.map.windScale || 1)) / 2);
     VY += GRAVITY;
     const n = Math.max(1, Math.trunc((Math.max(Math.abs(VX), Math.abs(VY)) + FP - 1) / FP));
     for (let i = 0; i < n; i++) {
