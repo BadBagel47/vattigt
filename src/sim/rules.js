@@ -97,8 +97,14 @@ export const MAX_UNITS = 5;
 
 // Game modes (F-032). Kubb: knock down the other team's five kubbar, then the king.
 // Knock the king down too early and you lose.
-export const MODES = ['klassiskt', 'kubb'];
-export const MODE_NAMES = { klassiskt: 'Klassiskt', kubb: 'Kubb' };
+export const MODES = ['klassiskt', 'kubb', 'boet', 'stangen'];
+export const MODE_NAMES = { klassiskt: 'Klassiskt', kubb: 'Kubb', boet: 'Boet', stangen: 'Stången' };
+// Boet (F-035): each team has a nest; the team whose nest is destroyed loses.
+export const NEST_HP = 150;
+export const NEST_H = 8;      // 9 px wide, 9 px tall
+// Stången (F-035): at the end of each round, the team with more vättar near the pole scores.
+export const POLE_RADIUS = 28;
+export const POLE_WIN = 5;
 export const KUBBS = 5;
 export const KUBB_H = 7;      // a kubb is 3 px wide and 8 px tall
 export const KING_H = 13;    // the king is 5 px wide and 14 px tall

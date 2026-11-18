@@ -87,3 +87,58 @@ test('kubb: the same inputs give the same match (fingerprints) and the computer 
   assert.equal(copy.world.winner, m.world.winner);
   assert.ok(prints.length > 2);
 });
+
+test('boet: a nest per team on its own side; destroying one ends the match', () => {
+  for (const map of ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras', 'fjallet', 'takasarna']) {
+    const w = newMatch(4, { settings: { map, mode: 'boet' } });
+    assert.equal(w.nests.length, 2, map);
+    assert.ok(px(w.nests[0].X) < 240 && px(w.nests[1].X) > 240, `${map}: nests on their sides`);
+    settle(w);
+    assert.ok(w.nests.every((n) => !n.down && n.hp > 0), `${map}: nests stand`);
+  }
+  const w = newMatch(4, { settings: { map: 'midsommar', mode: 'boet' } });
+  settle(w);
+  for (const u of w.units) u.hp = 1000;
+  const shooter = w.turn.team, theirs = w.nests.find((n) => n.team !== shooter);
+  theirs.hp = 5;
+  shootAt(w, px(theirs.X) + 3, px(theirs.Y));
+  assert.equal(theirs.down, 1);
+  assert.equal(w.turn.phase, 'over');
+  assert.equal(w.winner, shooter);
+});
+
+test('stången: the team with more vättar at the pole scores each round; five wins', () => {
+  const w = newMatch(6, { settings: { map: 'midsommar', mode: 'stangen', flood: 0 } });
+  assert.ok(w.pole);
+  settle(w);
+  // put team 0 at the pole and keep it there; team 1 stays away
+  const evs = [];
+  for (let turn = 0; turn < 14 && w.turn.phase !== 'over'; turn++) {
+    for (const u of w.units) { u.hp = 1000; if (u.team === 0) { u.X = w.pole.x * 1024; u.Y = (w.pole.y - 2) * 1024; u.air = true; } }
+    w.turn.timer = 1;
+    for (let i = 0; i < 1500 && w.turn.phase !== 'over'; i++) { step(w); evs.push(...w.events); if (w.events.some((e) => e.t === 'turn')) break; }
+  }
+  assert.ok(evs.some((e) => e.t === 'pole' && e.team === 0));
+  assert.equal(w.turn.phase, 'over');
+  assert.equal(w.winner, 0);
+  assert.equal(w.pole.points[0], 5);
+});
+
+test('boet and stången: the computer finishes matches and replays match', async () => {
+  const { planTurn } = await import('../src/ai/ai.js');
+  const { replay } = await import('../src/net/match.js');
+  for (const mode of ['boet', 'stangen']) {
+    const opts = { settings: { mode, flood: 6 } };
+    const m = createMatch(17, opts);
+    let lastTurn = -1, plan = [];
+    for (let i = 0; i < 120000 && m.world.turn.phase !== 'over'; i++) {
+      const w = m.world;
+      if (w.turn.phase === 'aim' && w.turn.number !== lastTurn) { lastTurn = w.turn.number; plan = planTurn(w, 'lagom').map(([, ev]) => ev); }
+      if (plan.length && i % 20 === 0) { const ev = plan.shift(); if (ev.replan) plan = planTurn(w, 'lagom', { moved: true }).map(([, e]) => e); else m.push(ev); }
+      m.runStep();
+    }
+    assert.equal(m.world.turn.phase, 'over', mode);
+    const copy = replay(17, opts, JSON.parse(JSON.stringify(m.log)), m.reach);
+    assert.equal(fingerprint(copy.world), fingerprint(m.world), mode);
+  }
+});

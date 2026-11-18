@@ -73,6 +73,7 @@ export function createSound() {
       else if (e.t === 'snow') noise(t, { f: 1500, gain: .25, dec: .25 });
       else if (e.t === 'avalanche') { noise(t, { f: 260, gain: .7, dec: 2.2 }); noise(t + .2, { f: 1400, gain: .2, dec: 1.4 }); }
       else if (e.t === 'metro') { tone(t, { type: 'square', f1: 660, f2: 660, gain: .06, dec: .18 }); tone(t + .2, { type: 'square', f1: 550, f2: 550, gain: .06, dec: .25 }); noise(t, { f: 700, type: 'bandpass', gain: .25, dec: .8 }); }
+      else if (e.t === 'nest-down') { tone(t, { type: 'sawtooth', f1: 220, f2: 70, gain: .25, dec: .8 }); }
       else if (e.t === 'kubb') { tone(t, { type: 'triangle', f1: 760, f2: 520, gain: .3, dec: .07 }); tone(t + .09, { type: 'triangle', f1: 520, f2: 380, gain: .25, dec: .09 }); }
       else if (e.t === 'king') { for (let k = 0; k < 3; k++) tone(t + k * .1, { type: 'triangle', f1: 600 - k * 120, f2: 420 - k * 100, gain: .3, dec: .1 }); }
       else if (e.t === 'steam') noise(t, { f: 5000, type: 'highpass', gain: .12, dec: .4 });

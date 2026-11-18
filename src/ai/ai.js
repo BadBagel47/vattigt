@@ -2,7 +2,7 @@
 // head (a quick copy of the projectile physics) and picks one that hurts the
 // other team most and itself least. The level decides how much it misses.
 // Only used on one phone, so it may use Math.random; online play has no computer players.
-import { W, H, FP, GRAVITY, WIND_ACCEL, WEAPONS, KUBB_H, KING_H } from '../sim/rules.js';
+import { W, H, FP, GRAVITY, WIND_ACCEL, WEAPONS, KUBB_H, KING_H, NEST_H, POLE_RADIUS } from '../sim/rules.js';
 import { sin, cos } from '../sim/trig.js';
 
 export const LEVELS = {
@@ -30,13 +30,13 @@ function flight(w, u, wp, angle, power) {
       if (y > w.water || x < -60 || x > W + 60) return null;
       if (isSolid(x, y)) return [x, y];
       if (t > 8) for (const o of w.units) if (o.alive && !o.away && Math.abs(px(o.X) - x) <= 3 && y >= px(o.Y) - 10 && y <= px(o.Y)) return [x, y];
-      for (const k of pieces(w)) if (!k.down && Math.abs(px(k.X) - x) <= (k.king ? 2 : 1) && y <= px(k.Y) && y >= px(k.Y) - (k.king ? KING_H : KUBB_H)) return [x, y];
+      for (const k of pieces(w)) if (!k.down && Math.abs(px(k.X) - x) <= (k.nest ? 4 : k.king ? 2 : 1) && y <= px(k.Y) && y >= px(k.Y) - (k.nest ? NEST_H : k.king ? KING_H : KUBB_H)) return [x, y];
     }
   }
   return null;
 }
 
-const pieces = (w) => (w.kubbs ? [...w.kubbs, ...(w.king ? [w.king] : [])] : []);
+const pieces = (w) => [...(w.kubbs || []), ...(w.king ? [w.king] : []), ...(w.nests || [])];
 
 // How good a blast at (x, y) is for the team: damage to the others minus twice the damage to its own.
 function score(w, team, x, y, wp) {
@@ -49,7 +49,16 @@ function score(w, team, x, y, wp) {
     let dmg = Math.min(o.hp, wp.damage * (reach - d) / reach);
     if (dmg >= o.hp) dmg += 30;                          // a kill is worth extra
     if (px(o.Y) > w.water - 30) dmg += 8;                // near the water: the push may drown it
+    if (w.pole) { const pdx = px(o.X) - w.pole.x, pdy = px(o.Y) - w.pole.y; if (pdx * pdx + pdy * pdy <= POLE_RADIUS * POLE_RADIUS) dmg *= 1.5; }
     s += o.team === team ? -2 * dmg : dmg;
+  }
+  // Boet: the other team's nest is the goal; its own nest must be kept whole.
+  for (const n of w.nests || []) {
+    if (n.down) continue;
+    const dx = px(n.X) - x, dy = px(n.Y) - 4 - y, d = Math.sqrt(dx * dx + dy * dy);
+    if (d >= reach) continue;
+    const dmg = Math.min(n.hp, wp.damage * (reach - d) / reach);
+    s += n.team === team ? -3 * dmg - (dmg >= n.hp ? 500 : 0) : 1.5 * dmg + (dmg >= n.hp ? 100 : 0);
   }
   // Kubb: the other team's kubbar are worth a lot; the king only once they are all down.
   if (w.kubbs) {
@@ -67,9 +76,18 @@ function score(w, team, x, y, wp) {
 }
 
 // Plan one turn: returns a list of [delay in ms, input event].
-export function planTurn(w, level = 'lagom') {
+// An event { replan: true } asks the caller to plan again from where the vätte now stands.
+export function planTurn(w, level = 'lagom', opts = {}) {
   const L = LEVELS[level] || LEVELS.lagom, t = w.turn, u = w.units.find((o) => o.id === t.unit);
   if (!u || !u.alive) return [];
+  // Stången: first walk towards the pole, then shoot from there.
+  if (w.pole && !opts.moved && !u.air) {
+    const dx = w.pole.x - px(u.X);
+    if (Math.abs(dx) > POLE_RADIUS - 8 && Math.abs(dx) < 220) {
+      const ms = Math.min(4000, Math.round(((Math.abs(dx) - 6) / 30) * 1000));
+      return [[Math.round(L.think / 2), { walk: Math.sign(dx) }], [ms, { walk: 0 }], [500, { replan: true }]];
+    }
+  }
   const team = u.team, ammo = w.teams[team].ammo;
   const enemies = w.units.filter((o) => o.alive && !o.away && o.team !== team);
   if (!enemies.length) return [];

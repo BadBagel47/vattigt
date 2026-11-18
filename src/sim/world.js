@@ -72,6 +72,8 @@ export function newMatch(seed, opts = {}) {
     }
   });
   if (settings.mode === 'kubb') setupKubb(w);
+  if (settings.mode === 'boet') setupNests(w);
+  if (settings.mode === 'stangen') setupPole(w);
   return w;
 }
 
@@ -181,17 +183,73 @@ function setupKubb(w) {
     }
   });
   // the king: on firm ground as near the middle as possible
-  for (let d = 0; d < W / 2 - 20 && !w.king; d += 3) for (const x of d ? [W / 2 + d, W / 2 - d] : [W / 2]) {
-    if (w.king) break;
-    for (let y = (w.map.roof || 0) + R.KING_H + 2; y < w.water - 1; y++) {
-      if (pieceFree(w, x, y, R.KING_H, 2) && solidAt(w, x, y + 1) && solidAt(w, x - 2, y + 1) && solidAt(w, x + 2, y + 1)) { w.king = { X: x * FP, Y: y * FP, VY: 0, air: 0, down: 0, king: 1, winner: null }; break; }
+  const at = middleSpot(w, R.KING_H, 2);
+  if (at) w.king = { X: at[0] * FP, Y: at[1] * FP, VY: 0, air: 0, down: 0, king: 1, winner: null };
+}
+// The free spot on firm ground nearest the middle of the map, for a piece h tall and 2*half+1 wide.
+function middleSpot(w, h, half) {
+  for (let d = 0; d < W / 2 - 20; d += 3) for (const x of d ? [W / 2 + d, W / 2 - d] : [W / 2]) {
+    for (let y = (w.map.roof || 0) + h + 2; y < w.water - 1; y++) {
+      if (pieceFree(w, x, y, h, half) && solidAt(w, x, y + 1) && solidAt(w, x - half, y + 1) && solidAt(w, x + half, y + 1)) return [x, y];
     }
   }
+  return null;
 }
-const pieces = (w) => (w.kubbs ? w.king ? [...w.kubbs, w.king] : w.kubbs : []);
+
+/* ---------- Boet and Stången (F-035) ---------- */
+// Boet: a nest at the back of each team's side. Blasts hurt it like a vätte; when it is gone, the team loses.
+function setupNests(w) {
+  w.nests = [];
+  w.teams.forEach((tm, ti) => {
+    const back = w.map.spawns[ti].slice().sort((a, b) => Math.abs(b[0] - W / 2) - Math.abs(a[0] - W / 2));
+    const out = ti === 0 ? -1 : 1;   // beside the spawn point, not under a vätte
+    for (const [sx, sy] of back) {
+      let done = false;
+      for (const off of [12 * out, -12 * out, 20 * out, -20 * out, 0]) {
+        const x = Math.max(8, Math.min(W - 9, sx + off)), y = restSpot(w, x, sy, R.NEST_H, 4);
+        if (y == null) continue;
+        w.nests.push({ team: ti, X: x * FP, Y: y * FP, VY: 0, air: 0, hp: R.NEST_HP, down: 0, nest: 1 });
+        done = true; break;
+      }
+      if (done) break;
+    }
+  });
+}
+function hurtNest(w, n, dmg) {
+  if (n.down || dmg <= 0) return;
+  n.hp = Math.max(0, n.hp - dmg);
+  w.events.push({ t: 'nest', team: n.team, n: dmg, hp: n.hp, x: px(n.X), y: px(n.Y) - 12 });
+  if (n.hp === 0) { n.down = 1; w.events.push({ t: 'nest-down', team: n.team, x: px(n.X), y: px(n.Y) }); }
+}
+function blastNests(w, x, y, wp) {
+  const reach = wp.radius + 12;
+  for (const n of w.nests || []) {
+    const dx = px(n.X) - x, dy = px(n.Y) - 4 - y, d2 = dx * dx + dy * dy;
+    if (d2 >= reach * reach) continue;
+    hurtNest(w, n, Math.max(1, Math.trunc((wp.damage * (reach - isqrt(d2))) / reach)));
+  }
+}
+// Stången: a midsommar pole near the middle; the vättar near it hold the place.
+function setupPole(w) {
+  const at = middleSpot(w, 20, 2);
+  if (at) w.pole = { x: at[0], y: at[1], points: w.teams.map(() => 0) };
+}
+const nearPole = (w, ti) => w.units.filter((u) => {
+  if (!u.alive || u.away || u.team !== ti) return false;
+  const dx = px(u.X) - w.pole.x, dy = px(u.Y) - w.pole.y;
+  return dx * dx + dy * dy <= R.POLE_RADIUS * R.POLE_RADIUS;
+}).length;
+function scorePole(w) {
+  const counts = w.teams.map((tm) => nearPole(w, tm.index)), best = Math.max(...counts);
+  const lead = counts.filter((c) => c === best).length === 1 && best > 0 ? counts.indexOf(best) : -1;
+  if (lead >= 0) w.pole.points[lead]++;
+  w.events.push({ t: 'pole', team: lead, points: w.pole.points.slice(), x: w.pole.x, y: w.pole.y });
+}
+const pieces = (w) => [...(w.kubbs || []), ...(w.king ? [w.king] : []), ...(w.nests || [])];
 const standingKubbs = (w, ti) => (w.kubbs || []).filter((k) => k.team === ti && !k.down).length;
 function knock(w, k) {
   if (k.down) return;
+  if (k.nest) { hurtNest(w, k, k.hp); return; }
   k.down = 1;
   const x = px(k.X), y = px(k.Y);
   if (!k.king) { w.events.push({ t: 'kubb', team: k.team, left: standingKubbs(w, k.team), x, y }); return; }
@@ -206,14 +264,14 @@ function knock(w, k) {
 function hitPiece(w, x, y) {
   for (const k of pieces(w)) {
     if (k.down) continue;
-    const kx = px(k.X), ky = px(k.Y), half = k.king ? 2 : 1, h = k.king ? R.KING_H : R.KUBB_H;
+    const kx = px(k.X), ky = px(k.Y), half = k.nest ? 4 : k.king ? 2 : 1, h = k.nest ? R.NEST_H : k.king ? R.KING_H : R.KUBB_H;
     if (Math.abs(kx - x) <= half && y <= ky && y >= ky - h) return true;
   }
   return false;
 }
 function blastPieces(w, x, y, r) {
   for (const k of pieces(w)) {
-    if (k.down) continue;
+    if (k.down || k.nest) continue;
     const dx = px(k.X) - x, dy = px(k.Y) - (k.king ? 7 : 4) - y;
     if (dx * dx + dy * dy <= (r + 3) * (r + 3)) knock(w, k);
   }
@@ -408,6 +466,7 @@ function explode(w, x, y, wp) {
   }
   for (const b of w.map.boulders) b.moving = 1;
   blastPieces(w, x, y, r);
+  blastNests(w, x, y, wp);
   if (w.map.avalanche) startSlide(w, x, y, r);
   const reach = r + 12;
   for (const u of w.units) {
@@ -754,6 +813,7 @@ const aliveIn = (w, ti) => w.units.filter((u) => u.alive && u.team === ti);
 function nextTurn(w) {
   const t = w.turn;
   if (w.king && w.king.winner != null) return gameOver(w, w.king.winner >= 0 ? [w.teams[w.king.winner]] : []);
+  if (w.nests && w.nests.some((n) => n.down)) return gameOver(w, w.teams.filter((tm) => !w.nests.some((n) => n.down && n.team === tm.index)));
   const living = w.teams.filter((tm) => aliveIn(w, tm.index).length > 0);
   if (living.length <= 1 && t.phase !== 'start') return gameOver(w, living);
   // pick the next team with vättar left
@@ -763,6 +823,11 @@ function nextTurn(w) {
     if (aliveIn(w, team).length) break;
   }
   if (team <= t.team || t.team < 0) t.round++;
+  if (w.pole && t.phase !== 'start' && team <= t.team) {
+    scorePole(w);
+    const won = w.pole.points.findIndex((p) => p >= R.POLE_WIN);
+    if (won >= 0) return gameOver(w, [w.teams[won]]);
+  }
   for (const u of w.units) u.washed = 0;
   // back from Borås: wet (an umbrella for two turns), with a little less life, somewhere on the own side
   for (const u of w.units) if (u.wet) u.wet--;
@@ -908,10 +973,12 @@ export function fingerprint(w) {
   for (const f of w.fires) { mix(f.X); mix(f.turns); }
   for (const u of w.units) { mix(u.away | 0); mix((u.station ?? -1) + 2); if (u.rope) { mix(u.rope.AX); mix(u.rope.AY); mix(u.rope.L); } }
   for (const m of w.mines) { mix(m.X); mix(m.Y); mix(m.arm); }
-  for (const k of pieces(w)) { mix(k.X); mix(k.Y); mix(k.down); }
+  for (const k of pieces(w)) { mix(k.X); mix(k.Y); mix(k.down); mix(k.hp | 0); }
+  if (w.pole) for (const p of w.pole.points) mix(p);
   if (w.knalle) { mix(w.knalle.X); mix(w.knalle.Y); mix(w.knalle.dir); }
   const s = w.map.solid;
   for (let i = 0; i < s.length; i += 7) mix(s[i] * (i + 1));
   mix(w.turn.team + 5); mix(w.turn.unit + 5); mix(w.turn.timer); mix(w.turn.round);
   return h.toString(16).padStart(8, '0');
 }
+export const unitsNearPole = nearPole;

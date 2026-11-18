@@ -8,7 +8,6 @@ Prioritet: Hög, Medel, Låg.
 | ID | Prio | Status | Beskrivning |
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
-| F-035 | Medel | Pågår (2026-11-18, session Vättigt, main) | Spellägena Boet (skydda ert bo, förstör motståndarens) och Stången (håll platsen vid midsommarstången flest rundor). |
 | F-036 | Låg | Pågår (2026-11-18, session Vättigt, main) | Fler banor ur designförslaget: Slätten, Raukarna, Älven, Villaområdet. |
 | F-037 | Låg | Pågår (2026-11-18, session Vättigt, main) | Valbara regler ur designförslaget: Lagom-zonen på kraftmätaren och Jantelagen (laget som leder får sämre lådor). |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
@@ -35,6 +34,7 @@ Parkerat: D-012 (musik).
 
 | ID | Klart | Beskrivning |
 |---|---|---|
+| F-035 | 2026-11-18 | Spellägena Boet (laget vars bo förstörs förlorar) och Stången (flest vättar vid midsommarstången efter en runda ger en poäng, först till fem vinner). Val i eget spel och lobbyn; datorn spelar båda och går mot stången. |
 | F-040 | 2026-11-18 | network-kit v0.6.0 inne: en telefon som tappar nätet märks på ungefär 5 sekunder, och den vars tur det är tar över först om den som kör matchen försvinner. |
 | F-039 | 2026-11-18 | Styrkan går att ändra utan att dra i bilden: reglaget Styrka under vapnet, eller Skift + pil vänster/höger på tangentbordet. |
 | F-038 | 2026-11-18 | Sikta med pil upp och pil ner, på tangentbordet och med knapparna ▲ ▼ på skärmen. Skjut med Enter eller knappen Skjut, som visas när man har siktat med pilarna. Styrkan är den senaste. |

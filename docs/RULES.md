@@ -82,6 +82,8 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 
 - **Klassiskt:** sista laget med vättar kvar vinner.
 - **Kubb:** varje lag har fem kubbar på sin sida och kungen står nära mitten. En smäll som når en kubb eller kungen (inom smällens radie plus 3 pixlar), eller en direktträff, fäller den, och en pjäs som faller i vattnet räknas också som fälld. Fäller ett lag kungen när alla motståndarens kubbar ligger, vinner det. Fälls kungen innan dess vinner motståndarlaget. Det lag vars tur det är räknas som det som fällde kungen. Ett lag utan vättar förlorar som vanligt.
+- **Boet:** varje lag har ett bo (150 i liv) längst bak på sin sida. Smällar skadar boet på samma sätt som en vätte, och en direktträff smäller vid boet. Ett bo som faller i vattnet är förstört. Laget vars bo förstörs förlorar; förstörs båda samtidigt blir det oavgjort. Ett lag utan vättar förlorar som vanligt.
+- **Stången:** en midsommarstång står nära mitten, med en ring på 28 pixlar runt sig. När en runda är slut får det lag som har flest vättar inom ringen en poäng (lika eller ingen: ingen poäng). Först till 5 poäng vinner. Ett lag utan vättar förlorar som vanligt.
 
 ## Pratbubblor
 
@@ -89,4 +91,4 @@ Varje lag pratar en dialekt, vald i lagbyggaren: göteborgska (med ordvitsar), s
 
 ## Inte med än
 
-Resten av vapnen ur designförslaget, spellägena Boet och Stången och fler banor.
+Resten av vapnen ur designförslaget och fler banor.

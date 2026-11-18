@@ -5,7 +5,7 @@
 import { createMatch } from './net/match.js';
 import { createOnline, TEAM_PLACES } from './net/online.js';
 import { activeUnit, newMatch, step } from './sim/world.js';
-import { W, H, TPS, WEAPONS, DEFAULT_SETTINGS, TEAMS, MAX_UNITS, MODES, MODE_NAMES } from './sim/rules.js';
+import { W, H, TPS, WEAPONS, DEFAULT_SETTINGS, TEAMS, MAX_UNITS, MODES, MODE_NAMES, POLE_WIN } from './sim/rules.js';
 import { MAP_NAMES } from './sim/terrain.js';
 import { createRenderer, drawIcon, MOODS, TEAM_COLORS, HATS, hatRows, teamColor } from './render/render.js';
 import { VATTE } from './render/sprites.js';
@@ -283,7 +283,15 @@ function loop(ms) {
       aiFor = local.world.turn.number; aiClock = 0;
       let at = 0; aiPlan = planTurn(local.world, aiLevel).map(([d, ev]) => [at += d, ev]);
     }
-    if (aiPlan.length) { aiClock += dt * 1000; while (aiPlan.length && aiPlan[0][0] <= aiClock && aiTurn()) local.push(aiPlan.shift()[1]); if (!aiTurn()) aiPlan = []; }
+    if (aiPlan.length) {
+      aiClock += dt * 1000;
+      while (aiPlan.length && aiPlan[0][0] <= aiClock && aiTurn()) {
+        const ev = aiPlan.shift()[1];
+        if (ev.replan) { let at = aiClock; aiPlan = planTurn(local.world, aiLevel, { moved: true }).map(([d, e]) => [at += d, e]); }
+        else local.push(ev);
+      }
+      if (!aiTurn()) aiPlan = [];
+    }
     acc += dt;
     while (acc >= 1 / TPS) { local.runStep(); handle(local.world.events, local.world); acc -= 1 / TPS; }
   } else if (mode === 'online' && online) {
@@ -345,7 +353,11 @@ function showOver() {
     $('overText').textContent = w.winner >= 0 ? `${w.teams[w.winner].name} vinner!` : 'Oavgjort!';
     const left = w.units.filter((u) => u.alive).map((u) => u.name.charAt(0) + u.name.slice(1).toLowerCase());
     let sub = w.winner >= 0 ? `Kvar på ängen: ${left.join(', ')}. ${w.turn.round} ${w.turn.round === 1 ? 'runda' : 'rundor'}.` : 'Ingen vätte står kvar.';
-    if (w.king && w.king.winner != null) sub = `${kingNote(w)} ${w.turn.round} ${w.turn.round === 1 ? 'runda' : 'rundor'}.`;
+    const rounds = `${w.turn.round} ${w.turn.round === 1 ? 'runda' : 'rundor'}`;
+    if (w.king && w.king.winner != null) sub = `${kingNote(w)} ${rounds}.`;
+    const lost = (w.nests || []).filter((n) => n.down).map((n) => w.teams[n.team].name);
+    if (lost.length) sub = `${lost.join(' och ')} fick ${lost.length > 1 ? 'sina bon' : 'sitt bo'} förstört. ${rounds}.`;
+    if (w.pole && w.winner >= 0 && w.pole.points[w.winner] >= POLE_WIN) sub = `${w.teams[w.winner].name} höll stången i ${POLE_WIN} rundor.`;
     const canStart = mode === 'local' || online?.isHost() || online?.room?.isOwner;
     if (mode === 'online' && !canStart) {
       const owner = online.room?.player(online.room.room?.ownerId);
@@ -425,7 +437,12 @@ function setupCustom() {
 function customNote() {
   const notes = { boras: 'Det regnar alltid, så eld slocknar. Slukhål öppnar sig mellan rundorna, lådorna kommer varje runda men innehåller ibland fel vara, och Knallen byter vapen med den som går fram till honom.', kobbarna: 'Granit tål mer än jord och bryggan är av trä.', trollskogen: 'Flyttblocken är hårda. Trollet vaknar om det träffas på natten (Midsommarnatt, Vinternatt).', gruvan: 'Mörkt under jord. Lyktorna går att skjuta sönder.', fjallet: 'Snön ligger löst på de branta sluttningarna. En smäll i närheten sätter fart på en lavin.', takasarna: 'Koppartak och kanaler. Gå in vid T-skylten så åker du tunnelbana till nästa station, åt det håll du tittar.', midsommar: '' };
   let n = notes[custom.map] || '';
-  if (custom.mode === 'kubb') n = 'Kubb: fäll motståndarens fem kubbar, sedan kungen i mitten. Fäller ni kungen för tidigt förlorar ni. ' + n;
+  const modeNotes = {
+    kubb: 'Kubb: fäll motståndarens fem kubbar, sedan kungen i mitten. Fäller ni kungen för tidigt förlorar ni.',
+    boet: 'Boet: varje lag har ett bo längst bak på sin sida. Laget vars bo förstörs förlorar.',
+    stangen: `Stången: efter varje runda får laget med flest vättar vid midsommarstången en poäng. Först till ${POLE_WIN} vinner.`
+  };
+  if (modeNotes[custom.mode]) n = modeNotes[custom.mode] + ' ' + n;
   if (custom.team0 === custom.team1) n += ' Välj två olika lag.';
   $('cNote').textContent = n.trim();
   $('cStart').disabled = custom.team0 === custom.team1;
@@ -572,7 +589,7 @@ function updateLobby(rm) {
   const curMap = rm.data?.map || 'midsommar';
   if (lead) netSetup();
   const st = rm.data?.settings || {}, tms = rm.data?.teams;
-  $('lobbyMap').textContent = `Bana: ${MAP_NAMES[curMap]}.${st.mode === 'kubb' ? ' Spelläge: Kubb.' : ''} ${st.units || 3} vättar per lag, ${st.turn || 45} sekunder per tur.`;
+  $('lobbyMap').textContent = `Bana: ${MAP_NAMES[curMap]}.${MODE_NAMES[st.mode] && st.mode !== 'klassiskt' ? ` Spelläge: ${MODE_NAMES[st.mode]}.` : ''} ${st.units || 3} vättar per lag, ${st.turn || 45} sekunder per tur.`;
   document.querySelectorAll('.team').forEach((el, i) => { const t = tms && tms[i]; const h = el.querySelector('h3'); h.textContent = t ? t.name : TEAMS[i].name; h.style.color = TEAM_COLORS[t ? t.color : i].css; });
   const ready = TEAM_PLACES.every((pl) => (rm.places?.[pl] || []).length > 0);
   $('startNet').hidden = !lead;

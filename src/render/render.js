@@ -1,6 +1,6 @@
 // Drawing: 480×270 pixels in one image, plus a soft light layer screened on top.
 // Nothing here affects the match; it only reads the simulation state.
-import { W, H, WEAPONS, FLOOD_ROUND, CLOUD_RADIUS } from '../sim/rules.js';
+import { W, H, WEAPONS, FLOOD_ROUND, CLOUD_RADIUS, NEST_HP, POLE_RADIUS, POLE_WIN } from '../sim/rules.js';
 import { px, activeUnit, teamHp } from '../sim/world.js';
 import { text, textW, plain } from './font.js';
 import { speechFrom } from './speech.js';
@@ -199,7 +199,7 @@ export function createRenderer(scene, glow) {
   const ART = {
     midsommar: {
       background: meadowHills,
-      decor() { tree(49, 'bjork'); tree(205, 'bjork'); tree(318, 'gran'); tree(434, 'bjork'); house(); maypole(); fence(218, 246); mushroom(158); mushroom(412); mushroom(330); },
+      decor() { tree(49, 'bjork'); tree(205, 'bjork'); tree(318, 'gran'); tree(434, 'bjork'); house(); if (world.settings?.mode !== 'stangen') maypole(); fence(218, 246); mushroom(158); mushroom(412); mushroom(330); },
       color: terrainColor,
       after() {
         burrowInside(118, 209, -1); burrowInside(372, 168, 1);
@@ -552,6 +552,12 @@ export function createRenderer(scene, glow) {
       } else if (e.t === 'metro') {
         floaters.push({ x: e.x, y: e.y - 30, s: 'TUNNELBANAN!', c: 0x8ad0ff, age: 0 });
         for (let i = 0; i < 10; i++) parts.push({ x: e.x, y: e.y - 4, vx: (rnd() - .5) * 1.4, vy: -rnd(), g: -.005, life: 40, c: 0x9aa0aa, kind: 'smoke', r: 1 });
+      } else if (e.t === 'nest') {
+        floaters.push({ x: e.x, y: e.y - 8, s: '-' + e.n, c: 0xffa040, age: 0 });
+      } else if (e.t === 'nest-down') {
+        banner = { s: 'BOET ÄR BORTA!', c: teamColor(w, e.team).c, age: 0 }; shake = Math.max(shake, 5);
+      } else if (e.t === 'pole') {
+        floaters.push({ x: e.x, y: e.y - 44, s: e.team >= 0 ? '+1 STÅNG' : 'INGEN HÅLLER STÅNGEN', c: e.team >= 0 ? teamColor(w, e.team).c : 0xaab1cb, age: 0 });
       } else if (e.t === 'kubb') {
         floaters.push({ x: e.x, y: e.y - 14, s: e.left ? 'KUBB! ' + e.left + ' KVAR' : 'SISTA KUBBEN!', c: teamColor(w, e.team).c, age: 0 });
       } else if (e.t === 'king') {
@@ -704,6 +710,28 @@ export function createRenderer(scene, glow) {
       rect(x - 2, y - 15, 5, 2, gold); set(x - 2, y - 16, gold); set(x, y - 17, gold); set(x + 2, y - 16, gold); set(x, y - 15, tn(0xd8382a));
     }
   }
+  // Boet: a turf nest with a round door and the team's pennant; Stången: the pole and its ring.
+  function drawModes(w, t) {
+    for (const n of w.nests || []) {
+      const x = px(n.X), y = px(n.Y), c = tn(teamColor(w, n.team).c);
+      if (n.down) { for (let i = -5; i <= 5; i++) { const h = 1 + ((i * 7 + 3) & 1); rect(x + i, y - h + 1, 1, h, tn(i & 1 ? 0x6a4430 : 0x4e3a2a)); } continue; }
+      for (let j = 0; j < 9; j++) { const hw = Math.round(Math.sqrt(Math.max(0, 30 - (8 - j) * (8 - j) * .45))); for (let i = -hw; i <= hw; i++) set(x + i, y - 8 + j, tn(j < 2 ? 0x6fba45 : j < 3 ? 0x4f8a3c : (i + j) % 5 === 0 ? 0x5a3a2a : 0x7a5236)); }
+      rect(x - 1, y - 4, 3, 5, tn(0x241a18)); set(x, y - 5, tn(0x241a18));
+      for (let j = 0; j < 7; j++) set(x + 1, y - 15 + j, tn(0x5a3a2a));
+      rect(x + 2, y - 15, 4, 2, c); set(x + 2, y - 13, c);
+      const f = Math.round(14 * n.hp / NEST_HP);
+      rect(x - 8, y - 19, 16, 3, 0x0c1022); rect(x - 7, y - 18, f, 1, teamColor(w, n.team).c);
+    }
+    const p = w.pole;
+    if (!p) return;
+    for (let a = 0; a < 48; a++) { const xx = Math.round(p.x + Math.cos(a / 48 * 6.283) * POLE_RADIUS), yy = Math.round(p.y + Math.sin(a / 48 * 6.283) * POLE_RADIUS); if (!solid(xx, yy) && (solid(xx, yy + 1) || solid(xx, yy + 2))) set(xx, yy, 0xffe38a); }
+    const top = p.y - 34, bare = !!mood.snow, g = bare ? [0x8a6a4a, 0x6a4e38] : [0x6fba45, 0x3f8a3c], fl = [0xffe38a, 0xffffff, 0x8ab8ff, 0xffa0b8];
+    const leafy = (x, y) => { set(x, y, tn(g[(x + y) & 1])); if (!bare && hash(x, y) < .16) set(x, y, tn(fl[Math.floor(hash(y, x) * 4)])); };
+    for (let j = 0; j < 34; j++) { leafy(p.x, top + j); leafy(p.x + 1, top + j); }
+    for (let i = -9; i <= 10; i++) { leafy(p.x + i, top + 7); leafy(p.x + i, top + 8); }
+    for (const cx of [p.x - 7, p.x + 8]) for (let a = 0; a < 22; a++) leafy(Math.round(cx + Math.cos(a / 22 * 6.283) * 3.4), Math.round(top + 13 + Math.sin(a / 22 * 6.283) * 3.4));
+    for (let j = 0; j < 4; j++) for (let i = -1 + (j >> 1); i <= 2 - (j >> 1); i++) leafy(p.x + i, top - j + 2);
+  }
   function water(w, t) {
     const A = mood.water, ice = !!mood.snow, WL = w.water;
     for (let y = Math.max(0, WL); y < H; y++) for (let x = 0; x < W; x++) {
@@ -779,6 +807,8 @@ export function createRenderer(scene, glow) {
       text(P, String(hp), 75, y + 7, 0xffffff);
       if (w.kubbs) { const n = w.kubbs.filter((k) => k.team === i && !k.down).length, all = w.kubbs.filter((k) => k.team === i).length; for (let k = 0; k < all; k++) { rect(92 + k * 4, y + 6, 3, 6, k < n ? 0xd8b06a : 0x3a3f55); if (k < n) rect(92 + k * 4, y + 8, 3, 1, c); } }
     });
+    if (w.pole) w.teams.forEach((tm, i) => text(P, 'STÅNG ' + w.pole.points[i] + '/' + POLE_WIN, 92, 6 + i * 16 + 7, teamColor(w, i).c));
+    if (w.nests) w.teams.forEach((tm, i) => { const n = w.nests.find((o) => o.team === i); if (n) text(P, 'BO ' + n.hp, 92, 6 + i * 16 + 7, n.down ? 0x6a707c : teamColor(w, i).c); });
     if (w.king) { const kx = 116, y0King = 10; rect(kx, y0King + 2, 3, 6, w.king.down ? 0x3a3f55 : 0xe8c890); rect(kx - 1, y0King, 5, 2, w.king.down ? 0x3a3f55 : 0xffd23a); }
     const tr = w.turn, u = activeUnit(w);
     if (tr.phase === 'aim') {
@@ -808,7 +838,7 @@ export function createRenderer(scene, glow) {
 
   function frame(w, view = {}, tms = 0) {
     world = w;
-    const key = [w.map.id, w.seed, w.mapVersion, w.water, mood.name, w.map.lamps.map((l) => l.on).join(''), w.trollTurn === w.turn.number].join('|');
+    const key = [w.map.id, w.settings?.mode, w.seed, w.mapVersion, w.water, mood.name, w.map.lamps.map((l) => l.on).join(''), w.trollTurn === w.turn.number].join('|');
     if (key !== builtKey) { buildBase(); builtKey = key; }
     const t = Math.floor(tms / 100);
     stepEffects();
@@ -819,6 +849,7 @@ export function createRenderer(scene, glow) {
     art().lights(lights, t);
     drawStones(w);
     drawKubb(w);
+    drawModes(w, t);
     const act = activeUnit(w);
     if (w.cart) {
       const x = px(w.cart.X), y = px(w.cart.Y);
