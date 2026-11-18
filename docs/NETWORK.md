@@ -72,6 +72,8 @@ Uppdatering 2026-11-18 (F-042): network-kit v0.8.0 är inne. Rumskoderna har 6 t
 
 Uppdatering 2026-11-18 (F-046): network-kit v0.11.2 är inne. Det nya sedan v0.8.0 gäller adminsidan (lägen, spellänkar, meddelanden till spelarna, tidsstyrning) och används först när spelet kopplas dit (F-043).
 
+Uppdatering 2026-11-18 (F-043): spelet är kopplat till adminsidan. Workern har en servicebindning `NETWORK_KIT_ADMIN` till `network-kit-admin` (ingången `GameApi`) och rumsservern optionen `admin: { binding: 'NETWORK_KIT_ADMIN', game: 'vattigt' }`. Sidan visar adminsidans meddelanden med `watchNotices`, med svenska texter för de fasta meddelandena och för varför spelet är stängt; ägarens egna meddelanden visas som de skrivs. Går adminsidan inte att nå är spelet öppet. Inga mätningar av anslutningen (beslut 2026-11-18).
+
 Ursprungligen: inget av detta krävs; Vättigt passar v0.5.0 som den är. Skickat 2026-11-17 till agenten som arbetar med network-kit. Den har lagt in idéerna som network-kit F-039 och network-kit F-040, med låg prioritet; användaren bestämmer när de byggs. Säg till den agenten när Vättigt börjar med onlinespel, så tas de upp då. Fram till dess skickar värden vidare indata.
 
 - Den aktiva spelaren skulle kunna skicka direkt till alla, i stället för via värden. Halverar antalet meddelanden och gör att indata kommer fram även när värdens telefon sover.

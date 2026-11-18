@@ -12,7 +12,7 @@ import { VATTE } from './render/sprites.js';
 import { DIALECTS, DIALECT_KEYS, defaultDialect } from './render/speech.js';
 import { planTurn, LEVELS } from './ai/ai.js';
 import { createSound } from './audio/sound.js';
-import { shareLink, readShareLink, forgetShareKey, qrSvg, tabSession } from '../vendor/network-kit/client/index.js';
+import { shareLink, readShareLink, forgetShareKey, qrSvg, tabSession, watchNotices, NetworkRoom, CLOSE } from '../vendor/network-kit/client/index.js';
 
 const $ = (id) => document.getElementById(id);
 const scene = $('scene'), glow = $('glow'), stage = $('stage');
@@ -557,6 +557,31 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- online: entry and lobby ---------- */
 const SERVER = location.origin;
+
+/* ---------- the admin page (F-043): notices and why the game is closed, in Swedish ---------- */
+const SV_NOTICE = {
+  'budget-soon': { title: 'Stänger snart för i dag', text: 'Spelet har nästan använt sin del av dagens fria servertid. Snart går det inte att starta nya spel förrän {until}. Spel som redan pågår kan spelas klart.' },
+  'budget-closed': { title: 'Stängt för i dag', text: 'Spelet har använt sin del av dagens fria servertid. Inga nya spel förrän {until}. Spel som redan pågår kan spelas klart.' },
+  'timer-soon': { title: 'Snart stängt för nya spelare', text: 'Klockan {until} stänger spelet för nya spelare. Spel som redan pågår kan spelas klart.' },
+  'timer-ended': { title: 'Stängt för nya spelare', text: 'Inga nya spelare kan komma in nu. Spel som redan pågår kan spelas klart.' },
+  'timer-stop-soon': { title: 'Spelet stoppas snart', text: 'Spelet stoppas klockan {until}. Då kopplas alla bort.' },
+  'timer-stopped': { title: 'Spelet har stoppats', text: 'Det går inte att starta eller gå med i spel nu.' }
+};
+const svNotice = (n) => (SV_NOTICE[n.kind] ? { ...n, ...SV_NOTICE[n.kind] } : n);
+const at = (until, withDay) => { const d = until ? new Date(until) : null; return d && !Number.isNaN(d.getTime()) ? d.toLocaleString('sv-SE', withDay ? { weekday: 'short', hour: '2-digit', minute: '2-digit' } : { hour: '2-digit', minute: '2-digit' }) : 'senare'; };
+function svClosed(reason, until) {
+  return {
+    off: 'Spelet tar inte emot nya spelare just nu.',
+    until: `Spelet är stängt till ${at(until, true)}.`,
+    budget: `Spelet har använt dagens fria servertid. Det öppnar igen ${at(until, true)}.`,
+    stopped: 'Spelet har stoppats av den som driver det.',
+    'too-many-attempts': 'För många försök på kort tid. Vänta en minut och försök igen.',
+    'too-many-requests': 'För många försök på kort tid. Vänta en minut och försök igen.'
+  }[reason] || null;
+}
+try {
+  watchNotices(SERVER, { fetchStatus: async () => { const st = await NetworkRoom.status(SERVER); return { ...st, notices: (st?.notices || []).map(svNotice) }; } });
+} catch (e) { /* no notices: the game still works */ }
 const canOnline = /^https?:$/.test(location.protocol) && !location.hostname.endsWith('github.io');
 $('goNet').hidden = !canOnline;
 let invite = readShareLink(location.hash);
@@ -573,7 +598,7 @@ function startOnline() {
       show(null); goFull(); layout();
     },
     onMood: (m) => { moodName = m; markMood(m); renderer.setMood(m); },
-    onClosed: (info) => toTitle(info?.text || 'Rummet är stängt.'),
+    onClosed: (info) => toTitle((info?.code === CLOSE.GAME_CLOSED && svClosed(info.reason, info.until)) || info?.text || 'Rummet är stängt.'),
     onError: () => {},
   });
   return online;
@@ -592,7 +617,7 @@ async function enterRoom(fn) {
     updateLobby(online.room.room);
   } catch (err) {
     online = null;
-    $('netMsg').textContent = err?.message || 'Det gick inte att ansluta. Försök igen.';
+    $('netMsg').textContent = svClosed(err?.reason, err?.until) || err?.message || 'Det gick inte att ansluta. Försök igen.';
   } finally { netBusy(false); }
 }
 $('goNet').addEventListener('click', () => { sound.unlock(); show('net'); });

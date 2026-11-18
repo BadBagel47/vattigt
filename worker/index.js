@@ -7,6 +7,7 @@ import options from '../rooms-options.js';
 const rooms = createRoomServer({
   ...options,
   jurisdiction: (env) => env.ROOM_JURISDICTION || null,   // "eu" in production, empty locally
+  admin: { binding: 'NETWORK_KIT_ADMIN', game: 'vattigt' },  // network-kit's admin page (F-043)
 });
 
 export const Room = rooms.RoomObject;

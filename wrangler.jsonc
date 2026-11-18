@@ -11,5 +11,8 @@
   // Free plan: SQLite-backed Durable Objects only.
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
   "vars": { "ROOM_JURISDICTION": "eu" },
+  // network-kit's admin page (F-043): on/off, timers, emergency stop, budget, game links and notices.
+  // The game asks it over this binding; if it cannot be reached, the game stays open.
+  "services": [{ "binding": "NETWORK_KIT_ADMIN", "service": "network-kit-admin", "entrypoint": "GameApi" }],
   "observability": { "enabled": false }
 }
