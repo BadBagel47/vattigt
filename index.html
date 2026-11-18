@@ -86,10 +86,13 @@ input[type=text]:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 #ownerBox summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
 #ownerBox[open]{gap:8px}
 #ownerBox > *:not(summary){margin-top:6px}
-@media (min-width:640px){.lobbycard{display:grid;grid-template-columns:170px 1fr;gap:16px 22px;align-items:start}.lobbycard .lobbyhead{flex-direction:column;align-items:flex-start}}
+@media (min-width:640px),(min-width:500px) and (orientation:landscape){.lobbycard{display:grid;grid-template-columns:minmax(130px,170px) 1fr;gap:14px 20px;align-items:start}.lobbycard .lobbyhead{flex-direction:column;align-items:flex-start}}
+@media (max-height:440px){.qr{width:88px;height:88px}.lobbyside button,.lobbymain #startNet{min-height:44px}.team{padding:8px;gap:6px}}
+.lobbymsg{color:var(--ink)!important}
+.lobbymsg:empty{display:none}
 .teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.team{border:2px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
-.team h3{font-family:var(--display);font-weight:700;font-size:20px;margin:0}
+.team{border:2px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0;container-type:inline-size}
+.team h3{font-family:var(--display);font-weight:700;font-size:clamp(11px,9.5cqi,20px);margin:0;overflow-wrap:anywhere}
 .team[data-place=lag1] h3{color:#e5533d}.team[data-place=lag2] h3{color:#4fa3ff}
 .team ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;min-height:24px}
 .team li{font-size:16px;overflow-wrap:anywhere}
@@ -240,6 +243,7 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
         <div><span class="label">Rumskod</span><div class="code" id="roomCode"></div></div>
         <div class="qr" id="qr" role="img" aria-label="QR-kod till rummet"></div>
       </div>
+      <button type="button" id="shareLink" hidden>Dela länk</button>
       <button type="button" id="copyLink">Kopiera länk</button>
       <button type="button" id="leave">Lämna rummet</button>
     </div>
@@ -248,8 +252,10 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
       <div class="team" data-place="lag1"><h3>Vettvillingarna</h3><ul></ul><button type="button">Välj lag</button></div>
       <div class="team" data-place="lag2"><h3>Vättrundan</h3><ul></ul><button type="button">Välj lag</button></div>
     </div>
-    <p class="small" id="watchers"></p>
+    <p class="small lobbymsg" id="lobbyMsg" role="status"></p>
+    <button type="button" class="primary" id="startNet">Starta matchen</button>
     <p class="small" id="lobbyMap"></p>
+    <p class="small" id="watchers"></p>
     <details id="ownerBox">
       <summary class="label">Inställningar för matchen</summary>
       <span class="label" id="l-netmood">Stämning</span>
@@ -268,8 +274,6 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
       <span class="label" id="l-netjante">Jantelagen</span><div class="choices" role="group" aria-labelledby="l-netjante" id="netJante"></div>
       <span class="label" id="l-netweap">Vapen</span><div class="choices" role="group" aria-labelledby="l-netweap" id="netWeapons"></div>
     </details>
-    <button type="button" class="primary" id="startNet">Starta matchen</button>
-    <p class="small" id="lobbyMsg" role="status"></p>
     </div>
   </div>
 </div>

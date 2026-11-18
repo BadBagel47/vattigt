@@ -634,6 +634,12 @@ function netSetup() {
 }
 $('startNet').addEventListener('click', () => { sound.unlock(); online?.room?.start(); });
 $('leave').addEventListener('click', () => toTitle());
+// On phones that can, share the link straight to a message or chat app.
+if (navigator.share) $('shareLink').hidden = false;
+$('shareLink').addEventListener('click', async () => {
+  try { await navigator.share({ title: 'Vättigt', text: `Spela Vättigt med mig! Rumskod ${$('roomCode').textContent}`, url: lastLink }); }
+  catch (e) { /* closed, or not allowed: nothing to do */ }
+});
 $('copyLink').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(lastLink); $('lobbyMsg').textContent = 'Länken är kopierad.'; }
   catch (e) { $('lobbyMsg').textContent = lastLink; }
