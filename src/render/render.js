@@ -540,6 +540,81 @@ export function createRenderer(scene, glow) {
     },
     lights() {}
   };
+  // Älven: spruce banks, a concrete dam with the reservoir behind it, floating logs.
+  ART.alven = {
+    background() {
+      const sp = (x, base, h, c, c2) => { for (let j = 0; j < h; j++) { const wd = Math.floor((j / h) * h * .26) + ((j % 6) < 2 ? 0 : 1); for (let i = -wd; i <= wd; i++) set(x + i, base - h + j, i < 0 ? c2 : c); } };
+      const far = mix(mood.hill[0], mood.forest, .45);
+      for (let x = 0; x < W; x++) { const h = 30 + 14 * Math.sin(x / 70) + 6 * Math.sin(x / 23); for (let y = Math.round(200 - h); y < 236; y++) set(x, y, mix(mood.hill[0], mood.hill[1], .3)); }
+      for (let k = 0; k < 24; k++) sp(k * 21 + (k % 3) * 6, 214 + (k % 4) * 3, 40 + (k * 7) % 22, far, mix(far, 0x000000, .12));
+    },
+    color(x, y) {
+      const i = y * W + x, m = world.map, mt = m.mat[i], d = m.dam;
+      let c;
+      if (d && x >= d.x1 && x <= d.x2 && mt === 2) { c = (y % 9 === 0 || x === d.x1 || x === d.x2) ? 0x8a8c90 : bay(x, y) > .6 ? 0xa8aaae : 0xb8babe; if (!solid(x, y - 1)) c = 0xd0d2d6; }
+      else if (mt === 3) { c = !solid(x, y - 1) ? 0xb08a5a : !solid(x, y + 1) ? 0x5a3a2a : (x % 9 === 0 ? 0x6a4a34 : 0x8a6440); }
+      else if (mt === 2) { const n = vnoise(x, y, 8); c = n < .4 ? 0x8a8f98 : n < .7 ? 0x6e737c : 0x585c66; if (!solid(x, y - 1)) c = mood.snow ? 0xf4f8ff : 0x9aa0aa; }
+      else { const dd = depthAt(x, y); c = dd === 0 ? (mood.snow ? 0xf4f8ff : mood.grass[0]) : dd < 3 ? mood.grass[1] : (vnoise(x, y, 7) > .55 ? 0x4a3a2c : 0x3a2c22); if (dd === 0 && hash(x, y) < .08 && !mood.snow) c = 0x6a5a8a; }
+      if (m.burnt[i]) c = mix(c, 0x241816, .55);
+      c = tn(c);
+      if (y >= world.water) c = mix(c, mood.water[1], .6);
+      return c;
+    },
+    decor() { for (const x of [16, 52, 96, 128, 392, 424, 462]) tree(x, 'gran'); },
+    after() {
+      const m = world.map, r = m.reservoir;
+      if (r && !m.dam.broken) for (let x = r.x1; x <= r.x2; x++) for (let y = r.level; y < H; y++) if (!solid(x, y)) set(x, y, y === r.level ? mix(mood.water[0], 0xffffff, .35) : mix(mood.water[0], mood.water[1], Math.min(1, (y - r.level) / 30)));
+      if (m.dam) { const d = m.dam; for (let x = d.x1 + 2; x < d.x2 - 1; x += 4) if (solid(x, d.y1)) { set(x, d.y1 - 1, tn(0x5a5a62)); set(x, d.y1 - 2, tn(0x5a5a62)); } }
+    },
+    lights() {}
+  };
+  // Villaområdet: lawns, villas in falu red and white, a deck, a compost, hedges, a trampoline, a flag.
+  ART.villa = {
+    background() {
+      for (let k = 0; k < 9; k++) { const bx = k * 56 - 10, top = 176 - (k * 7) % 14; for (let y = top; y < 220; y++) for (let x = bx; x < bx + 40; x++) set(x, y, mix(mood.hill[0], mood.hill[1], .5)); for (let j = 0; j < 10; j++) for (let i = j; i < 40 - j; i++) set(bx + i, top - 1 - j, mix(mood.hill[1], 0x000000, .1)); }
+    },
+    color(x, y) {
+      const i = y * W + x, m = world.map, mt = m.mat[i];
+      let c;
+      const v = (m.villas || []).find((o) => x >= o.x && x < o.x + o.wdt && y <= o.gy + 2 && y >= o.gy - o.h - 16);
+      if (mt === 6) c = 0x1a1a22;
+      else if (mt === 3 && v) c = (y + (x >> 2)) % 3 === 0 ? 0x3a2a2a : 0x5a3a34;
+      else if (mt === 3) c = (x % 4 === 0) ? 0x8a6440 : 0xb08a5a;
+      else if (v && y < v.gy) {
+        const red = v.x < 200, base = red ? 0xa5342a : 0xe8e4da, lx = x - v.x, ly = y - (v.gy - v.h);
+        c = (ly % 3 === 0) ? mix(base, 0x000000, .12) : base;
+        if (lx < 2 || lx > v.wdt - 3) c = 0xf2efe6;
+        if (ly > 6 && ly < v.h - 4 && lx % 14 > 4 && lx % 14 < 10 && ly % 16 > 4 && ly % 16 < 11) c = lit() ? 0xffd68a : 0x3a4a5a;
+        if (lx > (v.wdt >> 1) - 3 && lx < (v.wdt >> 1) + 3 && ly > v.h - 13) c = red ? 0xf2efe6 : 0x4a6a8a;
+      } else {
+        const dd = depthAt(x, y);
+        c = dd === 0 ? (mood.snow ? 0xf4f8ff : mood.grass[0]) : dd < 2 ? mood.grass[1] : dd < 9 && x >= 146 && x <= 164 || x >= 336 && x <= 350 && dd < 9 ? 0x2f6b3a : (vnoise(x, y, 7) > .55 ? 0x5a4632 : 0x4a3828);
+        if (x >= 300 && x <= 322 && dd < 12 && dd > 0) c = (x + y) % 5 === 0 ? 0x7a5a2a : 0x5a4026;
+      }
+      if (m.burnt[i]) c = mix(c, 0x241816, .55);
+      c = tn(c);
+      if (y >= world.water) c = mix(c, mood.water[1], .6);
+      return c;
+    },
+    decor() {
+      const tr = world.map.trampoline;
+      if (tr) { const gy = surf(tr.x1 + 4); for (const lx of [tr.x1 + 2, tr.x2 - 2, (tr.x1 + tr.x2) >> 1]) for (let y = tr.y + 1; y < gy + 1; y++) wp(lx, y, 0x4fa3ff); for (let x = tr.x1 - 1; x <= tr.x2 + 1; x++) wp(x, tr.y - 1, 0x4fa3ff); }
+      const fx = 186, fy = surf(fx);
+      for (let j = 0; j < 40; j++) wp(fx, fy - j, 0xf2efe6);
+      for (let j = 0; j < 8; j++) for (let i = 0; i < 13; i++) wp(fx + 1 + i, fy - 39 + j, (i === 4 || i === 5 || j === 3 || j === 4) ? 0xffd23a : 0x2a6fd0);
+      tree(470, 'bjork');
+    },
+    after() {},
+    lights() {}
+  };
+  // The robot mower, every frame (it moves).
+  function drawMower(w) {
+    const mo = w.mower;
+    if (!mo || mo.gone || !mo.y) return;
+    const x = mo.x, y = mo.y;
+    rect(x - 4, y - 3, 9, 3, tn(0x5a5a62)); rect(x - 3, y - 4, 7, 1, tn(0x9bd45a)); set(x + 3 * mo.dir, y - 2, 0xffd66b);
+    set(x - 3, y, tn(0x1a1a22)); set(x + 3, y, tn(0x1a1a22));
+  }
   // The sails, every frame (they turn).
   function drawSails(w) {
     const mi = w.map.mill;
@@ -644,6 +719,13 @@ export function createRenderer(scene, glow) {
         floaters.push({ x: e.x, y: e.y - 30, s: 'LAGOM!', c: 0x9bd45a, age: 0 });
       } else if (e.t === 'jante') {
         floaters.push({ x: e.x, y: e.y, s: 'JANTELAGEN!', c: 0xff6a5a, age: 0 });
+      } else if (e.t === 'dam') {
+        banner = { s: 'DAMMEN BRAST!', c: 0x8ad0ff, age: 0 }; shake = Math.max(shake, 8);
+        for (let i = 0; i < 30; i++) parts.push({ x: e.x + (rnd() - .5) * 10, y: e.y + 20 + rnd() * 40, vx: -rnd() * 2.4, vy: -rnd() * 1.6, g: .1, life: 50, c: 0xbfe6f4, kind: 'drop' });
+      } else if (e.t === 'boing') {
+        floaters.push({ x: e.x, y: e.y - 12, s: 'BOING!', c: 0x4fa3ff, age: 0 });
+      } else if (e.t === 'mow') {
+        floaters.push({ x: e.x, y: e.y - 14, s: 'BZZZ!', c: 0x9bd45a, age: 0 });
       } else if (e.t === 'rauk') {
         banner = { s: 'RAUKEN VÄLTER!', c: 0xe8e2d0, age: 0 }; shake = Math.max(shake, 8);
         for (let i = 0; i < 30; i++) parts.push({ x: e.x + e.dir * rnd() * 60, y: e.y + (rnd() - .5) * 40, vx: (rnd() - .5) * 1.4, vy: -rnd() * .8, g: -.004, life: 70, c: 0xd8d2c0, kind: 'smoke', r: 1 + rnd() * 2 });
@@ -987,6 +1069,7 @@ export function createRenderer(scene, glow) {
     }
     for (const u of w.units) if (u.alive && !u.away && u.wet) { const x = px(u.X), y = px(u.Y) - 15; for (let i = -5; i <= 5; i++) set(x + i, y + Math.round(i * i / 10), i % 2 ? 0x4fa3ff : 0x2a6fd0); for (let j = 1; j < 6; j++) set(x, y + j, 0x3a2c28); }
     drawSails(w);
+    drawMower(w);
     drawProjectiles(w, t);
     drawClouds(w, t);
     water(w, t);

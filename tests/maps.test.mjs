@@ -1,13 +1,13 @@
 // The maps and match settings.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { newMatch, step, fingerprint, matchSettings } from '../src/sim/world.js';
+import { newMatch, step, fingerprint, matchSettings, px } from '../src/sim/world.js';
 import { makeMap, blast, ROCK, SOIL } from '../src/sim/terrain.js';
 import * as R from '../src/sim/rules.js';
 
 const settle = (w, max = 3000) => { for (let i = 0; i < max && w.turn.phase !== 'aim' && w.turn.phase !== 'over'; i++) step(w); return w; };
 
-for (const map of ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras', 'fjallet', 'takasarna', 'raukarna', 'slatten']) {
+for (const map of ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras', 'fjallet', 'takasarna', 'raukarna', 'slatten', 'alven', 'villa']) {
   test(`${map}: every vätte lands on the map and the first turn starts`, () => {
     for (const units of [1, 3, 5]) {
       const w = settle(newMatch(99, { settings: { map, units } }));
@@ -211,4 +211,53 @@ test('slatten: the sails turn with the wind and hit a shot back', async () => {
   w.wind = 0;
   for (let i = 0; i < 60 && w.projectiles.length; i++) { step(w); evs.push(...w.events); }
   assert.ok(evs.some((e) => e.t === 'sail' || e.t === 'boom'), 'it hit a sail or the mill');
+});
+
+test('alven: logs drift between turns and carry who stands on them; blowing the dam raises the water', () => {
+  const w = settle(newMatch(3, { settings: { map: 'alven', flood: 0 } }));
+  const lg = w.map.logs[1], x0 = lg.x;
+  // a vätte on the log
+  const v = w.units.find((o) => o.team !== w.turn.team);
+  v.X = (lg.x + 10) * 1024; v.Y = (lg.y - 4) * 1024; v.air = true;
+  for (let i = 0; i < 60; i++) step(w);
+  assert.equal(px(v.Y), lg.y - 1, 'standing on the log');
+  const vx = px(v.X);
+  w.turn.timer = 1;
+  for (let i = 0; i < 1500 && !w.events.some((e) => e.t === 'turn'); i++) step(w);
+  assert.notEqual(lg.x, x0, 'the log drifted');
+  assert.equal(px(v.X) - vx, lg.x - x0, 'the rider came along');
+  // shoot at the dam's face from the river side until a hole goes through
+  const d = w.map.dam, water0 = w.water, evs = [];
+  for (let k = 0; k < 6 && !d.broken; k++) {
+    w.projectiles.push({ kind: 'gurra', X: (d.x1 - 12) * 1024, Y: 205 * 1024, VX: 3 * 1024, VY: -160, owner: -1, age: 20, fuse: -1, rest: false });
+    for (let i = 0; i < 40 && w.projectiles.length; i++) { step(w); evs.push(...w.events); }
+  }
+  assert.equal(d.broken, 1, 'the dam broke');
+  assert.equal(w.water, water0 - d.rise, 'the water rose');
+  assert.ok(evs.some((e) => e.t === 'dam'));
+});
+
+test('villa: the trampoline throws back vättar and shots; the mower nips', () => {
+  const w = settle(newMatch(3, { settings: { map: 'villa' } }));
+  const tr = w.map.trampoline, u = w.units.find((o) => o.id === w.turn.unit);
+  u.X = ((tr.x1 + tr.x2) >> 1) * 1024; u.Y = (tr.y - 60) * 1024; u.air = true; u.VY = 0;
+  const evs = [];
+  for (let i = 0; i < 80; i++) { step(w); evs.push(...w.events); }
+  assert.ok(evs.some((e) => e.t === 'boing'), 'the vätte bounced');
+  assert.equal(u.hp, 100, 'no fall damage on the trampoline');
+  // a falling shot bounces instead of going off
+  const ev2 = [];
+  w.projectiles.push({ kind: 'gurra', X: ((tr.x1 + tr.x2) >> 1) * 1024, Y: (tr.y - 30) * 1024, VX: 0, VY: 2000, owner: -1, age: 20, fuse: -1, rest: false });
+  for (let i = 0; i < 20; i++) { step(w); ev2.push(...w.events); }
+  assert.ok(ev2.some((e) => e.t === 'boing'), 'the shot bounced');
+  // the mower moves and nips a vätte in its way
+  const mo = w.mower, x0 = mo.x;
+  for (let i = 0; i < 60; i++) step(w);
+  assert.notEqual(mo.x, x0, 'the mower moves');
+  const v = w.units.find((o) => o.id !== u.id && o.alive);
+  v.X = (mo.x + mo.dir * 3) * 1024; v.Y = mo.y * 1024; v.air = false; v.VX = 0; v.VY = 0;
+  const hp = v.hp, ev3 = [];
+  for (let i = 0; i < 40; i++) { step(w); ev3.push(...w.events); }
+  assert.ok(ev3.some((e) => e.t === 'mow'), 'nipped');
+  assert.ok(v.hp < hp);
 });

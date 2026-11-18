@@ -76,6 +76,9 @@ export function createSound() {
       else if (e.t === 'nest-down') { tone(t, { type: 'sawtooth', f1: 220, f2: 70, gain: .25, dec: .8 }); }
       else if (e.t === 'rauk') { tone(t, { type: 'sine', f1: 90, f2: 30, gain: .8, dec: 1.2 }); noise(t, { f: 400, gain: .6, dec: 1.4 }); }
       else if (e.t === 'sail') { tone(t, { type: 'square', f1: 300, f2: 700, gain: .12, dec: .12 }); noise(t, { f: 2500, type: 'bandpass', gain: .2, dec: .1 }); }
+      else if (e.t === 'dam') { noise(t, { f: 300, gain: .8, dec: 2.4 }); tone(t, { type: 'sine', f1: 70, f2: 35, gain: .6, dec: 1.5 }); }
+      else if (e.t === 'boing') tone(t, { type: 'sine', f1: 180, f2: 620, gain: .3, dec: .25 });
+      else if (e.t === 'mow') { tone(t, { type: 'sawtooth', f1: 140, f2: 150, gain: .12, dec: .3 }); }
       else if (e.t === 'kubb') { tone(t, { type: 'triangle', f1: 760, f2: 520, gain: .3, dec: .07 }); tone(t + .09, { type: 'triangle', f1: 520, f2: 380, gain: .25, dec: .09 }); }
       else if (e.t === 'king') { for (let k = 0; k < 3; k++) tone(t + k * .1, { type: 'triangle', f1: 600 - k * 120, f2: 420 - k * 100, gain: .3, dec: .1 }); }
       else if (e.t === 'steam') noise(t, { f: 5000, type: 'highpass', gain: .12, dec: .4 });

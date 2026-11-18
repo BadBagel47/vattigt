@@ -125,3 +125,10 @@ export const SAIL_HIT_COOLDOWN = 12;
 export const LAGOM_HALF = 5;          // the band is 11 steps wide
 export const LAGOM_MIN = 30, LAGOM_MAX = 80;
 // Jantelagen: the team that leads (more life in all) gets worse crates: every second post parcel is the wrong goods, a fika basket gives half.
+
+// Älven (F-041): logs drift this far between turns; the dam breaks when a hole goes right through it.
+export const LOG_DRIFT = 8;
+// Villaområdet (F-041): the trampoline throws back; the robot mower nips whoever is in its way.
+export const BOING_MIN = 1500;
+export const MOWER_EVERY = 3;          // steps per pixel
+export const MOWER_DAMAGE = 6;

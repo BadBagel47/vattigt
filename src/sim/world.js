@@ -3,7 +3,7 @@
 // (whole numbers only, no Math.random, no Math.sin), so online play can send
 // inputs only (D-011).
 import * as R from './rules.js';
-import { makeMap, blast, isSolid, ROCK, SNOW, LIME, MAP_NAMES } from './terrain.js';
+import { makeMap, blast, isSolid, ROCK, WOOD, SNOW, LIME, TRAMP, MAP_NAMES } from './terrain.js';
 import { sin, cos, isqrt } from './trig.js';
 
 const { FP, W, H } = R;
@@ -52,6 +52,7 @@ export function newMatch(seed, opts = {}) {
     map, water: map.water, wind: 0, trollTurn: -1,
     knalle: map.knalle ? { X: map.knalle.x * FP, Y: map.knalle.y * FP, VY: 0, dir: 1, traded: [-1, -1] } : null,
     cart: map.cart ? { X: map.cart.x * FP, Y: map.cart.y * FP, VX: 0, VY: 0, air: 1, hit: -1 } : null,
+    mower: map.mower ? { x: map.mower.x, y: 0, dir: 1, gone: 0, t: 0 } : null,
     teams, units: [], projectiles: [], clouds: [], stones: [],
     spawn: [], crates: [], fires: [], mines: [],
     turn: { phase: 'start', team: -1, unit: -1, timer: 0, retreat: 0, quiet: 0, round: 0, weapon: 0, aim: { angle: 45, power: 60 }, number: 0 },
@@ -179,6 +180,74 @@ function checkRaukar(w, bx) {
     for (const u of w.units) if (u.alive && !u.away && !bodyFree(w, px(u.X), px(u.Y))) { let y = px(u.Y); while (y > 3 && !bodyFree(w, px(u.X), y)) y--; u.Y = y * FP; u.air = true; }
     w.mapVersion++;
     w.events.push({ t: 'rauk', x: r.x, y: r.base - (r.h >> 1), dir });
+  }
+}
+
+/* ---------- Älven: the dam and the logs (F-041) ---------- */
+function checkDam(w) {
+  // it breaks when a hole goes right through it below the reservoir's surface
+  const d = w.map.dam, m = w.map, r = m.reservoir;
+  let breach = false;
+  for (let y = r.level; y < w.water && !breach; y++) {
+    let open = true;
+    for (let x = d.x1; x <= d.x2 && open; x++) if (m.solid[y * W + x]) open = false;
+    if (open) breach = true;
+  }
+  if (!breach) return;
+  d.broken = 1;
+  w.water -= d.rise;
+  w.events.push({ t: 'dam', x: (d.x1 + d.x2) >> 1, y: d.y1, water: w.water });
+  // the logs rise with the water
+  for (const lg of m.logs || []) moveLog(w, lg, 0, -d.rise);
+}
+// Move a log's pixels (those still there) and whoever stands on it. Returns false if blocked.
+function moveLog(w, lg, dx, dy) {
+  const m = w.map;
+  const live = lg.pts.filter(([i, j]) => { const x = lg.x + i, y = lg.y + j; return x >= 0 && x < W && y >= 0 && y < H && m.solid[y * W + x] && m.mat[y * W + x] === WOOD; });
+  if (!live.length) { lg.gone = 1; return false; }
+  const own = new Set(live.map(([i, j]) => (lg.y + j) * W + lg.x + i));
+  const fits = live.every(([i, j]) => { const x = lg.x + i + dx, y = lg.y + j + dy; if (x < 0 || x >= W || y < 0 || y >= H) return false; const k = y * W + x; return !m.solid[k] || own.has(k); });
+  if (!fits) return false;
+  const riders = w.units.filter((u) => u.alive && !u.away && !u.air && px(u.Y) === lg.y - 1 && px(u.X) >= lg.x - 1 && px(u.X) <= lg.x + lg.len);
+  for (const [i, j] of live) { const k = (lg.y + j) * W + lg.x + i; m.solid[k] = 0; m.mat[k] = 0; }
+  lg.x += dx; lg.y += dy;
+  for (const [i, j] of live) { const k = (lg.y + j) * W + lg.x + i; m.solid[k] = 1; m.mat[k] = WOOD; }
+  lg.pts = live;
+  for (const u of riders) if (bodyFree(w, px(u.X) + dx, px(u.Y) + dy)) { u.X += dx * FP; u.Y += dy * FP; }
+  w.mapVersion++;
+  return true;
+}
+function driftLogs(w) {
+  const rv = w.map.river;
+  for (const lg of w.map.logs || []) {
+    if (lg.gone) continue;
+    for (let k = 0; k < R.LOG_DRIFT; k++) {
+      const nx = lg.x + lg.dir;
+      if (nx < rv.x1 || nx + lg.len > rv.x2 || !moveLog(w, lg, lg.dir, 0)) { lg.dir = -lg.dir; break; }
+    }
+  }
+}
+
+/* ---------- Villaområdet: the robot mower (F-041) ---------- */
+// It mows its lawn back and forth along the ground; whoever it bumps into is nipped once per turn.
+function stepMower(w) {
+  const mo = w.mower;
+  if (!mo || mo.gone) return;
+  const range = w.map.mower;
+  if (!mo.y) { let y = 4; while (y < H && !solidAt(w, mo.x, y + 1)) y++; mo.y = y; }
+  if (++mo.t % R.MOWER_EVERY) return;
+  const nx = mo.x + mo.dir;
+  let ny = -1;
+  for (let c = -3; c <= 6; c++) { const yy = mo.y + c; if (!solidAt(w, nx, yy) && !solidAt(w, nx, yy - 3) && solidAt(w, nx, yy + 1)) { ny = yy; break; } }
+  if (nx < range.x1 || nx > range.x2 || ny < 0) { mo.dir = -mo.dir; return; }
+  mo.x = nx; mo.y = ny;
+  if (mo.y > w.water) { mo.gone = 1; w.events.push({ t: 'splash', x: mo.x, y: w.water }); return; }
+  for (const u of w.units) {
+    if (!u.alive || u.away || u.air || u.mowed === w.turn.number) continue;
+    if (Math.abs(px(u.X) - mo.x) > 4 || Math.abs(px(u.Y) - mo.y) > 6) continue;
+    u.mowed = w.turn.number; hurt(w, u, R.MOWER_DAMAGE);
+    if (u.alive) { u.VX = mo.dir * 1500; u.VY = -1200; u.air = true; }
+    w.events.push({ t: 'mow', x: mo.x, y: mo.y });
   }
 }
 
@@ -416,7 +485,8 @@ function stepUnit(w, u) {
     u.VY += R.GRAVITY;
     const n = Math.max(1, Math.trunc((Math.max(Math.abs(u.VX), Math.abs(u.VY)) + FP - 1) / FP));
     const sx = Math.trunc(u.VX / n), sy = Math.trunc(u.VY / n);
-    for (let i = 0; i < n && u.air; i++) {
+    u.bounced = 0;
+    for (let i = 0; i < n && u.air && !u.bounced; i++) {
       const nx = u.X + sx, ny = u.Y + sy;
       if (bodyFree(w, px(nx), px(ny))) { u.X = nx; u.Y = ny; }
       else if (bodyFree(w, px(u.X), px(ny))) { u.Y = ny; u.VX = -Math.trunc(u.VX / 3); }
@@ -427,11 +497,23 @@ function stepUnit(w, u) {
     }
   }
   x = px(u.X); y = px(u.Y);
-  if (y > w.water) { kill(w, u, 'water'); w.events.push({ t: 'splash', x, y: w.water }); }
+  const wl = waterAt(w, x);
+  if (y > wl) { kill(w, u, 'water'); w.events.push({ t: 'splash', x, y: wl }); }
   else if (x < -20 || x > W + 20) kill(w, u, 'edge');
+}
+// Älven: behind the dam the water stands higher until the dam breaks.
+function waterAt(w, x) {
+  const r = w.map.reservoir;
+  return r && !w.map.dam.broken && x >= r.x1 && x <= r.x2 ? r.level : w.water;
 }
 function land(w, u) {
   const v = u.VY;
+  const x = px(u.X), y = px(u.Y);
+  if (v > 700 && w.map.trampoline && (w.map.mat[(y + 1) * W + x] === TRAMP || w.map.mat[(y + 2) * W + x] === TRAMP)) {
+    u.VY = -Math.max(Math.trunc((v * 85) / 100), 1100); u.bounced = 1;
+    w.events.push({ t: 'boing', x, y });
+    return;
+  }
   u.air = false; u.VX = 0; u.VY = 0; u.Y = px(u.Y) * FP;
   if (v > R.FALL_SAFE_VY) hurt(w, u, Math.trunc(((v - R.FALL_SAFE_VY) * R.FALL_DAMAGE_PER_PX) / FP) + 2);
 }
@@ -542,6 +624,8 @@ function explode(w, x, y, wp) {
   blastNests(w, x, y, wp);
   if (w.map.avalanche) startSlide(w, x, y, r);
   if (w.map.raukar) checkRaukar(w, x);
+  if (w.map.dam && !w.map.dam.broken) checkDam(w);
+  if (w.mower && !w.mower.gone) { const dx = w.mower.x - x, dy = w.mower.y - 2 - y; if (dx * dx + dy * dy <= (r + 6) * (r + 6)) { w.mower.gone = 1; w.events.push({ t: 'mower-gone', x: w.mower.x, y: w.mower.y }); } }
   const reach = r + 12;
   for (const u of w.units) {
     if (!u.alive) continue;
@@ -858,6 +942,11 @@ function stepProjectile(w, p) {
     const nx = p.X + sx, ny = p.Y + sy, ix = px(nx), iy = px(ny);
     if (iy > w.water) { w.events.push({ t: 'splash', x: ix, y: w.water }); return false; }
     if (ix < -60 || ix > W + 60 || iy > H + 20) return false;
+    if (w.map.trampoline && p.VY > 0 && solidAt(w, ix, iy) && w.map.mat[iy * W + ix] === TRAMP) {
+      p.VY = -Math.max(Math.trunc((Math.abs(p.VY) * 90) / 100), R.BOING_MIN); p.Y -= FP;
+      w.events.push({ t: 'boing', x: ix, y: iy });
+      return true;
+    }
     if (p.kind === 'kraft' && solidAt(w, ix, iy)) {
       for (let k = 0; k < 4; k++) w.mines.push({ X: (px(p.X) + k * 8 - 12) * FP, Y: (px(p.Y) - 2) * FP, arm: R.MINE_ARM });
       w.events.push({ t: 'kraft', x: px(p.X), y: px(p.Y) });
@@ -949,7 +1038,8 @@ function nextTurn(w) {
   }
   for (const c of w.clouds) c.turns--;
   w.clouds = w.clouds.filter((c) => c.turns > 0);
-  if (w.settings.flood && t.round >= w.settings.flood && t.phase !== 'start') { w.water -= R.FLOOD_PX; w.events.push({ t: 'flood', water: w.water }); }
+  if (w.settings.flood && t.round >= w.settings.flood && t.phase !== 'start') { w.water -= R.FLOOD_PX; w.events.push({ t: 'flood', water: w.water }); for (const lg of w.map.logs || []) if (!lg.gone) moveLog(w, lg, 0, -R.FLOOD_PX); }
+  if (w.map.logs && t.phase !== 'start') driftLogs(w);
   const left = w.teams.filter((tm) => aliveIn(w, tm.index).length > 0);
   if (left.length <= 1 && t.phase !== 'start') return gameOver(w, left);
   if (!aliveIn(w, team).length) { t.team = team; return nextTurn(w); }
@@ -1013,6 +1103,7 @@ export function step(w, input = {}) {
   stepPieces(w);
   stepSlide(w);
   stepMill(w);
+  stepMower(w);
   for (const o of w.units) stepUnit(w, o);
   stepStations(w);
   // Projectiles made during the step (meatballs, the troll's stone) join after it.
@@ -1065,6 +1156,9 @@ export function fingerprint(w) {
   for (const k of pieces(w)) { mix(k.X); mix(k.Y); mix(k.down); mix(k.hp | 0); }
   if (w.pole) for (const p of w.pole.points) mix(p);
   mix(w.sail | 0);
+  if (w.mower) { mix(w.mower.x); mix(w.mower.y); mix(w.mower.gone); }
+  if (w.map.dam) mix(w.map.dam.broken);
+  for (const lg of w.map.logs || []) { mix(lg.x); mix(lg.y); }
   if (w.knalle) { mix(w.knalle.X); mix(w.knalle.Y); mix(w.knalle.dir); }
   const s = w.map.solid;
   for (let i = 0; i < s.length; i += 7) mix(s[i] * (i + 1));

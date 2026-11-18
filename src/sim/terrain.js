@@ -3,7 +3,7 @@
 import { W, H } from './rules.js';
 import { sin, isqrt } from './trig.js';
 
-export const SOIL = 1, ROCK = 2, WOOD = 3, SNOW = 4, LIME = 5;   // materials: ROCK takes half the crater, WOOD breaks easily, LIME (limestone) like soil
+export const SOIL = 1, ROCK = 2, WOOD = 3, SNOW = 4, LIME = 5, TRAMP = 6;   // materials: ROCK takes half the crater, WOOD breaks easily, LIME (limestone) like soil
 
 export function hash32(x, y, seed) {
   let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(seed | 0, 1442695041)) | 0;
@@ -25,7 +25,7 @@ export function noise(x, y, s, seed) {
 }
 
 function blank(id, name, water) {
-  return { id, name, water, solid: new Uint8Array(W * H), mat: new Uint8Array(W * H), cave: new Uint8Array(W * H), burnt: new Uint8Array(W * H), surface: new Int16Array(W), lamps: [], troll: null, roof: 0, spawns: [[], []], boulders: [], cart: null, rain: 0, sinkholes: 0, crateEvery: 0, wrongGoods: 0, knalle: null, statue: null, avalanche: 0, stations: null, raukar: null, mill: null, windScale: 1 };
+  return { id, name, water, solid: new Uint8Array(W * H), mat: new Uint8Array(W * H), cave: new Uint8Array(W * H), burnt: new Uint8Array(W * H), surface: new Int16Array(W), lamps: [], troll: null, roof: 0, spawns: [[], []], boulders: [], cart: null, rain: 0, sinkholes: 0, crateEvery: 0, wrongGoods: 0, knalle: null, statue: null, avalanche: 0, stations: null, raukar: null, mill: null, windScale: 1, dam: null, reservoir: null, logs: null, river: null, trampoline: null, mower: null };
 }
 const fill = (m, x, y, mat) => { if (x >= 0 && x < W && y >= 0 && y < H) { const i = y * W + x; m.solid[i] = 1; m.mat[i] = mat; } };
 function finish(m) {
@@ -292,8 +292,73 @@ function slatten(seed) {
   return m;
 }
 
-export const MAPS = { midsommar, kobbarna, trollskogen, gruvan, boras, fjallet, takasarna, raukarna, slatten };
-export const MAP_NAMES = { midsommar: 'Midsommarängen', kobbarna: 'Kobbarna', trollskogen: 'Trollskogen', gruvan: 'Gruvan', boras: 'Borås', fjallet: 'Fjället', takasarna: 'Takåsarna', raukarna: 'Raukarna', slatten: 'Slätten' };
+/* ---------- Älven (Norrland): a river with floating logs, spruce banks, a power dam ---------- */
+// Logs float and drift between turns; blow the dam and the water rises (F-041, see world.js).
+function alven(seed) {
+  const m = blank('alven', 'Älven', 232);
+  const WL = m.water;
+  const ground = (x) => {
+    if (x < 140) return 172 + Math.trunc((x * 20) / 140) + Math.trunc(((noise(x, 0, 12, seed) - 512) * 6) / 1024);
+    if (x < 158) return 192 + Math.trunc(((x - 140) * 60) / 18);
+    if (x < 330) return 252 + Math.trunc(((noise(x, 1, 20, seed) - 512) * 4) / 1024);   // the river bed
+    if (x < 346) return 156;                                                             // the dam crest
+    if (x < 374) return 198;                                                             // the reservoir floor
+    return 158 + Math.trunc(((480 - x) * 10) / 106) + Math.trunc(((noise(x, 2, 11, seed) - 512) * 6) / 1024);
+  };
+  for (let x = 0; x < W; x++) {
+    const top = ground(x);
+    for (let y = top; y < H; y++) fill(m, x, y, x >= 330 && x < 346 ? ROCK : (y - top > 14 && noise(x, y, 12, seed) > 560 ? ROCK : SOIL));
+  }
+  // the dam's concrete reaches down into the river bed
+  let dam0 = 0;
+  for (let y = 156; y < H; y++) for (let x = 330; x < 346; x++) { if (m.solid[y * W + x]) dam0++; }
+  m.dam = { x1: 330, x2: 345, y1: 156, count0: dam0, broken: 0, rise: 14 };
+  m.reservoir = { x1: 346, x2: 373, level: 176 };
+  m.river = { x1: 158, x2: 329 };
+  // three logs on the water: their pixels are wood; they drift between turns
+  m.logs = [];
+  for (const [x0, len, dir] of [[176, 26, 1], [232, 30, -1], [286, 24, 1]]) {
+    const pts = [];
+    for (let j = 0; j < 3; j++) for (let i = 0; i < len; i++) { if ((j === 0 || j === 2) && (i === 0 || i === len - 1)) continue; pts.push([i, j]); fill(m, x0 + i, WL - 2 + j, WOOD); }
+    m.logs.push({ x: x0, y: WL - 2, len, dir, pts });
+  }
+  m.spawns = [[20, 50, 80, 110, 186, 244], [400, 430, 460, 338, 300, 380]].map((xs) => xs.map((x) => [x, 0]));
+  finish(m);
+  m.spawns = m.spawns.map((list) => list.map(([x]) => [x, m.surface[x] - 1]));
+  return m;
+}
+
+/* ---------- Villaområdet (anywhere): lawns, villas, a deck, a compost, a trampoline, a robot mower ---------- */
+function villa(seed) {
+  const m = blank('villa', 'Villaområdet', 246);
+  const ground = (x) => 204 + Math.trunc(((noise(x, 0, 30, seed) - 512) * 6) / 1024) + (x > 440 ? Math.trunc(((x - 440) * 20) / 40) : 0) - (x < 30 ? Math.trunc(((30 - x) * 6) / 30) : 0);
+  for (let x = 0; x < W; x++) for (let y = ground(x); y < H; y++) fill(m, x, y, SOIL);
+  const box = (x1, y1, x2, y2, mat) => { for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) fill(m, x, y, mat); };
+  m.villas = [];
+  for (const [x, wdt, h] of [[40, 56, 44], [356, 60, 50]]) {
+    const gy = ground(x + (wdt >> 1));
+    box(x, gy - h, x + wdt - 1, gy + 2, SOIL);
+    for (let j = 0; j < 14; j++) for (let i = j; i < wdt - j; i++) fill(m, x + i, gy - h - 1 - j, WOOD);   // a pitched roof
+    m.villas.push({ x, wdt, h, gy });
+  }
+  // the deck beside the first villa, the compost, the hedges
+  const dg = ground(110);
+  box(96, dg - 10, 128, dg - 8, WOOD); for (const lx of [98, 126]) box(lx, dg - 7, lx + 1, dg, WOOD);
+  for (let x = 300; x <= 322; x++) { const cy = ground(311) - Math.trunc((12 * (121 - (x - 311) * (x - 311))) / 121); for (let y = cy; y < ground(x); y++) fill(m, x, y, SOIL); }
+  for (const [hx, hl] of [[146, 18], [336, 14]]) for (let x = hx; x < hx + hl; x++) for (let y = ground(x) - 9; y < ground(x); y++) fill(m, x, y, SOIL);
+  // the trampoline's bed: it throws back what lands on it
+  const tx1 = 214, tx2 = 250, ty = ground(232) - 14;
+  for (let x = tx1; x <= tx2; x++) fill(m, x, ty, TRAMP);
+  m.trampoline = { x1: tx1, x2: tx2, y: ty };
+  m.mower = { x1: 150, x2: 296, x: 180 };
+  m.spawns = [[20, 60, 112, 132, 90, 40], [460, 420, 380, 340, 310, 400]].map((xs) => xs.map((x) => [x, 0]));
+  finish(m);
+  m.spawns = m.spawns.map((list) => list.map(([x]) => [x, m.surface[x] - 1]));
+  return m;
+}
+
+export const MAPS = { midsommar, kobbarna, trollskogen, gruvan, boras, fjallet, takasarna, raukarna, slatten, alven, villa };
+export const MAP_NAMES = { midsommar: 'Midsommarängen', kobbarna: 'Kobbarna', trollskogen: 'Trollskogen', gruvan: 'Gruvan', boras: 'Borås', fjallet: 'Fjället', takasarna: 'Takåsarna', raukarna: 'Raukarna', slatten: 'Slätten', alven: 'Älven', villa: 'Villaområdet' };
 export function makeMap(seed, id = 'midsommar') { return (MAPS[id] || MAPS.midsommar)(seed); }
 
 export const isSolid = (map, x, y) => x >= 0 && x < W && y >= 0 && y < H && map.solid[y * W + x] === 1;
@@ -327,7 +392,7 @@ export function blast(map, cx, cy, r) {
       const i = y * W + x;
       if (!map.solid[i]) continue;
       const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy), mt = map.mat[i];
-      const reach = mt === ROCK ? rh : mt === WOOD ? rw : r;
+      const reach = mt === ROCK ? rh : mt === WOOD || mt === TRAMP ? rw : r;
       if (d2 <= reach * reach) map.solid[i] = 0;
       else if (d2 <= (reach + 3) * (reach + 3) && mt !== WOOD) map.burnt[i] = 1;
     }
