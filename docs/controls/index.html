@@ -72,6 +72,21 @@ button{font-family:var(--display);color:var(--ink);background:var(--panel);borde
 .v3 .meter span{font-family:var(--display);font-size:13px;color:var(--dim)}
 .v3 .shoot{min-height:52px;background:var(--team);border-color:var(--team);color:#fff;font-size:18px;border-radius:8px}
 .v3 .hop{min-height:52px;font-size:16px;border-radius:8px}
+/* 0: the chosen one: Handkontroll, the weapon pill from 2, the meter under it */
+.v0{display:grid;grid-template-columns:132px minmax(0,1fr) 132px}
+.v0 .scene{outline:3px solid var(--team)}
+.v0 .side{display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:10px 6px;position:relative}
+.v0 .icons{display:flex;gap:8px;align-self:flex-start}
+.v0 .top{display:flex;flex-direction:column;gap:8px;width:100%}
+.v0 .weapon{background:rgba(21,27,54,.9);border-color:var(--line);border-radius:10px;width:100%}
+.v0 .weapon span{font-size:12px}
+.v0 .meter{display:flex;flex-direction:column;gap:3px;width:100%}
+.v0 .meter .bar{height:14px;background:#2a3155;border:2px solid var(--line);border-radius:7px;overflow:hidden}
+.v0 .meter .bar i{display:block;height:100%;width:60%;background:var(--sun)}
+.v0 .meter span{font-family:var(--display);font-size:12px;color:var(--dim);text-align:center}
+.v0 .acts{position:relative;width:124px;height:150px}
+.v0 .acts .jump{position:absolute;left:2px;top:4px}
+.v0 .acts .fire{position:absolute;right:10px;bottom:10px;background:var(--team)}
 .legend{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--dim);font-size:14px;max-width:860px}
 .legend b{color:var(--ink);font-weight:600}
 </style>
@@ -79,6 +94,25 @@ button{font-family:var(--display);color:var(--ink);background:var(--panel);borde
 <body>
 <h1>Kontrollerna – tre förslag (D-047)</h1>
 <p>En telefon som ligger, med spelets riktiga bild i mitten. Knapparna är ritade som de skulle se ut; de går inte att trycka på här. I alla tre visas bara det som går att göra just nu, och siktet följer med när vätten vänds (B-048).</p>
+
+<section>
+  <h2>Valt: Handkontroll, vapenknappen från 2 och mätaren under den (Q11)</h2>
+  <div class="phone v0">
+    <div class="side">
+      <div class="icons"><button class="ico" aria-label="Meny">☰</button><button class="ico" aria-label="Ljud">♪</button></div>
+      <div class="dpad"><button class="u">▲</button><button class="l">◀</button><div class="c">GÅ<br>SIKTA</div><button class="r">▶</button><button class="d">▼</button></div>
+    </div>
+    <div class="scene"><canvas class="sc"></canvas><canvas class="glow"></canvas></div>
+    <div class="side">
+      <div class="top">
+        <button class="weapon"><canvas class="wi"></canvas><span>Kalle Gurra</span></button>
+        <div class="meter"><div class="bar"><i></i></div><span>Styrka 60 %</span></div>
+      </div>
+      <div class="acts"><button class="jump round">Hoppa</button><button class="fire round"><span>Skjut<small>håll in</small></span></button></div>
+    </div>
+  </div>
+  <div class="legend"><span><b>Vänster hand:</b> korset, ◀ ▶ går, ▲ ▼ siktar.</span><span><b>Höger hand:</b> håll in Skjut så fylls mätaren under vapnet, släpp så går skottet. Hoppa bredvid.</span><span><b>Vapnet:</b> den smala knappen med bild och namn; tryck för att byta.</span></div>
+</section>
 
 <section>
   <h2>1. Handkontroll (rekommendation)</h2>
