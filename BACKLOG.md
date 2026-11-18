@@ -8,7 +8,6 @@ Prioritet: Hög, Medel, Låg.
 | ID | Prio | Status | Beskrivning |
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
-| F-045 | Hög | Pågår (2026-11-18, session Vättigt, main) | Centrera rumskoden och QR-koden i sidokolumnen på delningsskärmen när telefonen ligger. |
 | F-041 | Låg | Förslag | Fler banor ur designförslaget: Älven och Villaområdet (flyttat från F-036). |
 | F-043 | Låg | Förslag | Koppla Vättigt till network-kits adminsida (av/på, nödstopp, dagsbudget) via en servicebindning, och eventuellt frivilliga anonyma mätningar av anslutningen med en synlig upplysning till spelarna. Kräver att network-kit-admin finns på samma Cloudflare-konto. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
@@ -32,6 +31,7 @@ Parkerat: D-012 (musik).
 
 | ID | Klart | Beskrivning |
 |---|---|---|
+| F-045 | 2026-11-18 | Rumskoden och QR-koden står centrerade i sidokolumnen på delningsskärmen när telefonen ligger. |
 | F-044 | 2026-11-18 | Delningsskärmen: status och Starta matchen direkt under lagen (före inställningarna), två kolumner även på små telefoner liggande, lagnamnen får plats i rutan, och knappen Dela länk på telefoner som kan dela. |
 | F-042 | 2026-11-18 | network-kit v0.8.0 inne: rumskoder med 6 tecken, gränser per besökare mot överbelastning. Adminsidan och mätningar flyttade till F-043. |
 | F-037 | 2026-11-18 | Valbara regler: Lagom-zonen (skott med lagom styrka tas inte av vinden) och Jantelagen (laget som leder får sämre lådor), i eget spel och lobbyn. Datorn använder lagom-zonen på lagom och svår nivå. |
