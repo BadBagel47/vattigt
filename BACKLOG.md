@@ -8,10 +8,10 @@ Prioritet: Hög, Medel, Låg.
 | ID | Prio | Status | Beskrivning |
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
-| F-035 | Medel | Förslag | Spellägena Boet (skydda ert bo, förstör motståndarens) och Stången (håll platsen vid midsommarstången flest rundor). |
-| F-036 | Låg | Förslag | Fler banor ur designförslaget: Slätten, Raukarna, Älven, Villaområdet. |
-| F-037 | Låg | Förslag | Valbara regler ur designförslaget: Lagom-zonen på kraftmätaren och Jantelagen (laget som leder får sämre lådor). |
-| F-040 | Medel | Förslag | Ta in network-kit v0.6.0 (meddelat av network-kit-sessionen 2026-11-18): vem som tar över först om den som kör matchen försvinner (network-kit F-040, t.ex. den vars tur det är), snabbare upptäckt av tappad kontakt (network-kit F-051), läget sparat för den som kommer tillbaka (network-kit F-030). Nytt: rum stängs efter en timme i bakgrunden. |
+| F-035 | Medel | Pågår (2026-11-18, session Vättigt, main) | Spellägena Boet (skydda ert bo, förstör motståndarens) och Stången (håll platsen vid midsommarstången flest rundor). |
+| F-036 | Låg | Pågår (2026-11-18, session Vättigt, main) | Fler banor ur designförslaget: Slätten, Raukarna, Älven, Villaområdet. |
+| F-037 | Låg | Pågår (2026-11-18, session Vättigt, main) | Valbara regler ur designförslaget: Lagom-zonen på kraftmätaren och Jantelagen (laget som leder får sämre lådor). |
+| F-040 | Medel | Pågår (2026-11-18, session Vättigt, main) | Ta in network-kit v0.6.0 (meddelat av network-kit-sessionen 2026-11-18): vem som tar över först om den som kör matchen försvinner (network-kit F-040, t.ex. den vars tur det är), snabbare upptäckt av tappad kontakt (network-kit F-051), läget sparat för den som kommer tillbaka (network-kit F-030). Nytt: rum stängs efter en timme i bakgrunden. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
