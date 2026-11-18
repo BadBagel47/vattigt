@@ -8,6 +8,7 @@ Prioritet: Hög, Medel, Låg.
 | ID | Prio | Status | Beskrivning |
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
+| F-044 | Hög | Pågår (2026-11-18, session Vättigt, main) | Se över layouten på delningsskärmen (lobbyn med rumskod, QR-kod och länk). |
 | F-041 | Låg | Förslag | Fler banor ur designförslaget: Älven och Villaområdet (flyttat från F-036). |
 | F-043 | Låg | Förslag | Koppla Vättigt till network-kits adminsida (av/på, nödstopp, dagsbudget) via en servicebindning, och eventuellt frivilliga anonyma mätningar av anslutningen med en synlig upplysning till spelarna. Kräver att network-kit-admin finns på samma Cloudflare-konto. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
