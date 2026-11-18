@@ -255,6 +255,21 @@ Med datormotståndare (senare):
 - Egen ristning på lagets runstenar.
 - Lagets vimpel.
 
+## Styrning (förslag, D-047)
+
+Användaren 2026-11-18: styrningen ska bli mer logisk och lätthanterad. I dag finns två sätt att sikta som blandas: dra i bilden (vinkel och styrka, släpp skjuter) och ▲ ▼ plus ett reglage för styrkan, med en Skjut-knapp som bara syns ibland. Vinkeln styrs med vänster hand och styrkan med höger.
+
+Tre sätt att lösa det:
+
+1. **Klassiskt: håll in Skjut för styrka.** Vänster hand: ◀ ▶ går, ▲ ▼ vinkel. Höger hand: Skjut ligger alltid på samma plats; håll in så fylls styrkemätaren vid vätten, släpp så går skottet. Reglaget tas bort. Dra i bilden ställer bara in vinkeln, den skjuter inte. Tangentbordet: pilar och håll in Enter. Rekommendation.
+2. **Dra och sikta, skjut med knapp.** Dra i bilden som i dag för vinkel och styrka, men släppet skjuter inte; Skjut-knappen gör det och finns alltid. ▲ ▼ och − + finjusterar.
+3. **Slangbella.** Dra bakåt från vätten, släpp så går skottet; dra tillbaka till vätten för att avbryta. Inga knappar för siktet.
+
+Gäller oavsett val:
+- Knapparna visar bara det som går att göra just nu: före skottet Gå, Hoppa, Vapen och Skjut (Lägg ut för dynamit, Spräng! för hästen) på fasta platser; efter skottet bara Gå och Hoppa.
+- Siktet visar vinkel och styrka vid vätten, med en mätare som fylls.
+- Ett feldrag går att avbryta, och telefonen vibrerar kort vid skott.
+
 ## Mockup
 
 [docs/mockup/index.html](mockup/index.html) visar Midsommarängen med två lag, bon under jord, Kalle Gurra i luften, en dalahäst med tänd stubin, lagens liv, tid, vind och vapenrad. Stämningen går att byta och terrängen går att spränga.
