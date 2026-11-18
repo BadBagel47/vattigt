@@ -255,20 +255,20 @@ Med datormotståndare (senare):
 - Egen ristning på lagets runstenar.
 - Lagets vimpel.
 
-## Styrning (förslag, D-047)
+## Kontrollerna på skärmen (förslag, D-047)
 
-Användaren 2026-11-18: styrningen ska bli mer logisk och lätthanterad. I dag finns två sätt att sikta som blandas: dra i bilden (vinkel och styrka, släpp skjuter) och ▲ ▼ plus ett reglage för styrkan, med en Skjut-knapp som bara syns ibland. Vinkeln styrs med vänster hand och styrkan med höger.
+Användaren 2026-11-18: kontrollernas grafiska gränssnitt ska bli mer logiskt och lätthanterat. I dag: vänster panel med Meny, Ljud av, ▲ ▼ och ◀ ▶ som fyra lika stora rutor; höger panel med vapenknappen, ett reglage för styrkan, en knapp som ibland heter Skjut, Lägg ut eller Spräng!, och Hoppa. Allt är textknappar i samma stil.
 
-Tre sätt att lösa det:
+Tre upplägg:
 
-1. **Klassiskt: håll in Skjut för styrka.** Vänster hand: ◀ ▶ går, ▲ ▼ vinkel. Höger hand: Skjut ligger alltid på samma plats; håll in så fylls styrkemätaren vid vätten, släpp så går skottet. Reglaget tas bort. Dra i bilden ställer bara in vinkeln, den skjuter inte. Tangentbordet: pilar och håll in Enter. Rekommendation.
-2. **Dra och sikta, skjut med knapp.** Dra i bilden som i dag för vinkel och styrka, men släppet skjuter inte; Skjut-knappen gör det och finns alltid. ▲ ▼ och − + finjusterar.
-3. **Slangbella.** Dra bakåt från vätten, släpp så går skottet; dra tillbaka till vätten för att avbryta. Inga knappar för siktet.
+1. **Handkontroll.** Vänster: ett styrkors (◀ ▶ gå, ▲ ▼ sikta) som en enda symbol, som på en spelkontroll. Höger: en stor rund Skjut-knapp med en ring som fylls med styrkan, en mindre Hoppa bredvid och vapnet ovanför (ikon och antal). Meny och ljud blir små ikoner i ett hörn. Rekommendation.
+2. **Knappar på bilden.** Spelbilden fyller hela skärmen och halvgenomskinliga knappar ligger i hörnen ovanpå, som i många mobilspel. Större bild, men knapparna skymmer en del.
+3. **Städade sidopaneler.** Samma platser som i dag men med ikoner i stället för text, ▲ ▼ ◀ ▶ samlade som ett kors, en styrkemätare i stället för reglaget, och knappar som inte går att använda döljs.
 
-Gäller oavsett val:
-- Knapparna visar bara det som går att göra just nu: före skottet Gå, Hoppa, Vapen och Skjut (Lägg ut för dynamit, Spräng! för hästen) på fasta platser; efter skottet bara Gå och Hoppa.
-- Siktet visar vinkel och styrka vid vätten, med en mätare som fylls.
-- Ett feldrag går att avbryta, och telefonen vibrerar kort vid skott.
+Gäller oavsett upplägg:
+- Byta håll när man siktar: vänder vätten (◀ eller ▶) följer siktet med till den sidan (B-048).
+- Knapparna visar bara det som går att göra just nu, på fasta platser.
+- Lagets färg runt kontrollerna visar vems tur det är, som i dag.
 
 ## Mockup
 

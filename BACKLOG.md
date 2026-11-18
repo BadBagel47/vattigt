@@ -8,7 +8,8 @@ Prioritet: Hög, Medel, Låg.
 | ID | Prio | Status | Beskrivning |
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
-| D-047 | Hög | Förslag | Mer logisk och lätthanterad styrning (användaren 2026-11-18). Tre sätt i docs/DESIGN.md under Styrning; rekommendation: håll in Skjut för styrka, ▲ ▼ för vinkel, knappar som bara visar det som går att göra. |
+| D-047 | Hög | Förslag | Kontrollernas grafiska gränssnitt mer logiskt och lätthanterat (användaren 2026-11-18). Tre upplägg i docs/DESIGN.md under Kontrollerna på skärmen; rekommendation: Handkontroll (styrkors till vänster, stor rund Skjut med styrkering till höger, Meny och ljud som små ikoner). |
+| B-048 | Hög | Förslag | När vätten vänds med ◀ eller ▶ under siktningen följer inte siktet med: siktlinjen och Skjut pekar kvar åt det gamla hållet tills man trycker ▲ eller ▼ eller drar i bilden. Siktet ska spegla sig till den nya sidan. |
 | F-041 | Låg | Förslag | Fler banor ur designförslaget: Älven och Villaområdet (flyttat från F-036). |
 | F-043 | Låg | Förslag | Koppla Vättigt till adminsidan via en servicebindning: Nya spelare av/på, tidsstyrning, nödstopp, dagsbudget, spellänkar, och meddelanden till spelarna (watchNotices). Eventuellt frivilliga anonyma mätningar av anslutningen med en synlig upplysning. Kräver att network-kit-admin finns på samma Cloudflare-konto. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
@@ -17,9 +18,10 @@ Prioritet: Hög, Medel, Låg.
 
 Prioriterat för: att det som finns blir lätt att spela på telefonen innan mer läggs till.
 
-- **A** – stark modell, hög nivå – Styrningen
-  - D-047 – Ett enda tydligt sätt att sikta och skjuta, med knappar som bara visar det som går att göra just nu
-  - Fråga: Vilket sätt (Klassiskt, Dra och sikta, Slangbella)? Rekommendation: Klassiskt, håll in Skjut för styrka och ▲ ▼ för vinkel.
+- **A** – stark modell, hög nivå – Kontrollerna
+  - B-048 – Siktet följer med när vätten vänds, så att man byter håll med ◀ eller ▶
+  - D-047 – Nytt utseende på kontrollerna, logiskt grupperade för vänster och höger hand
+  - Fråga: Vilket upplägg (Handkontroll, Knappar på bilden, Städade sidopaneler)? Rekommendation: Handkontroll.
 - **B** – stark modell, hög nivå – Fler banor
   - F-041 – Älven (stockar som flyter, en damm som kan sprängas) och Villaområdet (studsmatta, robotgräsklippare)
 
