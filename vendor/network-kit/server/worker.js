@@ -16,6 +16,7 @@ import {
 } from '../shared/protocol.js';
 import { VERSION } from '../version.js';
 import { RoomCore, resolveOptions } from './room-core.js';
+import { cleanSummary } from './measure-check.js';
 import { newRoomCode } from './random.js';
 
 const SERVER_OPTIONS = {
@@ -25,6 +26,14 @@ const SERVER_OPTIONS = {
   allowedOrigins: '*', // '*' or a list such as ['https://badbagel47.github.io']
   jurisdiction: null, // 'eu' keeps rooms in the EU; may be a function (env) => 'eu' | null
   gate: null, // experimental: async ({ request, env, action }) => true | { open: false, reason }
+  // Per visitor (address) and minute, checked before a room is woken (F-053):
+  // rooms created, and look-ups or joins at a room code. null turns it off;
+  // may be a function (env) => limits | null.
+  limits: { createsPerMinute: 10, attemptsPerMinute: 60 },
+  // The admin page (F-003, F-004): { binding, game } — a service binding to the
+  // admin Worker's GameApi entrypoint and this game's name (its Worker's name).
+  // May be a function (env) => { binding, game } | null. null: not connected.
+  admin: null,
   fallback: null, // async (request, env, ctx) => Response for other paths
 };
 
@@ -109,6 +118,45 @@ export function createRoomServer(gameOptions = {}) {
     return made.body;
   }
 
+  // Counters per address, kept in this Worker instance's memory: cheap, and
+  // enough to make guessing codes or creating rooms in bulk pointless (F-053).
+  const visitors = new Map();
+  function overLimit(request, env, kind) {
+    const limits = typeof opts.limits === 'function' ? opts.limits(env) : opts.limits;
+    const max = limits?.[kind === 'create' ? 'createsPerMinute' : 'attemptsPerMinute'];
+    if (!max) return false;
+    const address = request.headers.get('cf-connecting-ip') || 'unknown';
+    const minute = Math.floor(Date.now() / 60_000);
+    let v = visitors.get(address);
+    if (!v || v.minute !== minute) {
+      if (visitors.size > 10_000) visitors.clear(); // never let the table grow without end
+      v = { minute, create: 0, attempt: 0 };
+      visitors.set(address, v);
+    }
+    v[kind] += 1;
+    return v[kind] > max;
+  }
+
+  // The admin page's word, asked at most every 30 s per Worker instance. If
+  // the admin Worker cannot be reached the game stays open: a broken admin
+  // page must not stop every game.
+  let word = { at: 0, value: null };
+  async function adminWord(env) {
+    const link = typeof opts.admin === 'function' ? opts.admin(env) : opts.admin;
+    const api = link && env[link.binding];
+    if (!api?.status) return null;
+    const now = Date.now();
+    if (now - word.at < 30_000) return word.value;
+    let value = null;
+    try {
+      value = await api.status(link.game);
+    } catch {
+      value = null;
+    }
+    word = { at: now, value };
+    return value;
+  }
+
   async function gate(request, env, action) {
     if (!opts.gate) return { open: true };
     const result = await opts.gate({ request, env, action });
@@ -129,6 +177,9 @@ export function createRoomServer(gameOptions = {}) {
     const parts = url.pathname.slice(base.length).split('/').filter(Boolean);
 
     if (parts.length === 0 && request.method === 'POST') {
+      if (overLimit(request, env, 'create')) return json({ error: 'too-many-requests' }, 429, { ...cors, 'retry-after': '60' });
+      const status = await adminWord(env);
+      if (status && !status.open) return json({ error: status.reason ?? 'off', until: status.until ?? null }, 503, cors);
       const open = await gate(request, env, 'create');
       if (!open.open) return json({ error: open.reason }, 503, cors);
       let body = {};
@@ -139,6 +190,27 @@ export function createRoomServer(gameOptions = {}) {
       }
       const made = await makeRoom(env, { settings: body.settings ?? {} });
       return json(made.body, made.status, cors);
+    }
+
+    // Anonymous measurement from the game's pages (F-052), handed to the admin page.
+    if (parts.length === 1 && parts[0] === 'measure' && request.method === 'POST') {
+      if (overLimit(request, env, 'attempt')) return new Response(null, { status: 429, headers: cors });
+      const link = typeof opts.admin === 'function' ? opts.admin(env) : opts.admin;
+      const api = link && env[link.binding];
+      const text = await request.text();
+      if (!api?.measure || text.length > 8 * 1024) return new Response(null, { status: 204, headers: cors });
+      let summary = null;
+      try {
+        summary = cleanSummary(JSON.parse(text));
+      } catch {
+        summary = null;
+      }
+      if (summary) {
+        const sent = api.measure(link.game, summary).catch(() => {});
+        if (ctx?.waitUntil) ctx.waitUntil(sent);
+        else await sent;
+      }
+      return new Response(null, { status: 204, headers: cors });
     }
 
     if (parts.length === 0 && request.method === 'GET') {
@@ -153,6 +225,15 @@ export function createRoomServer(gameOptions = {}) {
       return ws ? closedSocket(CLOSE.NOT_FOUND, 'not-found') : json({ error: 'not-found' }, 404, cors);
     }
 
+    const wantsSocket = parts.length === 2 && parts[1] === 'ws';
+    if ((parts.length === 1 && request.method === 'GET') || wantsSocket) {
+      if (overLimit(request, env, 'attempt')) {
+        return wantsSocket && request.headers.get('upgrade')?.toLowerCase() === 'websocket'
+          ? closedSocket(CLOSE.RATE, 'too-many-attempts')
+          : json({ error: 'too-many-requests' }, 429, { ...cors, 'retry-after': '60' });
+      }
+    }
+
     if (parts.length === 1 && request.method === 'GET') {
       const res = await stub(env, code).fetch('https://room/info');
       return json(await res.json(), res.status, cors);
@@ -162,6 +243,10 @@ export function createRoomServer(gameOptions = {}) {
       if (request.headers.get('upgrade')?.toLowerCase() !== 'websocket') {
         return json({ error: 'websocket-expected' }, 426, cors);
       }
+      // An emergency stop turns everyone away here; otherwise the room decides,
+      // so participants who were already in a room can come back (F-003).
+      const status = await adminWord(env);
+      if (status?.stopped) return closedSocket(CLOSE.GAME_CLOSED, 'stopped');
       const open = await gate(request, env, 'join');
       if (!open.open) return closedSocket(CLOSE.GAME_CLOSED, open.reason);
       return stub(env, code).fetch('https://room/ws', { headers: { upgrade: 'websocket' } });
@@ -213,6 +298,7 @@ export function createRoomServer(gameOptions = {}) {
             // already closed
           }
         },
+        admission: () => adminWord(env),
         lastPingAt(ws) {
           // When the platform last answered this socket's heartbeat for us (F-051).
           return ctx.getWebSocketAutoResponseTimestamp?.(ws)?.getTime() ?? null;

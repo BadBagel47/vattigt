@@ -56,7 +56,7 @@ export class PartJoiner {
 
 // Room codes: no 0/O or 1/I so codes are easy to read out loud.
 export const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-export const CODE_LENGTH = 4; // the default; each game may choose 4 to 12 (codeLength)
+export const CODE_LENGTH = 6; // the default (owner, 2026-11-18); each game may choose 4 to 12 (codeLength)
 export const CODE_MIN_LENGTH = 4;
 export const CODE_MAX_LENGTH = 12;
 
@@ -84,6 +84,29 @@ export const CLOSE = Object.freeze({
 export const CLOSE_UNRESPONSIVE = 4014;
 
 export const FINAL_CLOSE_CODES = new Set(Object.values(CLOSE));
+
+// Why a game is closed (close code GAME_CLOSED, or a refused start or room),
+// as the admin page decides it (F-003, F-004, F-026). `until` is filled in.
+export const GAME_CLOSED_TEXT = Object.freeze({
+  off: 'The game is closed right now.',
+  until: 'The game is closed until {until}.',
+  budget: "The game has used up today's free quota. It opens again at {until}.",
+  stopped: 'The game was stopped by its owner.',
+  'too-many-attempts': 'Too many tries in a short time. Wait a minute and try again.',
+  'too-many-requests': 'Too many tries in a short time. Wait a minute and try again.',
+});
+
+/** Plain text for a closed game, with the time in the reader's own clock. */
+export function gameClosedText(reason, until = null) {
+  const text = GAME_CLOSED_TEXT[reason];
+  if (!text) return null;
+  if (!text.includes('{until}')) return text;
+  const at = until ? new Date(until) : null;
+  const when = at && !Number.isNaN(at.getTime())
+    ? at.toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+    : 'later';
+  return text.replace('{until}', when);
+}
 
 // Plain-language reasons for close codes, for games that show them as is.
 export const CLOSE_TEXT = Object.freeze({

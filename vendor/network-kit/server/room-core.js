@@ -12,6 +12,8 @@
 //   host.env                            the Worker's environment (for rules)
 //   host.lastPingAt(ws)                 optional: when the socket last sent a
 //                                       heartbeat the platform answered (ms or null)
+//   host.admission()                    optional: the admin page's word on this game,
+//                                       { open, reason, until, privateOnly, stopped } (F-003)
 //
 // Everything that must survive hibernation lives in `this.state` (stored
 // under the key "room") or in socket attachments. The latest full game state
@@ -363,6 +365,7 @@ export class RoomCore {
       if (due.some((t) => t.kind === 'cleanup')) await this.deleteRoom();
     } else {
       await this.findSilent();
+      await this.checkStopped();
       for (const timer of due) {
         if (!this.state || this.state.closed) break; // closed or deleted by an earlier timer
         await this.runTimer(timer);
@@ -601,9 +604,32 @@ export class RoomCore {
     this.host.close(ws, code, reason);
   }
 
-  reject(ws, code, reason) {
-    this.sendJson(ws, { t: 'denied', code, reason });
+  reject(ws, code, reason, extra = {}) {
+    this.sendJson(ws, { t: 'denied', code, reason, ...extra });
     this.shut(ws, code, reason);
+  }
+
+  /**
+   * The admin page's word on this game (F-003, F-004): null when the game is
+   * not connected to it or it cannot be reached (then the game stays open).
+   */
+  async admission() {
+    if (!this.host.admission) return null;
+    try {
+      return (await this.host.admission()) ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** An emergency stop closes running rooms too; looked at now and then while the room is busy. */
+  async checkStopped() {
+    if (!this.host.admission || !this.state || this.state.closed) return;
+    const now = this.host.now();
+    if (now - (this.lastStopCheck ?? 0) < 30_000) return;
+    this.lastStopCheck = now;
+    const status = await this.admission();
+    if (status?.stopped) await this.closeRoom('stopped', CLOSE.GAME_CLOSED);
   }
 
   /** A new WebSocket was accepted; it must send "hello" first. */
@@ -715,6 +741,7 @@ export class RoomCore {
     if (!att || att.closed) return;
     this.heard.set(ws, this.host.now());
     await this.findSilent();
+    await this.checkStopped();
     if (!this.state || this.state.closed) return;
     const size = byteLength(raw);
     let msg = null;
@@ -863,6 +890,10 @@ export class RoomCore {
       // Which role? The owner key first, then a valid invitation key, then a
       // seat held before, then (open rooms only) what the client asks for.
       const standing = known && !known.out && own(o.roles, known.role) ? known : null;
+      // A newcomer asks the admin page; the owner and those who were already
+      // in this room come back whatever it says, so admitted games finish (F-003).
+      const word = !isOwner && !standing ? await this.admission() : null;
+      if (word && !word.open) return this.reject(ws, CLOSE.GAME_CLOSED, word.reason ?? 'off', { until: word.until ?? null });
       let role = null;
       let admitted = false;
       if (isOwner) {
@@ -875,7 +906,8 @@ export class RoomCore {
           if (key.exp !== null && key.exp <= now) expired = true;
           else role = keyRole;
         }
-        const open = s.settings.access === 'open';
+        // "Private rooms only" on the admin page: only invitation keys let newcomers in.
+        const open = s.settings.access === 'open' && !word?.privateOnly;
         const wanted = own(o.roles, msg.role) ? msg.role : null;
         const asked = open && wanted && !o.roles[wanted].needsKey ? wanted : null;
         if (!role && standing) role = asked ?? standing.role; // was here before: no key needed
@@ -1472,6 +1504,12 @@ export class RoomCore {
       case 'alive':
         return; // the answer to a check; handled when the message arrived
       case 'start': {
+        // A new round (also a rematch) needs the game to be open (F-003).
+        const word = await this.admission();
+        if (word && !word.open) {
+          this.sendJson(ws, { t: 'err', code: 'game-closed', reason: word.reason, until: word.until ?? null, c, n: msg.n });
+          return;
+        }
         s.round += 1;
         s.seed = randomSeed();
         s.phase = o.countdownMs > 0 ? 'countdown' : 'playing';
