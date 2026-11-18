@@ -259,7 +259,7 @@ Med datormotståndare (senare):
 
 Användaren 2026-11-18: kontrollernas grafiska gränssnitt ska bli mer logiskt och lätthanterat. I dag: vänster panel med Meny, Ljud av, ▲ ▼ och ◀ ▶ som fyra lika stora rutor; höger panel med vapenknappen, ett reglage för styrkan, en knapp som ibland heter Skjut, Lägg ut eller Spräng!, och Hoppa. Allt är textknappar i samma stil.
 
-Tre upplägg:
+Tre upplägg (bilder: [docs/controls/index.html](controls/index.html)):
 
 1. **Handkontroll.** Vänster: ett styrkors (◀ ▶ gå, ▲ ▼ sikta) som en enda symbol, som på en spelkontroll. Höger: en stor rund Skjut-knapp med en ring som fylls med styrkan, en mindre Hoppa bredvid och vapnet ovanför (ikon och antal). Meny och ljud blir små ikoner i ett hörn. Rekommendation.
 2. **Knappar på bilden.** Spelbilden fyller hela skärmen och halvgenomskinliga knappar ligger i hörnen ovanpå, som i många mobilspel. Större bild, men knapparna skymmer en del.

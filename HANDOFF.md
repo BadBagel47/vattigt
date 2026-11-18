@@ -102,6 +102,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - [docs/maps/index.html](docs/maps/index.html) – mockup av Kobbarna, Trollskogen och Gruvan (D-004).
 - [docs/characters/index.html](docs/characters/index.html) – vättarna i större format med rörelser (D-007).
 - [docs/screens/index.html](docs/screens/index.html) – mockup av startmeny, eget spel och lagbyggare (D-008).
+- [docs/controls/index.html](docs/controls/index.html) – tre förslag på kontrollerna på skärmen (D-047).
 - [docs/NAMES.md](docs/NAMES.md) – namnen mot varumärken (D-005).
 - [fonts/](fonts/) – spelets typsnitt med licenser.
 - [docs/NETWORK.md](docs/NETWORK.md) – hur Vättigt använder network-kit.

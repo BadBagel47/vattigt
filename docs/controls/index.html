@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vättigt – förslag på kontroller (D-047)</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style>
+:root{color-scheme:dark;--ground:#0c1022;--panel:#151b36;--line:#313b6b;--ink:#ebe6d8;--dim:#aab1cb;--sun:#ffd27a;--team:#e5533d;
+  --display:"Pixelify Sans","Courier New",monospace;--body:"Albert Sans","Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:#070914;color:var(--ink);font-family:var(--body);padding:24px;display:flex;flex-direction:column;gap:34px;align-items:center}
+h1{font-family:var(--display);color:var(--sun);margin:0;font-size:34px}
+h2{font-family:var(--display);margin:0 0 4px;font-size:24px}
+p{margin:0;color:var(--dim);max-width:860px;line-height:1.45}
+section{display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+/* a phone lying down: 844 x 390 */
+.phone{width:844px;height:390px;background:var(--ground);border:10px solid #22263a;border-radius:34px;overflow:hidden;position:relative;flex:none}
+.scene{position:relative;width:100%;aspect-ratio:16/9;image-rendering:pixelated;align-self:center}
+.scene canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated}
+.scene canvas.glow{mix-blend-mode:screen;pointer-events:none}
+button{font-family:var(--display);color:var(--ink);background:var(--panel);border:2px solid var(--line);font-size:16px;padding:0;cursor:pointer}
+.ico{width:38px;height:38px;display:grid;place-items:center;font-size:18px;border-radius:10px}
+/* the cross */
+.dpad{display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,40px);gap:3px}
+.dpad button{font-size:20px;border-radius:8px}
+.dpad .u{grid-area:1/2}.dpad .l{grid-area:2/1}.dpad .r{grid-area:2/3}.dpad .d{grid-area:3/2}
+.dpad .c{grid-area:2/2;background:transparent;border:none;display:grid;place-items:center;color:var(--dim);font-size:11px;font-family:var(--display);line-height:1.1;text-align:center}
+.dpad .u,.dpad .d{color:var(--sun)}
+.round{border-radius:50%;display:grid;place-items:center}
+.fire{width:88px;height:88px;font-size:22px;background:radial-gradient(circle,var(--team) 0 60%,transparent 61%),conic-gradient(var(--sun) 0 216deg,#2a3155 216deg 360deg);border:none;color:#fff;position:relative}
+.fire span{position:relative}
+.fire small{display:block;font-size:12px;opacity:.9}
+.jump{width:56px;height:56px;font-size:13px}
+.weapon{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:10px;font-size:13px;text-align:left;line-height:1.1}
+.weapon canvas{width:30px;height:27px;image-rendering:pixelated}
+.note{position:absolute;font-size:11px;color:var(--dim);font-family:var(--body)}
+
+/* 1: Handkontroll */
+.v1{display:grid;grid-template-columns:132px minmax(0,1fr) 132px}
+.v1 .side{display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:10px 6px;position:relative}
+.v1 .scene,.v3 .scene{outline:3px solid var(--team)}
+.v1 .icons{display:flex;gap:8px;align-self:flex-start}
+.v1 .acts{position:relative;width:124px;height:150px}
+.v1 .acts .fire{position:absolute;right:10px;bottom:10px}
+.v1 .acts .jump{position:absolute;left:2px;top:4px}
+
+/* 2: Knappar på bilden */
+.v2{display:grid;place-items:center;background:#000}
+.v2 .scene{height:100%;width:auto}
+.v2 .over{position:absolute;inset:0;pointer-events:none}
+.v2 .over > *{position:absolute;pointer-events:auto}
+.v2 button{background:rgba(21,27,54,.55);border-color:rgba(235,230,216,.35)}
+.v2 .fire{background:radial-gradient(circle,rgba(229,83,61,.8) 0 60%,transparent 61%),conic-gradient(rgba(255,210,122,.9) 0 216deg,rgba(42,49,85,.7) 216deg 360deg)}
+.v2 .dpad{left:22px;bottom:18px}
+.v2 .fire{right:34px;bottom:30px}
+.v2 .jump{right:160px;bottom:22px}
+.v2 .weapon{right:14px;top:46%}
+.v2 .icons{left:14px;top:40%;display:flex;flex-direction:column;gap:8px}
+
+/* 3: Städade sidopaneler */
+.v3{display:grid;grid-template-columns:112px minmax(0,1fr) 112px}
+.v3 .side{display:flex;flex-direction:column;justify-content:space-between;padding:8px;gap:8px}
+
+.v3 .icons{display:flex;gap:8px}
+.v3 .dpad{grid-template-columns:repeat(3,30px);grid-template-rows:repeat(3,38px);gap:2px;align-self:center}
+.v3 .dpad button{font-size:16px}
+.v3 .weapon{flex-direction:column;padding:6px;text-align:center}
+.v3 .meter{display:flex;gap:6px;align-items:flex-end;height:82px}
+.v3 .bar{width:18px;height:100%;background:#2a3155;border:2px solid var(--line);position:relative}
+.v3 .bar i{position:absolute;left:0;right:0;bottom:0;height:60%;background:var(--sun)}
+.v3 .meter span{font-family:var(--display);font-size:13px;color:var(--dim)}
+.v3 .shoot{min-height:52px;background:var(--team);border-color:var(--team);color:#fff;font-size:18px;border-radius:8px}
+.v3 .hop{min-height:52px;font-size:16px;border-radius:8px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--dim);font-size:14px;max-width:860px}
+.legend b{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+<h1>Kontrollerna – tre förslag (D-047)</h1>
+<p>En telefon som ligger, med spelets riktiga bild i mitten. Knapparna är ritade som de skulle se ut; de går inte att trycka på här. I alla tre visas bara det som går att göra just nu, och siktet följer med när vätten vänds (B-048).</p>
+
+<section>
+  <h2>1. Handkontroll (rekommendation)</h2>
+  <div class="phone v1">
+    <div class="side">
+      <div class="icons"><button class="ico" aria-label="Meny">☰</button><button class="ico" aria-label="Ljud">♪</button></div>
+      <div class="dpad"><button class="u">▲</button><button class="l">◀</button><div class="c">GÅ<br>SIKTA</div><button class="r">▶</button><button class="d">▼</button></div>
+    </div>
+    <div class="scene"><canvas class="sc"></canvas><canvas class="glow"></canvas></div>
+    <div class="side">
+      <button class="weapon"><canvas class="wi"></canvas><span>Kalle Gurra<br><small>obegränsad</small></span></button>
+      <div class="acts"><button class="jump round">Hoppa</button><button class="fire round"><span>Skjut<small>håll in</small></span></button></div>
+    </div>
+  </div>
+  <div class="legend"><span><b>Vänster hand:</b> ett kors, ◀ ▶ går, ▲ ▼ siktar.</span><span><b>Höger hand:</b> håll in Skjut så fylls ringen med styrka, släpp så går skottet. Hoppa bredvid.</span><span><b>Hörnet:</b> meny och ljud som små ikoner.</span><span><b>Priset:</b> korset och den runda knappen behöver bredare sidor, så spelbilden blir något mindre, med en smal kant över och under.</span></div>
+</section>
+
+<section>
+  <h2>2. Knappar på bilden</h2>
+  <div class="phone v2">
+    <div class="scene"><canvas class="sc"></canvas><canvas class="glow"></canvas></div>
+    <div class="over">
+      <div class="icons"><button class="ico">☰</button><button class="ico">♪</button></div>
+      <button class="weapon"><canvas class="wi"></canvas><span>Kalle Gurra</span></button>
+      <div class="dpad"><button class="u">▲</button><button class="l">◀</button><div class="c"></div><button class="r">▶</button><button class="d">▼</button></div>
+      <button class="jump round">Hoppa</button>
+      <button class="fire round"><span>Skjut<small>håll in</small></span></button>
+    </div>
+  </div>
+  <div class="legend"><span><b>Bilden</b> fyller hela skärmen.</span><span><b>Knapparna</b> är halvgenomskinliga och ligger i hörnen ovanpå bilden.</span><span>Mest yta för spelet, men knapparna skymmer hörnen, där vättar ibland står.</span></div>
+</section>
+
+<section>
+  <h2>3. Städade sidopaneler</h2>
+  <div class="phone v3">
+    <div class="side">
+      <div class="icons"><button class="ico">☰</button><button class="ico">♪</button></div>
+      <div class="dpad"><button class="u">▲</button><button class="l">◀</button><div class="c"></div><button class="r">▶</button><button class="d">▼</button></div>
+    </div>
+    <div class="scene"><canvas class="sc"></canvas><canvas class="glow"></canvas></div>
+    <div class="side">
+      <button class="weapon"><canvas class="wi"></canvas><span>Kalle Gurra</span></button>
+      <div class="meter"><div class="bar"><i></i></div><span>60 %</span></div>
+      <button class="shoot">Skjut</button>
+      <button class="hop">Hoppa</button>
+    </div>
+  </div>
+  <div class="legend"><span><b>Samma platser som i dag,</b> men pilarna samlade i ett kors och bilder i stället för text.</span><span><b>Styrkan</b> som en mätare som fylls när man håller in Skjut.</span><span>Bilden blir ungefär lika stor som i dag; knapparna blir mindre.</span></div>
+</section>
+
+<script type="module">
+import { newMatch, step } from '/src/sim/world.js';
+import { createRenderer, drawIcon } from '/src/render/render.js';
+const w = newMatch(7, { settings: { map: 'midsommar' } });
+for (let i = 0; i < 400 && w.turn.phase !== 'aim'; i++) step(w);
+for (const ph of document.querySelectorAll('.phone')) {
+  const sc = ph.querySelector('.sc'), gl = ph.querySelector('.glow');
+  const r = sc.getBoundingClientRect(); gl.width = Math.round(r.width * 2); gl.height = Math.round(r.height * 2);
+  const ren = createRenderer(sc, gl); ren.setMood('midsommar');
+  ren.frame(w, { aim: { angle: 50, power: 60 } }, 0);
+  ph.querySelectorAll('.wi').forEach((c) => drawIcon(c, 0));
+}
+</script>
+</body>
+</html>
