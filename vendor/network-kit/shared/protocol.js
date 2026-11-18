@@ -88,7 +88,7 @@ export const FINAL_CLOSE_CODES = new Set(Object.values(CLOSE));
 // Why a game is closed (close code GAME_CLOSED, or a refused start or room),
 // as the admin page decides it (F-003, F-004, F-026). `until` is filled in.
 export const GAME_CLOSED_TEXT = Object.freeze({
-  off: 'The game is closed right now.',
+  off: 'The game is not taking new players right now.',
   until: 'The game is closed until {until}.',
   budget: "The game has used up today's free quota. It opens again at {until}.",
   stopped: 'The game was stopped by its owner.',
@@ -143,3 +143,41 @@ export function isValidCode(code, length) {
   for (const ch of code) if (!CODE_ALPHABET.includes(ch)) return false;
   return true;
 }
+
+// Notices from the admin page to every page of a game (F-066): the admin page
+// sends these texts; pages show them in a box with a warning sound. English
+// only (owner's decision 2026-11-18). "{until}" becomes the local time.
+export const NOTICE_TEXT = Object.freeze({
+  'budget-soon': {
+    level: 'warning',
+    title: 'Closing soon for today',
+    text: 'This game has almost used its share of today\'s free server time. It will soon close for new games until {until}. Games already running can finish.',
+  },
+  'budget-closed': {
+    level: 'warning',
+    title: 'Closed for today',
+    text: 'This game has used its share of today\'s free server time. No new games until {until}. Games already running can finish.',
+  },
+  // The timer ("on until a time", F-067): before and after it ends.
+  'timer-soon': {
+    level: 'warning',
+    title: 'Open play ends soon',
+    text: 'Open play ends at {until}. After that no new players can join. Games already running can finish.',
+  },
+  'timer-ended': {
+    level: 'warning',
+    title: 'Open play has ended',
+    text: 'No new players can join now. Games already running can finish.',
+  },
+  'timer-stop-soon': {
+    level: 'warning',
+    title: 'The game stops soon',
+    text: 'The game stops at {until}. Everyone will be disconnected then.',
+  },
+  'timer-stopped': {
+    level: 'warning',
+    title: 'The game has stopped',
+    text: 'No games can be started or joined now.',
+  },
+  message: { level: 'info', title: 'Message', text: '' },
+});

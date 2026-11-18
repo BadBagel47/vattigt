@@ -13,7 +13,8 @@
 //   host.lastPingAt(ws)                 optional: when the socket last sent a
 //                                       heartbeat the platform answered (ms or null)
 //   host.admission()                    optional: the admin page's word on this game,
-//                                       { open, reason, until, privateOnly, stopped } (F-003)
+//                                       { open, reason, until, stopped } (F-003)
+//   host.checkAdminPass(token)          optional: is this a valid game link (admin pass)? (F-058, F-068)
 //
 // Everything that must survive hibernation lives in `this.state` (stored
 // under the key "room") or in socket attachments. The latest full game state
@@ -622,6 +623,21 @@ export class RoomCore {
     }
   }
 
+  /** Is this one of the room's invitation keys, not expired? */
+  validKey(key, now) {
+    if (typeof key !== 'string' || !key) return false;
+    return Object.values(this.state.keys).some((k) => sameSecret(key, k.k) && (k.exp === null || k.exp > now));
+  }
+
+  async isAdminPass(token) {
+    if (!this.host.checkAdminPass || typeof token !== 'string' || !token) return false;
+    try {
+      return (await this.host.checkAdminPass(token)) === true;
+    } catch {
+      return false;
+    }
+  }
+
   /** An emergency stop closes running rooms too; looked at now and then while the room is busy. */
   async checkStopped() {
     if (!this.host.admission || !this.state || this.state.closed) return;
@@ -893,7 +909,12 @@ export class RoomCore {
       // A newcomer asks the admin page; the owner and those who were already
       // in this room come back whatever it says, so admitted games finish (F-003).
       const word = !isOwner && !standing ? await this.admission() : null;
-      if (word && !word.open) return this.reject(ws, CLOSE.GAME_CLOSED, word.reason ?? 'off', { until: word.until ?? null });
+      // A game link lets its holder in while the game takes no new players, but not after a stop
+      // (F-058); so does an invitation to a room that was made with a valid game link (F-068).
+      const closed = word && !word.open;
+      const admin = closed && !word.stopped && (await this.isAdminPass(msg.adminPass));
+      const invited = closed && !admin && !word.stopped && s.pass && this.validKey(msg.key, now) && (await this.isAdminPass(s.pass));
+      if (closed && !admin && !invited) return this.reject(ws, CLOSE.GAME_CLOSED, word.reason ?? 'off', { until: word.until ?? null });
       let role = null;
       let admitted = false;
       if (isOwner) {
@@ -906,8 +927,7 @@ export class RoomCore {
           if (key.exp !== null && key.exp <= now) expired = true;
           else role = keyRole;
         }
-        // "Private rooms only" on the admin page: only invitation keys let newcomers in.
-        const open = s.settings.access === 'open' && !word?.privateOnly;
+        const open = s.settings.access === 'open';
         const wanted = own(o.roles, msg.role) ? msg.role : null;
         const asked = open && wanted && !o.roles[wanted].needsKey ? wanted : null;
         if (!role && standing) role = asked ?? standing.role; // was here before: no key needed
@@ -975,6 +995,12 @@ export class RoomCore {
     }
 
     player.hidden = msg.hidden === true; // the page is in the background (F-032)
+    if (typeof msg.adminPass === 'string') {
+      const pass = msg.adminPass.slice(0, 100);
+      (this.adminPasses ??= new WeakMap()).set(ws, pass);
+      // The owner's room made with a game link: its invitations get past "no new players" (F-068).
+      if (player.id === s.ownerId && s.pass !== pass && (await this.isAdminPass(pass))) s.pass = pass;
+    }
     this.remember(player);
     this.host.setAttachment(ws, { id: player.id, n: player.lastN, sid: player.sid, at: now });
     this.clearTimer('cleanup');
@@ -1506,7 +1532,10 @@ export class RoomCore {
       case 'start': {
         // A new round (also a rematch) needs the game to be open (F-003).
         const word = await this.admission();
-        if (word && !word.open) {
+        // A round started with a game link, or in a room made with one, is allowed while the game
+        // takes no new players (F-058, F-068); never after a stop.
+        const passed = async () => (await this.isAdminPass(this.adminPasses?.get(ws))) || (s.pass && (await this.isAdminPass(s.pass)));
+        if (word && !word.open && !(!word.stopped && (await passed()))) {
           this.sendJson(ws, { t: 'err', code: 'game-closed', reason: word.reason, until: word.until ?? null, c, n: msg.n });
           return;
         }

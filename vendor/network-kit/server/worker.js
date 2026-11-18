@@ -30,9 +30,10 @@ const SERVER_OPTIONS = {
   // rooms created, and look-ups or joins at a room code. null turns it off;
   // may be a function (env) => limits | null.
   limits: { createsPerMinute: 10, attemptsPerMinute: 60 },
-  // The admin page (F-003, F-004): { binding, game } — a service binding to the
-  // admin Worker's GameApi entrypoint and this game's name (its Worker's name).
-  // May be a function (env) => { binding, game } | null. null: not connected.
+  // The admin page (F-003, F-004): { binding, game, mode } — a service binding
+  // to the admin Worker's GameApi entrypoint, this game's name (its Worker's
+  // name) and, for a game with modes, the rooms' mode (F-057). May be a
+  // function (env) => { … } | null. null: not connected.
   admin: null,
   fallback: null, // async (request, env, ctx) => Response for other paths
 };
@@ -52,6 +53,20 @@ function closedSocket(code, reason) {
   pair[1].send(JSON.stringify({ t: 'denied', code, reason }));
   pair[1].close(code, reason);
   return new Response(null, { status: 101, webSocket: pair[0] });
+}
+
+/** The admin page's notices as pages get them (F-066): known fields only, short texts. */
+export function cleanNotices(list) {
+  if (!Array.isArray(list)) return [];
+  const text = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
+  return list.slice(0, 20).filter((n) => n && typeof n.id === 'string' && n.id).map((n) => ({
+    id: text(n.id, 80),
+    kind: text(n.kind, 40) || 'message',
+    level: n.level === 'warning' ? 'warning' : 'info',
+    title: text(n.title, 80),
+    text: text(n.text, 400),
+    until: typeof n.until === 'string' && !Number.isNaN(Date.parse(n.until)) ? n.until : null,
+  }));
 }
 
 export function createRoomServer(gameOptions = {}) {
@@ -140,21 +155,46 @@ export function createRoomServer(gameOptions = {}) {
   // The admin page's word, asked at most every 30 s per Worker instance. If
   // the admin Worker cannot be reached the game stays open: a broken admin
   // page must not stop every game.
-  let word = { at: 0, value: null };
-  async function adminWord(env) {
+  const words = new Map(); // mode → { at, value }
+  const adminLink = (env) => {
     const link = typeof opts.admin === 'function' ? opts.admin(env) : opts.admin;
     const api = link && env[link.binding];
-    if (!api?.status) return null;
+    return api?.status ? { link, api } : null;
+  };
+  async function adminWord(env, mode = undefined) {
+    const found = adminLink(env);
+    if (!found) return null;
+    const m = mode === undefined ? found.link.mode ?? null : mode;
     const now = Date.now();
-    if (now - word.at < 30_000) return word.value;
+    const cached = words.get(m);
+    if (cached && now - cached.at < 30_000) return cached.value;
     let value = null;
     try {
-      value = await api.status(link.game);
+      value = await found.api.status(found.link.game, m);
     } catch {
       value = null;
     }
-    word = { at: now, value };
+    words.set(m, { at: now, value });
     return value;
+  }
+
+  // The owner's admin pass (F-058): checked with the admin page, kept a minute.
+  const passes = new Map(); // token → { at, valid }
+  async function passValid(env, token) {
+    const found = adminLink(env);
+    if (!found?.api.checkPass || typeof token !== 'string' || token.length > 100) return false;
+    const now = Date.now();
+    const cached = passes.get(token);
+    if (cached && now - cached.at < 60_000) return cached.valid;
+    let valid = false;
+    try {
+      valid = (await found.api.checkPass(found.link.game, token)) === true;
+    } catch {
+      valid = false;
+    }
+    if (passes.size > 1000) passes.clear();
+    passes.set(token, { at: now, valid });
+    return valid;
   }
 
   async function gate(request, env, action) {
@@ -178,18 +218,35 @@ export function createRoomServer(gameOptions = {}) {
 
     if (parts.length === 0 && request.method === 'POST') {
       if (overLimit(request, env, 'create')) return json({ error: 'too-many-requests' }, 429, { ...cors, 'retry-after': '60' });
-      const status = await adminWord(env);
-      if (status && !status.open) return json({ error: status.reason ?? 'off', until: status.until ?? null }, 503, cors);
-      const open = await gate(request, env, 'create');
-      if (!open.open) return json({ error: open.reason }, 503, cors);
       let body = {};
       try {
         body = (await request.json()) ?? {};
       } catch {
         body = {};
       }
+      const status = await adminWord(env);
+      // The owner's admin pass opens a closed game for this browser; an emergency stop stays a stop.
+      if (status && !status.open && (status.stopped || !(await passValid(env, body.adminPass)))) {
+        return json({ error: status.reason ?? 'off', until: status.until ?? null }, 503, cors);
+      }
+      const open = await gate(request, env, 'create');
+      if (!open.open) return json({ error: open.reason }, 503, cors);
       const made = await makeRoom(env, { settings: body.settings ?? {} });
       return json(made.body, made.status, cors);
+    }
+
+    // Is the game (or one of its modes) open right now? For pages that need no
+    // room to ask, e.g. a game played alone in the browser (F-057).
+    if (parts.length === 1 && parts[0] === 'status' && request.method === 'GET') {
+      if (overLimit(request, env, 'attempt')) return json({ error: 'too-many-requests' }, 429, cors);
+      const mode = url.searchParams.get('mode') || null;
+      const status = (await adminWord(env, mode)) ?? { open: true, reason: null, until: null };
+      // Notices from the admin page reach every page that asks, open or not (F-066).
+      const notices = cleanNotices(status.notices);
+      if (!status.open && !status.stopped && (await passValid(env, request.headers.get('x-admin-pass')))) {
+        return json({ open: true, reason: 'admin', until: null, notices }, 200, cors);
+      }
+      return json({ open: status.open, reason: status.reason ?? null, until: status.until ?? null, notices }, 200, cors);
     }
 
     // Anonymous measurement from the game's pages (F-052), handed to the admin page.
@@ -299,6 +356,7 @@ export function createRoomServer(gameOptions = {}) {
           }
         },
         admission: () => adminWord(env),
+        checkAdminPass: (token) => passValid(env, token),
         lastPingAt(ws) {
           // When the platform last answered this socket's heartbeat for us (F-051).
           return ctx.getWebSocketAutoResponseTimestamp?.(ws)?.getTime() ?? null;

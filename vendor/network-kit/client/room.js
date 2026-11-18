@@ -19,6 +19,7 @@ import {
 const MAX_INCOMING_CHARS = 8 * 1024 * 1024;
 import { tabSession } from './tab.js';
 import { Measure } from './measure.js';
+import { adminPass } from './admin-pass.js';
 
 // Identities already renewed in this page because the tab was a copy.
 const renewedInThisPage = new Set();
@@ -105,6 +106,7 @@ export class NetworkRoom {
     this.maxQueueAgeMs = o.maxQueueAgeMs ?? 60_000; // game messages older than this are not resent
     this.aloneSnapshotMs = o.aloneSnapshotMs ?? 300_000; // a host alone in the room stores state this seldom
     this.hostSilentMs = o.hostSilentMs ?? null;
+    this.adminPass = o.adminPass ?? adminPass(this.win); // the owner's pass, if any (F-058)
     // Anonymous measurement of connection quality (F-052): the game turns it on
     // and shows MEASURE_NOTICE. Summaries go to the game's Worker (…/measure).
     this.measure = o.measure
@@ -196,7 +198,8 @@ export class NetworkRoom {
       res = await fetch(apiBase(server, basePath), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ settings: options.settings ?? {} }),
+        // The owner's admin pass, if this browser has one (F-058).
+        body: JSON.stringify({ settings: options.settings ?? {}, adminPass: options.adminPass ?? adminPass(options.window) ?? undefined }),
       });
     } catch {
       throw new RoomError(0, 'network', 'Could not reach the server. Check your connection and try again.');
@@ -209,6 +212,24 @@ export class NetworkRoom {
     const room = new NetworkRoom({ ...options, server, code: body.code, ownerKey: body.ownerKey });
     await room.connect();
     return room;
+  }
+
+  /**
+   * Is the game (or one of its modes) open right now? Asks the room server
+   * without waking a room, e.g. before a game played alone in the browser
+   * starts (F-057). Returns { open, reason, until, text }; open when unsure.
+   */
+  static async status(server, { basePath = '/rooms', mode = null, adminPass: pass, window: win } = {}) {
+    const url = `${apiBase(server, basePath)}/status${mode ? `?mode=${encodeURIComponent(mode)}` : ''}`;
+    const token = pass ?? adminPass(win);
+    try {
+      const res = await fetch(url, { headers: token ? { 'x-admin-pass': token } : {} });
+      const body = await res.json();
+      const notices = Array.isArray(body.notices) ? body.notices : []; // F-066
+      return { open: body.open !== false, reason: body.reason ?? null, until: body.until ?? null, text: gameClosedText(body.reason, body.until), notices };
+    } catch {
+      return { open: true, reason: null, until: null, text: null, notices: [] };
+    }
   }
 
   /** Join an existing room. */
@@ -331,6 +352,7 @@ export class NetworkRoom {
           t: 'hello', v: PROTOCOL, pk: this.playerKey, sid: this.sid,
           name: this.name, role: this.role, key: this.key, owner: this.ownerKey,
           hidden: this.doc?.hidden === true,
+          ...(this.adminPass ? { adminPass: this.adminPass } : {}),
         }));
       } catch {
         // onclose follows
