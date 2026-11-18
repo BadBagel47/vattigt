@@ -33,6 +33,9 @@ button[aria-pressed="true"]{background:var(--sun);border-color:var(--sun);color:
 .row > button{flex:1}
 .big{min-height:88px;font-size:30px}
 #jump{min-height:64px;font-size:20px}
+.power{display:flex;flex-direction:column;gap:4px;font-size:14px;color:var(--ink);text-align:center}
+.power input{width:100%;min-height:36px;accent-color:#ffd66b;touch-action:manipulation;margin:0}
+.power[aria-disabled=true]{opacity:.4}
 #weaponMenu{position:absolute;inset:5% 5%;background:rgba(12,16,34,.95);border:2px solid var(--line);padding:8px;overflow:auto;z-index:3}
 #weaponMenu[hidden]{display:none}
 .wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
@@ -142,7 +145,8 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
   </div>
 
   <div class="pad" id="right">
-    <div class="top"><button type="button" class="weapon cur" id="weaponBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="weaponMenu"><canvas id="weaponIcon"></canvas><span id="weaponName"></span></button></div>
+    <div class="top"><button type="button" class="weapon cur" id="weaponBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="weaponMenu"><canvas id="weaponIcon"></canvas><span id="weaponName"></span></button>
+      <label class="power" id="powerBox"><span id="powerLabel">Styrka 60 %</span><input type="range" id="power" min="10" max="100" step="5" value="60" aria-describedby="powerLabel"></label></div>
     <div class="bottom">
       <button type="button" id="drop" hidden>Lägg ut</button>
       <button type="button" id="jump">Hoppa</button>

@@ -114,7 +114,13 @@ function updatePanels() {
   $('drop').disabled = !horse && (!canAct || (u && u.air));
   const moving = mine && (t.phase === 'aim' || t.phase === 'retreat') && u && u.alive;
   for (const id of ['walkL', 'walkR', 'jump']) $(id).disabled = !moving;
-  for (const id of ['aimUp', 'aimDown']) $(id).disabled = !(canAct && wpn.aim && !(u && u.air));
+  const aimable = canAct && wpn.aim && !wpn.tool && !(u && u.air);
+  for (const id of ['aimUp', 'aimDown']) $(id).disabled = !aimable;
+  $('power').disabled = !aimable; $('powerBox').setAttribute('aria-disabled', String(!aimable));
+  if (document.activeElement !== $('power')) {
+    const pw = (view.aim || view.keyAim || t.aim).power;
+    if ($('power').value !== String(pw)) { $('power').value = String(pw); $('powerLabel').textContent = `Styrka ${pw} %`; }
+  }
   if (!moving && (held.left || held.right)) { held.left = held.right = false; updateWalk(); }
   let hint = '';
   if (mode === 'online' && online.room) {
@@ -168,6 +174,16 @@ function holdAim(el, dir) {
   el.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 holdAim($('aimUp'), 1); holdAim($('aimDown'), -1);
+
+// Strength without dragging (F-039): the slider, or Shift with the left and right arrows.
+function setPower(p) {
+  if (!canAim()) return;
+  const w = world(), cur = view.keyAim || w.turn.aim, power = Math.max(10, Math.min(100, Math.round(p)));
+  view.keyAim = { angle: cur.angle, power }; view.aimed = true;
+  $('power').value = String(power); $('powerLabel').textContent = `Styrka ${power} %`;
+  emit({ aim: view.keyAim });
+}
+$('power').addEventListener('input', () => { sound.unlock(); setPower(+$('power').value); });
 $('jump').addEventListener('pointerdown', (e) => { e.preventDefault(); emit({ jump: true }); sound.unlock(); });
 $('jump').addEventListener('click', (e) => { if (e.detail === 0) emit({ jump: true }); });
 $('drop').addEventListener('click', () => { const w = world(); emit({ fire: WEAPONS[w.turn.weapon].aim && view.keyAim ? { ...view.keyAim } : true }); shotsFired++; view.aimed = false; });
@@ -208,11 +224,12 @@ function endDrag(e) {
 stage.addEventListener('pointerup', endDrag);
 stage.addEventListener('pointercancel', (e) => { if (drag && e.pointerId === drag.id) { drag = null; view.aim = null; view.target = null; } });
 
-// Keyboard, for a computer: arrows to walk, space to jump, 1–3 for weapons, Enter to fire with the last aim.
+// Keyboard, for a computer: arrows to walk, up and down to aim, Shift with left and right for strength, space to jump, 1–9 for weapons, Enter to fire.
 addEventListener('keydown', (e) => {
   if (mode === 'title' || paused || e.target.tagName === 'INPUT') return;
   if (e.repeat && !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
-  if (e.key === 'ArrowLeft') { held.left = true; updateWalk(); }
+  if (e.shiftKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) { const w = world(); if (w) setPower((view.keyAim || w.turn.aim).power + (e.key === 'ArrowRight' ? 5 : -5)); e.preventDefault(); }
+  else if (e.key === 'ArrowLeft') { held.left = true; updateWalk(); }
   else if (e.key === 'ArrowRight') { held.right = true; updateWalk(); }
   else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { nudgeAim(e.key === 'ArrowUp' ? 1 : -1); e.preventDefault(); }
   else if (e.key === ' ') { emit({ jump: true }); e.preventDefault(); }
