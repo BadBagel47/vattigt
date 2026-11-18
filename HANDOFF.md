@@ -53,6 +53,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - 2026-11-17: Borås först med stämpeln "Bara i Borås" och verktyget Enkel biljett till Borås; Knallen senare (D-010).
 - 2026-11-17: Metspöt (svingrep) väntar; Skurhinken, Kräftskivan och Snöbollen först (F-027).
 - 2026-11-17: Datormotståndaren får tre nivåer (lätt, lagom, svår); den lätta missar ofta (F-030).
+- 2026-11-18: Första spelläget utöver klassiskt är Kubb (F-032); Boet och Stången senare. Nästa banor: Fjället och Takåsarna (F-034).
 - 2026-11-16: Musiken är chiptune som möter svensk folkmusik. Agenten komponerar och producerar allt (ljudet skapas i webbläsaren, inga riktiga instrument); användaren lyssnar och styr.
 - 2026-11-17: Mobil först: spelet byggs för pekskärm och liggande läge; tangentbord och mus kommer sedan.
 - 2026-11-17: Spelet är på svenska.

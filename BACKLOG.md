@@ -8,9 +8,9 @@ Prioritet: Hög, Medel, Låg.
 | ID | Prio | Status | Beskrivning |
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
-| F-032 | Medel | Förslag | Spellägen ur designförslaget: Boet (skydda ert bo), Kubb (fäll motståndarens kubbar och sist kungen) och Stången (håll platsen vid midsommarstången). |
-| F-033 | Låg | Förslag | Pratbubblor där lagen pratar dialekt (skånska, göteborgska, norrländska). |
-| F-034 | Låg | Förslag | Fler banor ur designförslaget: Fjället, Slätten, Raukarna, Takåsarna, Älven, Villaområdet. |
+| F-032 | Medel | Pågår (2026-11-18, session Vättigt, main) | Spellägen ur designförslaget: Boet (skydda ert bo), Kubb (fäll motståndarens kubbar och sist kungen) och Stången (håll platsen vid midsommarstången). |
+| F-033 | Låg | Pågår (2026-11-18, session Vättigt, main) | Pratbubblor där lagen pratar dialekt (skånska, göteborgska, norrländska). |
+| F-034 | Låg | Pågår (2026-11-18, session Vättigt, main) | Fler banor ur designförslaget: Fjället, Slätten, Raukarna, Takåsarna, Älven, Villaområdet. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
