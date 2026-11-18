@@ -9,7 +9,7 @@ Prioritet: Hög, Medel, Låg.
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
 | F-041 | Låg | Förslag | Fler banor ur designförslaget: Älven och Villaområdet (flyttat från F-036). |
-| F-043 | Låg | Förslag | Koppla Vättigt till network-kits adminsida (av/på, nödstopp, dagsbudget) via en servicebindning, och eventuellt frivilliga anonyma mätningar av anslutningen med en synlig upplysning till spelarna. Kräver att network-kit-admin finns på samma Cloudflare-konto. |
+| F-043 | Låg | Förslag | Ta in network-kit v0.11.2 (finns sedan 2026-11-18; Vättigt har v0.8.0, ändringarna gäller bara adminsidan) och koppla Vättigt till adminsidan via en servicebindning: Nya spelare av/på, tidsstyrning, nödstopp, dagsbudget, spellänkar, och meddelanden till spelarna (watchNotices). Eventuellt frivilliga anonyma mätningar av anslutningen med en synlig upplysning. Kräver att network-kit-admin finns på samma Cloudflare-konto. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
@@ -20,7 +20,7 @@ Prioriterat för: att allt nytt provas på riktiga telefoner innan mer läggs ti
   - F-041 – Älven (stockar som flyter, en damm som kan sprängas) och Villaområdet (studsmatta, robotgräsklippare)
 
 - **B** – standardmodell, medelnivå – Adminsidan
-  - F-043 – Koppla spelet till adminsidan, så att du kan slå av och på det och se förbrukningen
+  - F-043 – Ta in network-kit 0.11 och koppla spelet till adminsidan, så att du kan slå av och på det, se förbrukningen och skicka meddelanden till spelarna
   - Fråga: Ska spelet också skicka anonyma mätningar av anslutningen? Rekommendation: nej tills vidare, det kräver en upplysning till spelarna.
 
 Användarens provspel går före allt detta.
