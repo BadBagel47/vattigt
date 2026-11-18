@@ -1,6 +1,6 @@
 # Vättigt och network-kit (D-011)
 
-Status: byggt 2026-11-17 (F-014, F-015). Koden finns i `src/net/` (`match.js` inmatningsloggen, `online.js` rummet) och `worker/`. Avsnitten nedan beskriver tanken; koden är facit. Bygger på network-kit v0.5.0 (`BadBagel47/network-kit`, se dess `docs/INTEGRATION.md`). Inget här är beslutat förrän det står under Decisions i [HANDOFF.md](../HANDOFF.md).
+Status: byggt 2026-11-17 (F-014, F-015). Koden finns i `src/net/` (`match.js` inmatningsloggen, `online.js` rummet) och `worker/`. Avsnitten nedan beskriver tanken; koden är facit. Bygger på network-kit v0.6.0 (`BadBagel47/network-kit`, se dess `docs/INTEGRATION.md`). Inget här är beslutat förrän det står under Decisions i [HANDOFF.md](../HANDOFF.md).
 
 ## Kort
 
@@ -66,7 +66,9 @@ export default {
 
 ## Behov som rapporterats till network-kit
 
-Inget av detta krävs; Vättigt passar v0.5.0 som den är. Skickat 2026-11-17 till agenten som arbetar med network-kit. Den har lagt in idéerna som network-kit F-039 och network-kit F-040, med låg prioritet; användaren bestämmer när de byggs. Säg till den agenten när Vättigt börjar med onlinespel, så tas de upp då. Fram till dess skickar värden vidare indata.
+Uppdatering 2026-11-18 (F-040): network-kit v0.6.0 är inne. Värden anger med `setSuccessors` att den vars tur det är tar över först (sedan resten av det laget), och rummet har `heartbeatMs: 2000` så att en telefon som tappar nätet märks på ungefär 5 sekunder. `sendsTo: 'all'` används inte än: värden skickar fortfarande vidare indata.
+
+Ursprungligen: inget av detta krävs; Vättigt passar v0.5.0 som den är. Skickat 2026-11-17 till agenten som arbetar med network-kit. Den har lagt in idéerna som network-kit F-039 och network-kit F-040, med låg prioritet; användaren bestämmer när de byggs. Säg till den agenten när Vättigt börjar med onlinespel, så tas de upp då. Fram till dess skickar värden vidare indata.
 
 - Den aktiva spelaren skulle kunna skicka direkt till alla, i stället för via värden. Halverar antalet meddelanden och gör att indata kommer fram även när värdens telefon sover.
 - Värden skulle kunna peka ut vem som tar över först, till exempel den vars tur det är. Mellan turerna lägger spelarna ofta ifrån sig telefonen, så värdens telefon somnar lätt.

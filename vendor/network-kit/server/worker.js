@@ -85,6 +85,30 @@ export function createRoomServer(gameOptions = {}) {
     return null;
   }
 
+  async function makeRoom(env, { settings = {}, open = false } = {}) {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const code = newRoomCode(opts.codeLength);
+      const res = await stub(env, code).fetch('https://room/create', {
+        method: 'POST',
+        body: JSON.stringify({ code, settings, open }),
+      });
+      if (res.status === 409) continue;
+      return { status: res.status, body: await res.json() };
+    }
+    return { status: 503, body: { error: 'no-free-code' } };
+  }
+
+  /**
+   * For the game's own server code: create a room nobody in it created, e.g.
+   * for an invitation two people open (F-029). The first participant who may
+   * lead becomes owner and host. Returns { code, keys } (no owner key).
+   */
+  async function createRoom(env, { settings = {} } = {}) {
+    const made = await makeRoom(env, { settings, open: true });
+    if (made.status !== 200) throw new Error(`network-kit: could not create a room (${made.body.error ?? made.status})`);
+    return made.body;
+  }
+
   async function gate(request, env, action) {
     if (!opts.gate) return { open: true };
     const result = await opts.gate({ request, env, action });
@@ -113,16 +137,8 @@ export function createRoomServer(gameOptions = {}) {
       } catch {
         body = {};
       }
-      for (let attempt = 0; attempt < 6; attempt++) {
-        const code = newRoomCode(opts.codeLength);
-        const res = await stub(env, code).fetch('https://room/create', {
-          method: 'POST',
-          body: JSON.stringify({ code, settings: body.settings ?? {} }),
-        });
-        if (res.status === 409) continue;
-        return json(await res.json(), res.status, cors);
-      }
-      return json({ error: 'no-free-code' }, 503, cors);
+      const made = await makeRoom(env, { settings: body.settings ?? {} });
+      return json(made.body, made.status, cors);
     }
 
     if (parts.length === 0 && request.method === 'GET') {
@@ -197,6 +213,10 @@ export function createRoomServer(gameOptions = {}) {
             // already closed
           }
         },
+        lastPingAt(ws) {
+          // When the platform last answered this socket's heartbeat for us (F-051).
+          return ctx.getWebSocketAutoResponseTimestamp?.(ws)?.getTime() ?? null;
+        },
       };
       this.core = new RoomCore(host, coreOptions);
       // Heartbeats are answered without waking the room (no cost).
@@ -212,13 +232,13 @@ export function createRoomServer(gameOptions = {}) {
       const url = new URL(request.url);
       if (url.pathname === '/create') {
         const body = await request.json();
-        const result = await this.core.create(body.settings, body.code);
+        const result = await this.core.create(body.settings, body.code, { open: body.open === true });
         return json(result, result.error ? 409 : 200);
       }
       if (url.pathname === '/info') {
         const info = this.core.info();
         if (!info) return json({ error: 'not-found' }, 404);
-        return json(info, info.closed ? 410 : 200);
+        return json({ ...info, where: await this.where() }, info.closed ? 410 : 200);
       }
       if (url.pathname === '/ws') {
         // eslint-disable-next-line no-undef
@@ -228,6 +248,23 @@ export function createRoomServer(gameOptions = {}) {
         return new Response(null, { status: 101, webSocket: pair[0] });
       }
       return json({ error: 'not-found' }, 404);
+    }
+
+    /**
+     * The data centre this room runs in (e.g. "FRA"), asked once per wake-up
+     * from Cloudflare's trace page; null if that fails (D-046). A room stays
+     * where it was created: near the first visitor, inside the jurisdiction.
+     */
+    async where() {
+      this.whereAt ??= (async () => {
+        try {
+          const res = await globalThis.fetch('https://www.cloudflare.com/cdn-cgi/trace', { signal: AbortSignal.timeout(2_000) });
+          return /^colo=(\w+)$/m.exec(await res.text())?.[1] ?? null;
+        } catch {
+          return null;
+        }
+      })();
+      return this.whereAt;
     }
 
     async webSocketMessage(ws, message) {
@@ -252,5 +289,5 @@ export function createRoomServer(gameOptions = {}) {
     }
   }
 
-  return { fetch, RoomObject, options: opts };
+  return { fetch, createRoom, RoomObject, options: opts };
 }

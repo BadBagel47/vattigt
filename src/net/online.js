@@ -120,7 +120,7 @@ export function createOnline(server, hooks = {}) {
       match.runStep();
       events.push(...match.world.events);
       const c = controllerFor();
-      if (c !== ctl) { ctl = c; emit('onControl', ctl); }
+      if (c !== ctl) { ctl = c; emit('onControl', ctl); nameSuccessors(); }
       if (++sinceBatch >= BATCH_STEPS) sendBatch();
     }
     if (acc > 1) acc = 0;
@@ -131,6 +131,19 @@ export function createOnline(server, hooks = {}) {
       setTimeout(() => { if (isHost() && room.phase === 'playing') room.end(); }, 2500);
     }
   }
+  // If this browser drops out, the player whose turn it is takes over first, then
+  // the other players of that team (network-kit F-040).
+  function nameSuccessors() {
+    const w = match?.world;
+    if (!w || !room?.room) return;
+    const team = (room.room.places?.[TEAM_PLACES[w.turn.team]] || []).filter((id) => id !== me() && id !== ctl);
+    const ids = [ctl, ...team].filter((id) => id && id !== me());
+    const key = ids.join(',');
+    if (key === lastSuccessors) return;
+    lastSuccessors = key;
+    room.setSuccessors(ids)?.catch?.(() => {});
+  }
+  let lastSuccessors = '';
   function sendBatch() {
     sinceBatch = 0;
     const ev = match.log.slice(sent); sent = match.log.length;

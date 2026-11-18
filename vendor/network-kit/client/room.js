@@ -145,6 +145,7 @@ export class NetworkRoom {
     this.partSeq = 0;
     this.leaveTimer = null;
     this.pendingSnapshot = null;
+    this.welcomeState = null; // the room's state for newcomers, if the game uses it (F-030)
     this.status = 'idle';
     this.ws = null;
     this.socketWelcomed = false;
@@ -313,6 +314,7 @@ export class NetworkRoom {
         ws.send(JSON.stringify({
           t: 'hello', v: PROTOCOL, pk: this.playerKey, sid: this.sid,
           name: this.name, role: this.role, key: this.key, owner: this.ownerKey,
+          hidden: this.doc?.hidden === true,
         }));
       } catch {
         // onclose follows
@@ -446,6 +448,8 @@ export class NetworkRoom {
     const online = () => this.recover(true);
     const offline = () => this.setStatus('offline');
     const visible = () => {
+      // The room closes a room whose pages have all been hidden for long (F-032).
+      if (this.ready) this.command('visibility', { hidden: doc.hidden === true });
       if (doc.hidden) {
         this.hiddenAt = Date.now();
         return;
@@ -527,6 +531,11 @@ export class NetworkRoom {
         if (Number.isFinite(limits.rate)) this.rate = limits.rate;
         if (Number.isFinite(limits.maxMessageBytes)) this.maxMessageBytes = Math.min(limits.maxMessageBytes, this.ownLimits.message);
         if (Number.isFinite(limits.maxSnapshotBytes)) this.maxSnapshotBytes = Math.min(limits.maxSnapshotBytes, this.ownLimits.snapshot);
+        // The room may ask for a faster heartbeat, so it notices a dead connection sooner (F-051).
+        if (Number.isFinite(limits.heartbeatMs) && limits.heartbeatMs > 0 && limits.heartbeatMs !== this.heartbeatMs) {
+          this.heartbeatMs = limits.heartbeatMs;
+          if (this.heartbeatTimer) this.startHeartbeat();
+        }
         this.tokens = this.rate;
         this.tokensAt = Date.now();
         this.lastHostData = Date.now();
@@ -540,6 +549,8 @@ export class NetworkRoom {
         // The newest state first, so a queued handover or leave passes on the right one.
         if (this.pendingSnapshot && this.isHost) this.transmit(this.pendingSnapshot);
         this.pendingSnapshot = null;
+        if (this.isHost) for (const text of this.pendingWelcomeStates?.values() ?? []) this.transmit(text);
+        this.pendingWelcomeStates?.clear();
         for (const m of this.queue) this.transmit(m.text);
         this.flushLatest(); // the newest values, after everything that must arrive in order
         this.setStatus('online');
@@ -561,6 +572,10 @@ export class NetworkRoom {
         // This client runs the game now: continue from the snapshot (null: start fresh).
         this.emit('host', { snapshot: msg.snapshot });
         if (this.autoHostReady) this.hostReady();
+        break;
+      case 'welcome-state':
+        this.welcomeState = msg.d;
+        this.emit('welcome-state', { data: msg.d });
         break;
       case 'owner':
         this.ownerKey = msg.key;
@@ -818,6 +833,25 @@ export class NetworkRoom {
     return true;
   }
 
+  /**
+   * Host: the state everyone who joins or comes back gets right after the
+   * welcome, kept by the room (so it reaches them even while the host is
+   * asleep). One shared state, or one per role with `{ role }`; `null`
+   * removes it (F-030). Only the newest counts.
+   */
+  setWelcomeState(data, { role = null } = {}) {
+    if (!this.isHost) return false;
+    const text = JSON.stringify({ t: 'welcome-state', role, d: data ?? null });
+    if (this.tooLarge(text, this.maxSnapshotBytes, 'welcome-state')) return false;
+    this.pendingWelcomeStates ??= new Map();
+    if (this.ready) {
+      this.pendingWelcomeStates.delete(role ?? '*');
+      return this.transmit(text);
+    }
+    this.pendingWelcomeStates.set(role ?? '*', text); // delivered after the reconnect
+    return true;
+  }
+
   command(c, args = {}) {
     return this.numbered({ t: 'cmd', c, ...args }, 'cmd');
   }
@@ -837,6 +871,10 @@ export class NetworkRoom {
   admitWaiting() { return this.command('admit'); }
   assignPlace(id, place) { return this.command('assign', { id, place }); }
   hostReady() { return this.command('host-ready'); }
+  /** Owner: lift a ban (`room.bans` lists who was banned) (F-031). They need a new invitation link. */
+  unban(id) { return this.command('unban', { id }); }
+  /** Host: who should take over first if this browser is lost, e.g. the player whose turn it is (F-040). */
+  setSuccessors(ids) { return this.command('successors', { ids }); }
 
   /** Hand the game to another participant. Sends `snapshot` first if given. */
   handover(id, snapshot) {

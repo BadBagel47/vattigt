@@ -9,5 +9,7 @@ export default {
   roles: { player: { seats: 8 }, viewer: { seats: 4 } },
   lateJoin: 'now',           // late joiners watch, and may pick a team for coming turns
   countdownMs: 2000,
+  heartbeatMs: 2000,         // a phone that loses its network is noticed in about 5 s (network-kit F-051)
+  idleCloseMs: 60 * 60 * 1000, // a room left in the background for an hour closes (network-kit default)
   basePath: '/rooms',
 };

@@ -11,7 +11,6 @@ Prioritet: Hög, Medel, Låg.
 | F-035 | Medel | Pågår (2026-11-18, session Vättigt, main) | Spellägena Boet (skydda ert bo, förstör motståndarens) och Stången (håll platsen vid midsommarstången flest rundor). |
 | F-036 | Låg | Pågår (2026-11-18, session Vättigt, main) | Fler banor ur designförslaget: Slätten, Raukarna, Älven, Villaområdet. |
 | F-037 | Låg | Pågår (2026-11-18, session Vättigt, main) | Valbara regler ur designförslaget: Lagom-zonen på kraftmätaren och Jantelagen (laget som leder får sämre lådor). |
-| F-040 | Medel | Pågår (2026-11-18, session Vättigt, main) | Ta in network-kit v0.6.0 (meddelat av network-kit-sessionen 2026-11-18): vem som tar över först om den som kör matchen försvinner (network-kit F-040, t.ex. den vars tur det är), snabbare upptäckt av tappad kontakt (network-kit F-051), läget sparat för den som kommer tillbaka (network-kit F-030). Nytt: rum stängs efter en timme i bakgrunden. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
@@ -36,6 +35,7 @@ Parkerat: D-012 (musik).
 
 | ID | Klart | Beskrivning |
 |---|---|---|
+| F-040 | 2026-11-18 | network-kit v0.6.0 inne: en telefon som tappar nätet märks på ungefär 5 sekunder, och den vars tur det är tar över först om den som kör matchen försvinner. |
 | F-039 | 2026-11-18 | Styrkan går att ändra utan att dra i bilden: reglaget Styrka under vapnet, eller Skift + pil vänster/höger på tangentbordet. |
 | F-038 | 2026-11-18 | Sikta med pil upp och pil ner, på tangentbordet och med knapparna ▲ ▼ på skärmen. Skjut med Enter eller knappen Skjut, som visas när man har siktat med pilarna. Styrkan är den senaste. |
 | F-032 | 2026-11-18 | Spelläget Kubb: fäll motståndarens fem kubbar och sist kungen; fälls kungen för tidigt förlorar man. Val i eget spel och i lobbyn, datorn spelar det också. Boet och Stången flyttade till F-035. |

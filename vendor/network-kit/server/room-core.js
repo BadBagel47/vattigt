@@ -10,6 +10,8 @@
 //   host.getAttachment(ws) / host.setAttachment(ws, value)
 //   host.send(ws, text) / host.close(ws, code, reason)
 //   host.env                            the Worker's environment (for rules)
+//   host.lastPingAt(ws)                 optional: when the socket last sent a
+//                                       heartbeat the platform answered (ms or null)
 //
 // Everything that must survive hibernation lives in `this.state` (stored
 // under the key "room") or in socket attachments. The latest full game state
@@ -39,7 +41,7 @@ export const DEFAULT_ROLES = Object.freeze({
 
 export const DEFAULT_OPTIONS = Object.freeze({
   mode: 'host', // 'host': a participant's browser runs the game; 'server': rules run here
-  roles: null, // name → { seats, plays, canPause, canHost, sends, needsKey }; null = player + viewer
+  roles: null, // name → { seats, plays, canPause, canHost, sends, sendsTo, needsKey }; null = player + viewer
   ownerRole: 'player', // the role the room's creator joins in
   places: {}, // named spots a playing participant can take: { name: capacity } or [names]
   access: 'open', // default room access: 'open' (code is enough) or 'private' (key needed)
@@ -51,10 +53,13 @@ export const DEFAULT_OPTIONS = Object.freeze({
   takeover: false, // host-run rooms: may another participant take over a lost host's game?
   takeoverMs: 5_000, // ... after waiting this long for the host
   hostCheckMs: 3_000, // how long a host has to answer when others report it silent
+  heartbeatMs: null, // clients send a free heartbeat this often; a participant silent for
+  // 2.5 heartbeats is treated as dropped (F-051). null: the client's default (20 s), no check
   closeAfterHostAwayMs: null, // without takeover: close the room after waiting this long
   passOwnerAfterMs: null, // ownership passes on when the owner has been away this long
   ownerLeave: 'close', // owner leaving on purpose: 'close' the room or 'pass' ownership on
   countdownMs: 3_000,
+  idleCloseMs: 60 * 60_000, // close the room when every connected page has been hidden this long (null: never) (F-032)
   cleanupMs: 24 * 60 * 60_000, // delete a room this long after the last participant left
   closedKeepMs: 60 * 60_000, // keep a closed room's "closed" note this long
   snapshotSaveMs: 5_000,
@@ -69,8 +74,8 @@ export const DEFAULT_OPTIONS = Object.freeze({
   rules: null, // server mode: the game's rules (see docs/INTEGRATION.md)
 });
 
-const OWNER_COMMANDS = new Set(['kick', 'renew', 'settings', 'close', 'owner']);
-const HOST_COMMANDS = new Set(['start', 'cancel', 'end', 'admit', 'assign', 'handover', 'data']);
+const OWNER_COMMANDS = new Set(['kick', 'unban', 'renew', 'settings', 'close', 'owner']);
+const HOST_COMMANDS = new Set(['start', 'cancel', 'end', 'admit', 'assign', 'handover', 'data', 'successors']);
 
 const own = (obj, key) => typeof key === 'string' && Object.hasOwn(obj, key);
 
@@ -86,6 +91,9 @@ function resolveRoles(roles) {
       canPause: Boolean(merged.canPause ?? plays),
       canHost: Boolean(merged.canHost ?? plays),
       sends: Boolean(merged.sends ?? plays),
+      // Host-run rooms: 'host' (messages go to the host) or 'all' (the same
+      // targets as the host: everyone, a list, a role or a place) (F-039).
+      sendsTo: merged.sendsTo === 'all' ? 'all' : 'host',
       needsKey: Boolean(merged.needsKey ?? !own(DEFAULT_ROLES, name)),
     };
   }
@@ -152,6 +160,8 @@ export class RoomCore {
     this.cancelUsageSave = null;
     this.dirty = false;
     this.alarmAt = null;
+    this.heard = new WeakMap(); // socket → when a message last arrived (in memory)
+    this.lastScan = 0;
   }
 
   // ---------------------------------------------------------------- storage
@@ -169,6 +179,7 @@ export class RoomCore {
   async flush() {
     if (this.state && !this.state.closed) {
       this.syncHostPause();
+      this.checkIdle();
       // A room nobody is connected to must always be on its way to being deleted.
       if (this.identifiedSockets().length === 0 && !this.hasTimer('cleanup')) {
         this.setTimer('cleanup', this.options.cleanupMs);
@@ -229,6 +240,79 @@ export class RoomCore {
     this.storedParts = parts;
   }
 
+  // State for newcomers (F-030): set by the host (or the rules), one shared and
+  // optionally one per role, kept by the room and sent to everyone who joins
+  // or comes back, right after the welcome. Stored in parts like the snapshot:
+  //   welcome:<role|*>   { at, parts }   welcome:<role|*>:0 … text parts
+  async getWelcomeState(role) {
+    this.welcomeStates ??= new Map();
+    if (!this.welcomeStates.has(role)) {
+      const record = (await this.host.storage.get(`welcome:${role}`)) ?? null;
+      let d;
+      if (record) {
+        const texts = [];
+        for (let i = 0; i < record.parts; i++) texts.push((await this.host.storage.get(`welcome:${role}:${i}`)) ?? '');
+        try {
+          d = JSON.parse(texts.join(''));
+        } catch {
+          d = undefined;
+        }
+      }
+      this.welcomeStates.set(role, { d, parts: record?.parts ?? 0, dirty: false });
+    }
+    return this.welcomeStates.get(role);
+  }
+
+  async setWelcomeState(role, d) {
+    const entry = await this.getWelcomeState(role);
+    entry.d = d === null ? undefined : d;
+    entry.dirty = true;
+    // Stored at most every snapshotSaveMs, like the snapshot, with a trailing save.
+    const wait = (this.welcomeSavedAt ?? 0) + this.options.snapshotSaveMs - this.host.now();
+    if (wait <= 0) await this.saveWelcomeStates();
+    else this.cancelWelcomeSave ??= this.host.defer(wait, () => this.saveWelcomeStates());
+  }
+
+  async saveWelcomeStates() {
+    this.cancelWelcomeSave?.();
+    this.cancelWelcomeSave = null;
+    if (!this.state || !this.welcomeStates) return;
+    this.welcomeSavedAt = this.host.now();
+    for (const [role, entry] of this.welcomeStates) {
+      if (!entry.dirty) continue;
+      entry.dirty = false;
+      if (entry.d === undefined) {
+        await this.host.storage.delete(`welcome:${role}`);
+        for (let i = 0; i < entry.parts; i++) await this.host.storage.delete(`welcome:${role}:${i}`);
+        entry.parts = 0;
+        continue;
+      }
+      const text = JSON.stringify(entry.d);
+      const parts = Math.max(1, Math.ceil(text.length / PART_CHARS));
+      for (let i = 0; i < parts; i++) await this.host.storage.put(`welcome:${role}:${i}`, text.slice(i * PART_CHARS, (i + 1) * PART_CHARS));
+      await this.host.storage.put(`welcome:${role}`, { at: this.host.now(), parts });
+      for (let i = parts; i < entry.parts; i++) await this.host.storage.delete(`welcome:${role}:${i}`);
+      entry.parts = parts;
+    }
+  }
+
+  /** Send a participant the state for newcomers that fits their role, if there is one. */
+  async sendWelcomeState(ws, p) {
+    const forRole = await this.getWelcomeState(p.role);
+    const entry = forRole.d !== undefined ? forRole : await this.getWelcomeState('*');
+    if (entry.d !== undefined) this.sendJson(ws, { t: 'welcome-state', d: entry.d });
+  }
+
+  async dropWelcomeStates() {
+    for (const role of [...Object.keys(this.options.roles), '*']) {
+      const entry = await this.getWelcomeState(role);
+      if (entry.d === undefined && entry.parts === 0) continue;
+      entry.d = undefined;
+      entry.dirty = true;
+    }
+    await this.saveWelcomeStates();
+  }
+
   async dropSnapshot() {
     this.cancelSave?.();
     this.cancelSave = null;
@@ -278,6 +362,7 @@ export class RoomCore {
       // A closed room only waits to be forgotten.
       if (due.some((t) => t.kind === 'cleanup')) await this.deleteRoom();
     } else {
+      await this.findSilent();
       for (const timer of due) {
         if (!this.state || this.state.closed) break; // closed or deleted by an earlier timer
         await this.runTimer(timer);
@@ -317,6 +402,11 @@ export class RoomCore {
         if (!owner || owner.status === 'away') await this.passOwner();
         break;
       }
+      case 'idle': {
+        // Every page in the room has been hidden all this time: nobody is playing (F-032).
+        if (this.everyoneHidden()) await this.closeRoom('idle');
+        break;
+      }
       case 'cleanup': {
         if (this.identifiedSockets().length === 0) await this.deleteRoom();
         break;
@@ -328,9 +418,30 @@ export class RoomCore {
     }
   }
 
+  /** True when someone is connected and every connected page is hidden. */
+  everyoneHidden() {
+    const online = Object.values(this.state.players).filter((p) => p.status === 'online');
+    return online.length > 0 && online.every((p) => p.hidden === true);
+  }
+
+  /** A room whose pages are all hidden (forgotten tabs) closes after idleCloseMs (F-032). */
+  checkIdle() {
+    if (!this.options.idleCloseMs) return;
+    if (this.everyoneHidden()) {
+      if (!this.hasTimer('idle')) this.setTimer('idle', this.options.idleCloseMs);
+    } else if (this.hasTimer('idle')) {
+      this.clearTimer('idle');
+    }
+  }
+
   // ------------------------------------------------------------------ rooms
 
-  async create(settings = {}, code) {
+  /**
+   * Create the room. `open`: created by the game's server for an invitation,
+   * without a participating creator: the first participant who may lead
+   * becomes owner (and host) (F-029).
+   */
+  async create(settings = {}, code, { open = false } = {}) {
     if (this.state && !this.state.closed) return { error: 'exists' };
     const o = this.options;
     const access = settings?.access === 'private' || settings?.access === 'open' ? settings.access : o.access;
@@ -346,7 +457,7 @@ export class RoomCore {
       settings: { access, lateJoin },
       ownerKey: newSecret(),
       ownerId: null,
-      ownerOpen: false, // true: ownership is free for the next eligible participant
+      ownerOpen: Boolean(open), // true: ownership is free for the next eligible participant
       hostId: null,
       hostEver: false,
       hostPending: o.mode === 'host', // the host has not confirmed that it runs the game
@@ -358,17 +469,20 @@ export class RoomCore {
       paused: null,
       players: {},
       known: {}, // player-key hash → { id, sid, lastN, role, admitted, at }
-      bans: [],
+      bans: [], // player-key hashes that may not come back
+      banList: {}, // hash → { id, name, at }: who was banned, for the owner's list (F-031)
       timers: [],
       usage: { day: utcDay(now), n: 0 },
       data: null, // small shared data set by the host, the owner or the rules; everyone sees it
       game: null,
     };
     await this.dropSnapshot();
+    await this.dropWelcomeStates();
     this.setTimer('cleanup', o.cleanupMs);
     if (o.mode === 'server') this.state.game = (await this.callRules('init')) ?? null;
     this.touch();
     await this.flush();
+    if (open) return { code, keys: this.publicKeys() };
     return { code, ownerKey: this.state.ownerKey, keys: this.publicKeys() };
   }
 
@@ -426,6 +540,9 @@ export class RoomCore {
     this.cancelSave?.();
     this.cancelSave = null;
     this.state = null;
+    this.welcomeStates = null;
+    this.cancelWelcomeSave?.();
+    this.cancelWelcomeSave = null;
     this.snapshot = null;
     this.snapshotLoaded = true;
     this.snapshotDirty = false;
@@ -507,6 +624,30 @@ export class RoomCore {
     }
   }
 
+  /**
+   * Participants whose connection died without closing (wifi gone, phone in a
+   * tunnel) are found by their heartbeat (F-051): a socket that has sent
+   * nothing, not even a heartbeat, for 2.5 heartbeats is closed as
+   * unresponsive and the participant counts as dropped. Checked at most once a
+   * second while messages arrive, and when a timer fires: it costs nothing extra.
+   */
+  async findSilent() {
+    const beat = this.options.heartbeatMs;
+    if (!beat || !this.state || this.state.closed) return;
+    const now = this.host.now();
+    if (now - this.lastScan < 1000) return;
+    this.lastScan = now;
+    const limit = beat * 2.5;
+    for (const ws of this.identifiedSockets()) {
+      const att = this.host.getAttachment(ws);
+      const heard = Math.max(att.at ?? 0, this.heard.get(ws) ?? 0, this.host.lastPingAt?.(ws) ?? 0);
+      if (now - heard <= limit) continue;
+      this.shut(ws, CLOSE_UNRESPONSIVE, 'unresponsive');
+      await this.closed(ws, true);
+      if (!this.state || this.state.closed) return;
+    }
+  }
+
   /** Per-connection rate limit; false when the connection sends too fast. */
   allow(ws) {
     const rate = this.options.maxMessagesPerSecond;
@@ -572,6 +713,9 @@ export class RoomCore {
     if (!this.state || this.state.closed) return;
     const att = this.host.getAttachment(ws);
     if (!att || att.closed) return;
+    this.heard.set(ws, this.host.now());
+    await this.findSilent();
+    if (!this.state || this.state.closed) return;
     const size = byteLength(raw);
     let msg = null;
     if (size <= this.options.maxSnapshotBytes) {
@@ -634,10 +778,11 @@ export class RoomCore {
     if (this.hostCheck && player.id === this.hostCheck.id) this.cancelHostCheck();
 
     const isSnap = msg.t === 'snap' && this.options.mode === 'host' && player.id === this.state.hostId;
+    const isWelcomeState = msg.t === 'welcome-state' && this.options.mode === 'host' && player.id === this.state.hostId;
     if (msg.t === 'msg' && size > this.options.maxMessageBytes) {
       this.penalize(ws, 5);
       this.sendJson(ws, { t: 'err', code: 'too-large', n: msg.n });
-    } else if ((msg.t === 'msg' && this.maySend(player)) || isSnap || msg.t === 'cmd') {
+    } else if ((msg.t === 'msg' && this.maySend(player)) || isSnap || isWelcomeState || msg.t === 'cmd') {
       if (!this.count()) {
         await this.closeRoom('room-budget', CLOSE.BUDGET);
         await this.flush();
@@ -645,6 +790,10 @@ export class RoomCore {
       }
       if (msg.t === 'msg') await this.relay(player, msg);
       else if (isSnap) await this.storeSnapshot(player, msg);
+      else if (isWelcomeState) {
+        const role = typeof msg.role === 'string' && own(this.options.roles, msg.role) ? msg.role : '*';
+        await this.setWelcomeState(role, msg.d ?? null);
+      }
       else await this.command(ws, player, msg);
     } else {
       // Not something this participant may send: it costs them, not the room.
@@ -793,6 +942,7 @@ export class RoomCore {
       this.clearTimer('autopause', player.id);
     }
 
+    player.hidden = msg.hidden === true; // the page is in the background (F-032)
     this.remember(player);
     this.host.setAttachment(ws, { id: player.id, n: player.lastN, sid: player.sid, at: now });
     this.clearTimer('cleanup');
@@ -849,6 +999,8 @@ export class RoomCore {
       lastN: player.lastN,
       room: this.view(player.id),
     });
+    await this.sendWelcomeState(ws, player);
+
     if (tookOver) {
       await this.takeOver(player.id);
     } else {
@@ -873,7 +1025,7 @@ export class RoomCore {
   remember(p) {
     const s = this.state;
     s.known[p.pkh] = {
-      id: p.id, sid: p.sid, lastN: p.lastN, role: p.role, place: p.place ?? null,
+      id: p.id, sid: p.sid, lastN: p.lastN, role: p.role, place: p.place ?? null, name: p.name,
       admitted: !p.waiting, round: s.round, at: this.host.now(),
     };
     const entries = Object.entries(s.known);
@@ -970,9 +1122,15 @@ export class RoomCore {
   async takeOver(preferId = null) {
     const s = this.state;
     this.clearTimer('takeover');
+    // The host's preferred order first (F-040), then the owner, then whoever has been here longest.
+    const preferred = Array.isArray(s.successors) ? s.successors : [];
+    const rank = (p) => {
+      const i = preferred.indexOf(p.id);
+      return i === -1 ? Infinity : i;
+    };
     const candidates = Object.values(s.players)
       .filter((p) => p.id !== s.hostId && this.canHost(p))
-      .sort((a, b) => (b.id === s.ownerId) - (a.id === s.ownerId) || a.joinedAt - b.joinedAt);
+      .sort((a, b) => rank(a) - rank(b) || (b.id === s.ownerId) - (a.id === s.ownerId) || a.joinedAt - b.joinedAt);
     const next = (preferId && candidates.find((p) => p.id === preferId)) || (preferId ? null : candidates[0]);
     if (!next) return false;
     await this.saveSnapshot();
@@ -1109,7 +1267,9 @@ export class RoomCore {
         return { id: p.id, name: p.name, role: p.role, status: p.status, waiting: p.waiting, place: p.place };
       });
     const roles = {};
-    for (const [name, def] of Object.entries(o.roles)) roles[name] = { seats: def.seats, plays: def.plays, sends: def.sends };
+    for (const [name, def] of Object.entries(o.roles)) {
+      roles[name] = { seats: def.seats, plays: def.plays, sends: def.sends, sendsTo: def.sendsTo };
+    }
     const room = {
       code: s.code,
       mode: o.mode,
@@ -1127,6 +1287,7 @@ export class RoomCore {
         rate: o.maxMessagesPerSecond,
         maxMessageBytes: o.maxMessageBytes,
         maxSnapshotBytes: o.maxSnapshotBytes,
+        heartbeatMs: o.heartbeatMs,
       },
       roles,
       places,
@@ -1136,7 +1297,11 @@ export class RoomCore {
     };
     // Host-run games start from a shared seed; server-run rules keep theirs secret.
     if (o.mode === 'host') room.seed = s.seed;
-    if (forId && forId === s.ownerId) room.keys = this.publicKeys();
+    if (forId && forId === s.ownerId) {
+      room.keys = this.publicKeys();
+      room.bans = Object.values(s.banList ?? {}).map((b) => ({ ...b })); // who was banned (F-031)
+    }
+    if (o.mode === 'host') room.successors = Array.isArray(s.successors) ? [...s.successors] : [];
     return room;
   }
 
@@ -1195,7 +1360,7 @@ export class RoomCore {
       return;
     }
     const text = JSON.stringify({ t: 'msg', from: player.id, d: msg.d });
-    if (player.id === s.hostId) {
+    if (player.id === s.hostId || this.role(player).sendsTo === 'all') {
       for (const id of this.targets(msg.to, player.id)) this.sendTo(id, text);
     } else if (s.hostId) {
       this.sendTo(s.hostId, text);
@@ -1248,6 +1413,10 @@ export class RoomCore {
         player.place = msg.place;
         break;
       }
+      case 'visibility':
+        // The page went to the background or came back (F-032).
+        player.hidden = msg.hidden === true;
+        break;
       case 'leave-place':
         player.place = null;
         break;
@@ -1330,6 +1499,14 @@ export class RoomCore {
         s.data = msg.d ?? null;
         break;
       }
+      case 'successors': {
+        // Who should take over first if the host is lost, e.g. the player whose turn it is (F-040).
+        if (o.mode !== 'host') return fail('not-allowed');
+        const ids = Array.isArray(msg.ids) ? msg.ids.filter((id) => typeof id === 'string').slice(0, 16) : null;
+        if (!ids) return fail('bad-request');
+        s.successors = ids;
+        break;
+      }
       case 'end':
         s.phase = 'ended';
         s.startsAt = null;
@@ -1347,7 +1524,10 @@ export class RoomCore {
         if (ban) {
           // A ban only holds if the links stop working and nobody else the
           // room remembers can walk back in without one.
-          s.bans.push(target ? target.pkh : absent[0]);
+          const pkh = target ? target.pkh : absent[0];
+          s.bans.push(pkh);
+          s.banList ??= {};
+          s.banList[pkh] = { id: msg.id, name: target ? target.name : absent[1].name ?? null, at: this.host.now() };
           for (const role of Object.keys(s.keys)) s.keys[role] = { k: newSecret(), exp: null };
           s.settings.access = 'private';
           for (const k of Object.values(s.known)) if (!this.player(k.id)) k.out = true;
@@ -1362,6 +1542,16 @@ export class RoomCore {
         } else {
           absent[1].out = true;
         }
+        this.touch();
+        break;
+      }
+      case 'unban': {
+        // Lift a ban (F-031). The person still needs a new invitation link:
+        // the links were renewed when they were banned.
+        const entry = Object.entries(s.banList ?? {}).find(([, b]) => b.id === msg.id);
+        if (!entry) return fail('no-such-participant');
+        s.bans = s.bans.filter((h) => h !== entry[0]);
+        delete s.banList[entry[0]];
         this.touch();
         break;
       }
@@ -1427,8 +1617,8 @@ export class RoomCore {
   fingerprint() {
     const s = this.state;
     return JSON.stringify([
-      s.settings, s.keys, s.phase, s.round, s.startsAt, s.paused, s.ownerId, s.hostId, s.hostPending, s.data,
-      s.bans.length, Object.values(s.players).map((p) => [p.id, p.place, p.waiting, p.status]),
+      s.settings, s.keys, s.phase, s.round, s.startsAt, s.paused, s.ownerId, s.hostId, s.hostPending, s.data, s.successors,
+      s.bans.length, Object.values(s.players).map((p) => [p.id, p.place, p.waiting, p.status, p.hidden === true]),
       Object.values(s.known).map((k) => k.out === true),
     ]);
   }
@@ -1474,6 +1664,8 @@ export class RoomCore {
       },
       end() { s.phase = 'ended'; s.startsAt = null; core.touch(); core.broadcastRoom(); },
       admit: async () => { await core.admitWaiting(); core.broadcastRoom(); },
+      /** State for newcomers (F-030): sent to everyone who joins or comes back; per role if `role` is given. */
+      setWelcomeState: (data, role = null) => core.setWelcomeState(role && own(core.options.roles, role) ? role : '*', data ?? null),
       setTimer: (name, ms) => core.setTimer('rules', ms, String(name)),
       clearTimer: (name) => core.clearTimer('rules', String(name)),
     };
