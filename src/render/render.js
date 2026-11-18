@@ -617,7 +617,7 @@ export function createRenderer(scene, glow) {
       return;
     }
     if (!u || !u.alive || u.air || w.turn.phase !== 'aim' || !wp0.aim) return;
-    const aim = view.aim || w.turn.aim, a = aim.angle * Math.PI / 180;
+    const aim = view.aim || view.keyAim || w.turn.aim, a = aim.angle * Math.PI / 180;
     const cx = px(u.X), cy = px(u.Y) - 5, len = 12 + aim.power * .5;
     for (let d = 10; d < len; d += 3) {
       const k = (d - 10) / Math.max(1, len - 10), c = mix(0xffe38a, 0xff5a3a, k);
@@ -626,7 +626,7 @@ export function createRenderer(scene, glow) {
     }
     const ex = Math.round(cx + Math.cos(a) * (len + 3)), ey = Math.round(cy - Math.sin(a) * (len + 3));
     for (const [dx, dy] of [[-3, 0], [-2, 0], [2, 0], [3, 0], [0, -3], [0, -2], [0, 2], [0, 3]]) set(ex + dx, ey + dy, 0xffffff);
-    if (view.aim) text(P, aim.power + '%', cx, cy - 32, 0xffe38a, 1, 1);
+    if (view.aim || view.keyAim) text(P, aim.power + '%', cx, cy - 32, 0xffe38a, 1, 1);
   }
   function drawProjectiles(w, t) {
     for (const p of w.projectiles) {

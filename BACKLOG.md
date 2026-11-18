@@ -8,7 +8,6 @@ Prioritet: Hög, Medel, Låg.
 | ID | Prio | Status | Beskrivning |
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
-| F-038 | Hög | Pågår (2026-11-18, session Vättigt, main) | Sikta med pil upp och pil ner: på tangentbordet och med knappar på skärmen, och skjut med Enter eller en Skjut-knapp. |
 | F-035 | Medel | Förslag | Spellägena Boet (skydda ert bo, förstör motståndarens) och Stången (håll platsen vid midsommarstången flest rundor). |
 | F-036 | Låg | Förslag | Fler banor ur designförslaget: Slätten, Raukarna, Älven, Villaområdet. |
 | F-037 | Låg | Förslag | Valbara regler ur designförslaget: Lagom-zonen på kraftmätaren och Jantelagen (laget som leder får sämre lådor). |
@@ -34,6 +33,7 @@ Parkerat: D-012 (musik).
 
 | ID | Klart | Beskrivning |
 |---|---|---|
+| F-038 | 2026-11-18 | Sikta med pil upp och pil ner, på tangentbordet och med knapparna ▲ ▼ på skärmen. Skjut med Enter eller knappen Skjut, som visas när man har siktat med pilarna. Styrkan är den senaste. |
 | F-032 | 2026-11-18 | Spelläget Kubb: fäll motståndarens fem kubbar och sist kungen; fälls kungen för tidigt förlorar man. Val i eget spel och i lobbyn, datorn spelar det också. Boet och Stången flyttade till F-035. |
 | F-033 | 2026-11-18 | Pratbubblor på dialekt (göteborgska med ordvitsar, skånska, norrländska med bara "jo", eller tyst), valt per lag i lagbyggaren. |
 | F-034 | 2026-11-18 | Banorna Fjället (snö som rasar som laviner) och Takåsarna (koppartak, kanaler, tunnelbana mellan tre stationer). Övriga banor flyttade till F-036. |

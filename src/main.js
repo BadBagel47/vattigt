@@ -108,11 +108,13 @@ function updatePanels() {
   if (!canAct && !$('weaponMenu').hidden) menu(false);
   const wpn = WEAPONS[t.weapon], dyn = !wpn.aim && !wpn.target;
   const horse = mine && t.phase === 'retreat' && w.projectiles.some((p) => p.kind === 'hast' && u && p.owner === u.id && p.age > 6);
-  $('drop').hidden = !(dyn || horse);
-  $('drop').textContent = horse ? 'Spräng!' : wpn.walker ? 'Släpp lös' : 'Lägg ut';
+  const shoot = !horse && wpn.aim && view.aimed && canAct;
+  $('drop').hidden = !(dyn || horse || shoot);
+  $('drop').textContent = horse ? 'Spräng!' : shoot ? 'Skjut' : wpn.walker ? 'Släpp lös' : 'Lägg ut';
   $('drop').disabled = !horse && (!canAct || (u && u.air));
   const moving = mine && (t.phase === 'aim' || t.phase === 'retreat') && u && u.alive;
   for (const id of ['walkL', 'walkR', 'jump']) $(id).disabled = !moving;
+  for (const id of ['aimUp', 'aimDown']) $(id).disabled = !(canAct && wpn.aim && !(u && u.air));
   if (!moving && (held.left || held.right)) { held.left = held.right = false; updateWalk(); }
   let hint = '';
   if (mode === 'online' && online.room) {
@@ -128,7 +130,7 @@ function updatePanels() {
   if (!hint && mine && u && u.rope) hint = 'Svinga med pilarna. Hoppa släpper.';
   else if (!hint && canAct && wpn.tool) hint = 'Dra mot ett tak eller en vägg och släpp för att kasta ut linan.';
   if (!hint && canAct && wpn.target) hint = wpn.ticket ? 'Tryck på vätten som ska till Borås.' : wpn.build ? 'Tryck där plankan ska ligga.' : wpn.water ? 'Tryck där hinken ska tömmas.' : wpn.id === 'jas' ? 'Tryck där planet ska fälla laddningarna.' : 'Tryck där korvarna ska falla.';
-  if (!hint && canAct && wpn.aim && shotsFired < 2 && !view.aim) hint = 'Dra i bilden för att sikta. Släpp för att skjuta.';
+  if (!hint && canAct && wpn.aim && shotsFired < 2 && !view.aim && !view.aimed) hint = 'Dra i bilden för att sikta, eller använd ▲ ▼. Släpp för att skjuta.';
   if (!hint && horse) hint = 'Tryck på Spräng! när hästen är framme.';
   $('hint').textContent = hint;
   $('hint').hidden = !hint;
@@ -143,9 +145,32 @@ function holdButton(el, key) {
   el.addEventListener('contextmenu', (e) => e.preventDefault());
 }
 holdButton($('walkL'), 'left'); holdButton($('walkR'), 'right');
+
+// Aim with up and down (F-038): up raises the aim towards straight up, down lowers it,
+// on the side the vätte faces. The strength stays as it was. Fire with Enter or Skjut.
+const AIM_STEP = 2;
+function nudgeAim(dir) {
+  if (!canAim()) return;
+  const w = world(), u = activeUnit(w), cur = view.keyAim || w.turn.aim;
+  let a = cur.angle > 180 ? cur.angle - 360 : cur.angle;               // -180 .. 180
+  if (u.face > 0) a = Math.max(-80, Math.min(90, (a > 90 ? 180 - a : a < -90 ? -180 - a : a) + dir * AIM_STEP));
+  else { let b = a < 0 ? a + 360 : a; if (b < 90) b = 180 - b; else if (b > 270) b = 540 - b; a = Math.max(91, Math.min(260, b - dir * AIM_STEP)); }
+  view.keyAim = { angle: ((a % 360) + 360) % 360, power: cur.power };
+  view.aimed = true;
+  emit({ aim: view.keyAim });
+}
+function holdAim(el, dir) {
+  let timer = null;
+  const stop = () => { clearInterval(timer); timer = null; };
+  el.addEventListener('pointerdown', (e) => { e.preventDefault(); sound.unlock(); el.setPointerCapture?.(e.pointerId); nudgeAim(dir); stop(); timer = setInterval(() => nudgeAim(dir), 70); });
+  el.addEventListener('pointerup', stop); el.addEventListener('pointercancel', stop); el.addEventListener('lostpointercapture', stop);
+  el.addEventListener('click', (e) => { if (e.detail === 0) nudgeAim(dir); });
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+holdAim($('aimUp'), 1); holdAim($('aimDown'), -1);
 $('jump').addEventListener('pointerdown', (e) => { e.preventDefault(); emit({ jump: true }); sound.unlock(); });
 $('jump').addEventListener('click', (e) => { if (e.detail === 0) emit({ jump: true }); });
-$('drop').addEventListener('click', () => { emit({ fire: true }); shotsFired++; });
+$('drop').addEventListener('click', () => { const w = world(); emit({ fire: WEAPONS[w.turn.weapon].aim && view.keyAim ? { ...view.keyAim } : true }); shotsFired++; view.aimed = false; });
 
 let drag = null;
 const toWorld = (e) => { const r = scene.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H]; };
@@ -172,7 +197,7 @@ stage.addEventListener('pointermove', (e) => {
   if (len < 4) { view.aim = null; return; }
   const angle = ((Math.round(Math.atan2(-dy, dx) * 180 / Math.PI) % 360) + 360) % 360;
   const power = Math.max(1, Math.min(100, Math.round(len / 70 * 100)));
-  if (!view.aim || view.aim.angle !== angle || view.aim.power !== power) { view.aim = { angle, power }; emit({ aim: view.aim }); }
+  if (!view.aim || view.aim.angle !== angle || view.aim.power !== power) { view.aim = { angle, power }; view.keyAim = null; view.aimed = false; emit({ aim: view.aim }); }
 });
 function endDrag(e) {
   if (!drag || e.pointerId !== drag.id) return;
@@ -186,14 +211,15 @@ stage.addEventListener('pointercancel', (e) => { if (drag && e.pointerId === dra
 // Keyboard, for a computer: arrows to walk, space to jump, 1–3 for weapons, Enter to fire with the last aim.
 addEventListener('keydown', (e) => {
   if (mode === 'title' || paused || e.target.tagName === 'INPUT') return;
-  if (e.repeat && !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+  if (e.repeat && !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
   if (e.key === 'ArrowLeft') { held.left = true; updateWalk(); }
   else if (e.key === 'ArrowRight') { held.right = true; updateWalk(); }
+  else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { nudgeAim(e.key === 'ArrowUp' ? 1 : -1); e.preventDefault(); }
   else if (e.key === ' ') { emit({ jump: true }); e.preventDefault(); }
   else if (/^[1-9]$/.test(e.key)) emit({ weapon: +e.key - 1 });
   else if (e.key === 'v' || e.key === 'V') menu($('weaponMenu').hidden);
   else if (e.key === 'Escape') menu(false);
-  else if (e.key === 'Enter' && e.target === document.body) emit({ fire: true });
+  else if (e.key === 'Enter' && e.target === document.body) { const w = world(); emit({ fire: w && WEAPONS[w.turn.weapon].aim && view.keyAim ? { ...view.keyAim } : true }); view.aimed = false; }
   else return;
   sound.unlock();
 });
@@ -220,7 +246,7 @@ function handle(evs, w) {
     else if (e.t === 'boom' && ++boras.booms === 5) stamp();
     else if (e.t === 'death' && w.units[e.unit] && w.units[e.unit].team === boras.team) stamp();
     else if (e.t === 'ticket') stamp();
-    if (e.t === 'turn') { view.aim = null; drag = null; walkDir = 0; }
+    if (e.t === 'turn') { view.aim = null; view.keyAim = null; view.aimed = false; drag = null; walkDir = 0; }
     if (e.t === 'over') showOver();
   }
 }
@@ -263,7 +289,7 @@ function loop(ms) {
 /* ---------- screens ---------- */
 const screens = ['title', 'pause', 'over', 'net', 'lobby', 'custom', 'teams'];
 function show(id) { for (const s of screens) $(s).hidden = s !== id; if (id) $(id).querySelector('button.primary, input, button')?.focus(); }
-function resetView() { view.aim = null; drag = null; held.left = held.right = false; walkDir = 0; shotsFired = 0; renderer.reset(); }
+function resetView() { view.aim = null; view.keyAim = null; view.aimed = false; drag = null; held.left = held.right = false; walkDir = 0; shotsFired = 0; renderer.reset(); }
 
 /* ---------- settings (eget spel) and saved teams (lagbyggaren) ---------- */
 const NIGHT_MOODS = new Set(['midsommar', 'vinter']);
