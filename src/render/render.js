@@ -2,7 +2,8 @@
 // Nothing here affects the match; it only reads the simulation state.
 import { W, H, WEAPONS, FLOOD_ROUND, CLOUD_RADIUS } from '../sim/rules.js';
 import { px, activeUnit, teamHp } from '../sim/world.js';
-import { text, textW } from './font.js';
+import { text, textW, plain } from './font.js';
+import { speechFrom } from './speech.js';
 import { VATTE, ICON_PAL, ICON_ROWS, HORSE, MOOSE } from './sprites.js';
 
 // Team colours to choose from in the team builder; teams 0 and 1 default to red and blue.
@@ -367,6 +368,104 @@ export function createRenderer(scene, glow) {
       for (const lx of [16, 186, 292, 428]) if (anchored(lx)) L.push([lx + 1, surf(lx) - 19, 20, '255,215,140', .7]);
     }
   };
+  // Fjället: bare fells, dwarf birches, trail markers; snow is drawn as its own material.
+  function fellBirch(x) {
+    if (!anchored(x)) return;
+    const gy = surf(x), h = 9 + (x % 5);
+    for (let j = 0; j < h; j++) { const bx = x + Math.round(Math.sin(j * .7 + x) * .8); wp(bx, gy - j, 0xe8e4da); if (hash(x, j) < .25) wp(bx, gy - j, 0x2a2630); }
+    if (mood.leaf) for (const [dx, dy, r] of [[0, -h, 3], [-3, -h + 3, 2], [3, -h + 2, 2]]) for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r && bay(x + dx + i, gy + dy + j) < .8) wp(x + dx + i, gy + dy + j, (i + j) < 0 ? mood.leaf[0] : mood.leaf[1]);
+    else for (let k = 1; k < 4; k++) { wp(x - k, gy - h + k, 0xc9c4b8); wp(x + k, gy - h + 1 + k, 0xc9c4b8); }
+  }
+  function trailCross(x) {
+    if (!anchored(x)) return;
+    const gy = surf(x);
+    for (let j = 0; j < 10; j++) wp(x, gy - j, 0x6a5a4a);
+    for (let k = -2; k <= 2; k++) { wp(x + k, gy - 12 + k, 0xd8382a); wp(x + k, gy - 12 - k, 0xd8382a); }
+  }
+  ART.fjallet = {
+    background() {
+      for (const [amp, base, per, c, cap] of [[46, 190, 140, mix(mood.hill[0], 0xffffff, .15), 0xe8eef8], [30, 214, 90, mood.hill[1], 0xd0dcee]]) {
+        for (let x = 0; x < W; x++) {
+          const top = Math.round(base - amp * (.55 + .45 * Math.sin(x / per * 3.1 + amp)) - 8 * vnoise(x, amp, 23));
+          for (let y = top; y < H; y++) set(x, y, y < top + 4 + 3 * vnoise(x, y, 9) ? tn(cap) : c);
+        }
+      }
+    },
+    color(x, y) {
+      const i = y * W + x, m = world.map;
+      let c;
+      if (m.mat[i] === 2) { const n = vnoise(x, y, 9) * .7 + bay(x, y) * .3; c = n < .4 ? 0x8a909c : n < .7 ? 0x6e7480 : 0x555a66; if (!solid(x, y - 1)) c = 0xa8aeb8; }
+      else {
+        const d = depthAt(x, y);
+        c = d === 0 ? (hash(x, y) < .2 ? 0x8a5a8a : 0x7a8a4a) : d < 3 ? 0x5e6a3a : (vnoise(x, y, 6) > .6 ? 0x5a4a3c : 0x463a30);
+        if (d > 4 && hash(x, y) < .03) c = 0x8a8c90;
+      }
+      if (m.burnt[i]) c = mix(c, 0x241816, .55);
+      c = tn(c);
+      if (y >= world.water) c = mix(c, mood.water[1], .6);
+      return c;
+    },
+    decor() { for (const x of [18, 54, 196, 216, 266, 288, 446, 466]) fellBirch(x); for (const x of [112, 372, 160, 320]) trailCross(x); },
+    after() {},
+    lights() {}
+  };
+
+  // Takåsarna: plastered houses with windows, copper roofs, brick chimneys and tower, stone quays.
+  const HOUSE_COLORS = [0xd8a040, 0xc0603a, 0xe0c890, 0xa8b088, 0xd88a5a, 0xe8dcc0];
+  ART.takasarna = {
+    background() {
+      for (let k = 0; k < 20; k++) {
+        const bx = k * 25 - 4, bw = 20 + (k * 7) % 9, top = 196 - 16 - (k * 13) % 26;
+        for (let y = top; y < 240; y++) for (let x = bx; x < bx + bw; x++) set(x, y, mix(mood.hill[0], mood.hill[1], .4 + (k % 2) * .2));
+        for (let j = 0; j < 6; j++) for (let i = j; i < bw - j; i++) set(bx + i, top - j, mix(mood.hill[0], 0x5aa08a, .25));
+      }
+      const tx = 430; for (let y = 108; y < 240; y++) for (let x = tx - 5; x <= tx + 5; x++) set(x, y, mix(mood.hill[1], 0x9a4a3a, .35));
+      for (let j = 0; j < 10; j++) set(tx, 98 + j, mix(mood.hill[0], 0xffd23a, .6));
+      for (const dx of [-3, 0, 3]) { set(tx + dx, 96, 0xffd23a); set(tx + dx - 1, 97, 0xffd23a); set(tx + dx + 1, 97, 0xffd23a); }
+    },
+    color(x, y) {
+      const i = y * W + x, m = world.map, mt = m.mat[i];
+      let c;
+      if (mt === 2) {
+        const tw = m.tower;
+        if (y >= 206) { c = (y - 206) % 5 === 0 || (x + ((y - 206) / 5 | 0) * 4) % 9 === 0 ? 0x6a6c72 : bay(x, y) > .6 ? 0x8a8c90 : 0x9a9ca0; if (y === 206 || !solid(x, y - 1)) c = 0xb4b6ba; }
+        else { c = (y % 3 === 0 || (x + (y / 3 | 0) * 2) % 5 === 0) ? 0x6a2e24 : 0x9a4a3a; if (tw && x >= tw.x && x <= tw.x + 13 && y >= tw.top && y < tw.top + 6) c = 0x7a3a2e; }
+      } else if (mt === 3) {
+        c = !solid(x, y - 1) ? 0x7ac0a6 : (x % 3 === 0 ? 0x3a7a6a : 0x5aa08a);
+        if (hash(x, y) < .05) c = 0x8ad0b4;
+      } else {
+        const h = m.houses.find((o) => x >= o.x1 && x <= o.x2);
+        const base = h ? HOUSE_COLORS[(h.x1 * 7 + h.k) % HOUSE_COLORS.length] : 0xd8b06a;
+        c = base;
+        if (h) {
+          const lx = x - h.x1, ly = y - h.top;
+          if (lx === 0 || x === h.x2) c = mix(base, 0x000000, .25);
+          else if (ly > 4 && ly < 206 - h.top - 4 && lx >= 3 && h.x2 - x >= 3 && lx % 6 < 2 && ly % 9 < 4) c = hash(h.x1 + (lx / 6 | 0), ly / 9 | 0) < (lit() ? .45 : .1) ? 0xffd68a : 0x2a3040;
+          else if (ly % 9 === 5 && lx % 6 < 3) c = mix(base, 0xffffff, .25);
+        }
+      }
+      if (m.burnt[i]) c = mix(c, 0x241816, .55);
+      c = tn(c);
+      if (y >= world.water) c = mix(c, mood.water[1], .6);
+      return c;
+    },
+    decor() {},
+    after() {
+      const m = world.map;
+      for (const st of m.stations || []) {
+        const x = st.x, y = st.y;
+        if (!solid(x, y + 1)) continue;
+        for (let j = 0; j < 9; j++) for (let i = -3; i <= 3; i++) if (!solid(x + i, y - j)) set(x + i, y - j, j < 2 ? 0x2a2a34 : 0x14141c);
+        for (let k = 0; k < 3; k++) rect(x - 3 + k, y - 1 - k * 2, 6 - k * 2, 1, 0x5a5a62);
+        for (let j = 10; j < 20; j++) set(x + 5, y - j, tn(0x5a5a62));
+        rect(x + 2, y - 26, 7, 7, 0x2a6fd0); text(P, 'T', x + 6, y - 25, 0xffffff, 1, 1);
+      }
+      const tw = m.tower;
+      if (tw && solid(tw.x + 6, 120)) { disc(tw.x + 7, 116, 3, tn(0xf4f0e0)); set(tw.x + 7, 114, 0x2a2630); set(tw.x + 7, 115, 0x2a2630); set(tw.x + 8, 116, 0x2a2630); }
+      if (tw && solid(tw.x + 6, tw.top - 44)) { set(tw.x + 6, tw.top - 47, 0xffd23a); set(tw.x + 6, tw.top - 48, 0xffd23a); set(tw.x + 5, tw.top - 47, 0xffd23a); set(tw.x + 7, tw.top - 47, 0xffd23a); }
+    },
+    lights(L) { for (const st of world.map.stations || []) L.push([st.x + 6, st.y - 22, 18, '120,170,255', lit() ? .7 : .25]); }
+  };
   const art = () => ART[world.map.id] || ART.midsommar;
 
   // Gruvan: everything below ground is dark except where light reaches.
@@ -414,9 +513,10 @@ export function createRenderer(scene, glow) {
   }
 
   /* ---------- effects from simulation events ---------- */
-  let parts = [], flashes = [], floaters = [], banner = null, shake = 0, plane = null;
+  let parts = [], flashes = [], floaters = [], banner = null, shake = 0, plane = null, bubbles = [];
   const rnd = Math.random;
   function onEvents(evs, w) {
+    speechFrom(evs, w, bubbles);
     for (const e of evs) {
       if (e.t === 'boom') {
         flashes.push({ x: e.x, y: e.y, r: e.r, age: 0 });
@@ -446,6 +546,16 @@ export function createRenderer(scene, glow) {
         floaters.push({ x: e.x, y: e.y - 20, s: 'TILLBAKA FRÅN BORÅS', c: 0x8ad0ff, age: 0 });
       } else if (e.t === 'plane') {
         plane = { x: -20, y: 14, tx: e.x };
+      } else if (e.t === 'avalanche') {
+        banner = { s: 'LAVIN!', c: 0xd8e8ff, age: 0 }; shake = Math.max(shake, 6);
+        for (let i = 0; i < 30; i++) parts.push({ x: e.x + (rnd() - .5) * 60, y: e.y - rnd() * 40, vx: (rnd() - .5) * 1.2, vy: -rnd() * .6, g: -.004, life: 70, c: 0xeef4fb, kind: 'smoke', r: 1 + rnd() * 2 });
+      } else if (e.t === 'metro') {
+        floaters.push({ x: e.x, y: e.y - 30, s: 'TUNNELBANAN!', c: 0x8ad0ff, age: 0 });
+        for (let i = 0; i < 10; i++) parts.push({ x: e.x, y: e.y - 4, vx: (rnd() - .5) * 1.4, vy: -rnd(), g: -.005, life: 40, c: 0x9aa0aa, kind: 'smoke', r: 1 });
+      } else if (e.t === 'kubb') {
+        floaters.push({ x: e.x, y: e.y - 14, s: e.left ? 'KUBB! ' + e.left + ' KVAR' : 'SISTA KUBBEN!', c: teamColor(w, e.team).c, age: 0 });
+      } else if (e.t === 'king') {
+        banner = { s: e.early ? 'KUNGEN FÖLL FÖR TIDIGT!' : 'KUNGEN FÖLL!', c: 0xffd23a, age: 0 }; shake = Math.max(shake, 4);
       } else if (e.t === 'flood') {
         banner = { s: 'VÅRFLODEN STIGER', c: 0x8ad0ff, age: 0 };
       }
@@ -456,6 +566,7 @@ export function createRenderer(scene, glow) {
     parts = parts.filter((p) => p.life > 0 && p.y < H + 5);
     for (const f of flashes) f.age++; flashes = flashes.filter((f) => f.age < 9);
     for (const f of floaters) { f.age++; f.y -= .35; } floaters = floaters.filter((f) => f.age < 75);
+    for (const b of bubbles) b.age++; bubbles = bubbles.filter((b) => b.age < 150);
     if (banner) { banner.age++; if (banner.age > 100) banner = null; }
     shake *= .85; if (shake < .3) shake = 0;
     if (plane) { plane.x += 5; if (plane.x > W + 30) plane = null; }
@@ -575,6 +686,24 @@ export function createRenderer(scene, glow) {
       const rc = teamColor(w, s.team).d; wp(x, y - 5, rc); wp(x - 1, y - 3, rc); wp(x + 1, y - 4, rc); wp(x, y - 2, rc);
     }
   }
+  // Kubb (F-032): wooden kubbar with the team's colour, and the king with a crown.
+  function drawKubb(w) {
+    if (!w.kubbs) return;
+    const wood = tn(0xe8c070), side = tn(0xa8804a);
+    for (const k of w.kubbs) {
+      const x = px(k.X), y = px(k.Y), c = tn(teamColor(w, k.team).c);
+      if (k.down) { rect(x - 4, y - 2, 8, 3, wood); rect(x - 4, y, 8, 1, side); rect(x - 2, y - 2, 1, 3, c); }
+      else { rect(x - 1, y - 8, 4, 9, wood); rect(x + 2, y - 8, 1, 9, side); rect(x - 1, y - 6, 4, 2, c); rect(x - 1, y - 8, 4, 1, tn(0xf8e0a0)); }
+    }
+    const k = w.king;
+    if (!k) return;
+    const x = px(k.X), y = px(k.Y), gold = tn(0xffd23a);
+    if (k.down) { rect(x - 7, y - 4, 14, 5, tn(0xe8c890)); rect(x - 7, y, 14, 1, side); rect(x + 7, y - 4, 2, 5, gold); set(x + 9, y - 4, gold); set(x + 9, y - 2, gold); set(x + 9, y, gold); }
+    else {
+      rect(x - 2, y - 13, 5, 14, tn(0xe8c890)); rect(x + 2, y - 13, 1, 14, side);
+      rect(x - 2, y - 15, 5, 2, gold); set(x - 2, y - 16, gold); set(x, y - 17, gold); set(x + 2, y - 16, gold); set(x, y - 15, tn(0xd8382a));
+    }
+  }
   function water(w, t) {
     const A = mood.water, ice = !!mood.snow, WL = w.water;
     for (let y = Math.max(0, WL); y < H; y++) for (let x = 0; x < W; x++) {
@@ -623,13 +752,34 @@ export function createRenderer(scene, glow) {
     }
     for (const f of floaters) text(P, f.s, f.x, f.y, f.c, 1, 1);
   }
+  // A speech bubble over a vätte: white, rounded, a tail down to the head, long lines wrapped.
+  function drawBubbles(w) {
+    for (const b of bubbles) {
+      const u = w.units.find((o) => o.id === b.unit);
+      if (!u || !u.alive || u.away) continue;
+      const words = b.s.split(' '), lines = [''];
+      for (const wd of words) { const cur = lines[lines.length - 1]; if (cur && (cur + ' ' + wd).length > 16) lines.push(wd); else lines[lines.length - 1] = cur ? cur + ' ' + wd : wd; }
+      const bw = Math.max(...lines.map((l) => textW(l))) + 6, bh = lines.length * 8 + 3;
+      const ux = px(u.X), uy = px(u.Y) - 33;
+      const x = Math.max(2, Math.min(W - bw - 2, ux - (bw >> 1))), y = Math.max(2, uy - bh - (b.age < 4 ? 4 - b.age : 0));
+      rect(x + 1, y, bw - 2, bh, 0xffffff); rect(x, y + 1, bw, bh - 2, 0xffffff);
+      rect(x + 1, y - 1, bw - 2, 1, 0x0c1022); rect(x + 1, y + bh, bw - 2, 1, 0x0c1022); rect(x - 1, y + 1, 1, bh - 2, 0x0c1022); rect(x + bw, y + 1, 1, bh - 2, 0x0c1022);
+      set(x, y, 0x0c1022); set(x + bw - 1, y, 0x0c1022); set(x, y + bh - 1, 0x0c1022); set(x + bw - 1, y + bh - 1, 0x0c1022);
+      const tx = Math.max(x + 3, Math.min(x + bw - 4, ux));
+      for (let k = 0; k < 3; k++) { const hw = 2 - k; for (let i = -hw; i <= hw; i++) set(tx + i, y + bh + k, 0xffffff); set(tx - hw - 1, y + bh + k, 0x0c1022); set(tx + hw + 1, y + bh + k, 0x0c1022); }
+      set(tx, y + bh + 3, 0x0c1022);
+      lines.forEach((l, j) => plain(P, l, x + 3 + ((bw - 6 - textW(l)) >> 1), y + 3 + j * 8, 0x1a1a2a));
+    }
+  }
   function hud(w, t) {
     w.teams.forEach((tm, i) => {
       const y = 6 + i * 16, c = teamColor(w, i).c, hp = teamHp(w, i), max = (w.settings ? w.settings.units : 3) * 100;
       text(P, tm.name.toUpperCase(), 6, y, c);
       rect(5, y + 7, 66, 5, 0x0c1022); rect(6, y + 8, Math.round(64 * hp / max), 3, c); rect(6, y + 8, Math.round(64 * hp / max), 1, mix(c, 0xffffff, .45));
       text(P, String(hp), 75, y + 7, 0xffffff);
+      if (w.kubbs) { const n = w.kubbs.filter((k) => k.team === i && !k.down).length, all = w.kubbs.filter((k) => k.team === i).length; for (let k = 0; k < all; k++) { rect(92 + k * 4, y + 6, 3, 6, k < n ? 0xd8b06a : 0x3a3f55); if (k < n) rect(92 + k * 4, y + 8, 3, 1, c); } }
     });
+    if (w.king) { const kx = 116, y0King = 10; rect(kx, y0King + 2, 3, 6, w.king.down ? 0x3a3f55 : 0xe8c890); rect(kx - 1, y0King, 5, 2, w.king.down ? 0x3a3f55 : 0xffd23a); }
     const tr = w.turn, u = activeUnit(w);
     if (tr.phase === 'aim') {
       const s = Math.ceil(tr.timer / 60);
@@ -668,6 +818,7 @@ export function createRenderer(scene, glow) {
     if (mood.aurora) { lights.push([150, 50, 120, '70,240,160', .16]); lights.push([360, 40, 110, '120,110,240', .14]); }
     art().lights(lights, t);
     drawStones(w);
+    drawKubb(w);
     const act = activeUnit(w);
     if (w.cart) {
       const x = px(w.cart.X), y = px(w.cart.Y);
@@ -719,6 +870,7 @@ export function createRenderer(scene, glow) {
       for (const u of w.units) if (u.alive) { text(P, u.name, px(u.X), px(u.Y) - 25, teamColor(w, u.team).c, 1, 1); text(P, String(u.hp), px(u.X), px(u.Y) - 18, 0xffffff, 1, 1); }
     }
     drawAim(w, view);
+    drawBubbles(w);
     hud(w, t);
     ctx.putImageData(img, 0, 0);
     const sc = glow.width / W, g = mood.glow;
@@ -735,7 +887,7 @@ export function createRenderer(scene, glow) {
   return {
     frame, onEvents,
     setMood(name) { mood = MOODS[name] || MOODS.midsommar; builtKey = ''; },
-    reset() { parts = []; flashes = []; floaters = []; banner = null; shake = 0; builtKey = ''; }
+    reset() { parts = []; flashes = []; floaters = []; bubbles = []; banner = null; shake = 0; builtKey = ''; }
   };
 }
 

@@ -3,7 +3,7 @@
 // (whole numbers only, no Math.random, no Math.sin), so online play can send
 // inputs only (D-011).
 import * as R from './rules.js';
-import { makeMap, blast, isSolid, ROCK, SNOW } from './terrain.js';
+import { makeMap, blast, isSolid, ROCK, SNOW, MAP_NAMES } from './terrain.js';
 import { sin, cos, isqrt } from './trig.js';
 
 const { FP, W, H } = R;
@@ -26,13 +26,14 @@ export function matchSettings(opts = {}) {
   const clamp = (v, lo, hi, def) => (Number.isInteger(v) && v >= lo && v <= hi ? v : def);
   const weapons = Array.isArray(s.weapons) ? R.WEAPONS.map((w) => w.id).filter((id) => s.weapons.includes(id)) : d.weapons;
   return {
-    map: ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras'].includes(s.map) ? s.map : d.map,
+    map: Object.keys(MAP_NAMES).includes(s.map) ? s.map : d.map,
     night: !!s.night,
     units: clamp(s.units, 1, R.MAX_UNITS, d.units),
     turn: clamp(s.turn, 10, 120, d.turn),
     flood: clamp(s.flood, 0, 99, d.flood),
     weapons: weapons.length ? weapons : ['gurra'],
-    crates: s.crates !== false
+    crates: s.crates !== false,
+    mode: R.MODES.includes(s.mode) ? s.mode : 'klassiskt'
   };
 }
 
@@ -40,7 +41,7 @@ export function newMatch(seed, opts = {}) {
   const settings = matchSettings(opts);
   const src = R.TEAMS.map((def, i) => ({ ...def, ...((opts.teams || [])[i] || {}) }));
   const teams = src.map((t, i) => ({
-    name: String(t.name || R.TEAMS[i].name).slice(0, 20), index: i, color: Number.isInteger(t.color) ? t.color : i, hat: t.hat || R.TEAMS[i].hat,
+    name: String(t.name || R.TEAMS[i].name).slice(0, 20), index: i, color: Number.isInteger(t.color) ? t.color : i, hat: t.hat || R.TEAMS[i].hat, dialect: typeof t.dialect === 'string' ? t.dialect.slice(0, 16) : '',
     ammo: R.WEAPONS.map((wp) => (settings.weapons.includes(wp.id) ? wp.ammo : 0)), next: 0
   }));
   const map = makeMap(seed, settings.map);
@@ -70,7 +71,164 @@ export function newMatch(seed, opts = {}) {
       w.units.push({ id: id++, team: ti, name, X: x * FP, Y: y * FP, VX: 0, VY: 0, air: true, hp: R.HP, alive: true, face: ti === 0 ? 1 : -1, walk: 0 });
     }
   });
+  if (settings.mode === 'kubb') setupKubb(w);
   return w;
+}
+
+/* ---------- Fjället: avalanches (F-034) ---------- */
+// After a blast, the snow in a box around it may slide: a snow pixel falls if the pixel
+// under it is free, or slides one step down-left or down-right. The box follows the snow.
+// A vätte in the way is hurt once and pushed along; the snow stops at its body.
+function startSlide(w, x, y, r) {
+  const b = { x1: Math.max(0, x - r - 44), x2: Math.min(W - 1, x + r + 44), y1: Math.max(0, y - r - 80), y2: Math.min(H - 1, y + r + 12) };
+  if (w.slide) { const s = w.slide; s.x1 = Math.min(s.x1, b.x1); s.x2 = Math.max(s.x2, b.x2); s.y1 = Math.min(s.y1, b.y1); s.y2 = Math.max(s.y2, b.y2); s.quiet = 0; return; }
+  w.slides = (w.slides || 0) + 1;
+  w.slide = { ...b, quiet: 0, age: 0, id: w.slides, moved: 0, x, y };
+}
+function stepSlide(w) {
+  const s = w.slide;
+  if (!s) return;
+  const m = w.map, sol = m.solid, mat = m.mat;
+  const body = new Set();
+  for (const u of w.units) if (u.alive && !u.away) { const ux = px(u.X), uy = px(u.Y); for (let yy = uy - 9; yy <= uy; yy++) for (let xx = ux - 2; xx <= ux + 2; xx++) body.add(yy * W + xx); }
+  const free = (x, y) => x >= 0 && x < W && y < H && !sol[y * W + x] && !body.has(y * W + x);
+  const bump = (x, y, dir) => {
+    for (const u of w.units) {
+      if (!u.alive || u.away || u.snowHit === s.id) continue;
+      const ux = px(u.X), uy = px(u.Y);
+      if (Math.abs(x - ux) > 2 || y < uy - 9 || y > uy) continue;
+      u.snowHit = s.id; hurt(w, u, R.AVALANCHE_DAMAGE);
+      if (u.alive) { u.VX = (dir || (x < ux ? 1 : -1)) * 1500; u.VY = -900; u.air = true; }
+    }
+  };
+  let moved = 0, lo = s.y2, minX = W, maxX = -1;
+  const hot = s.hot || new Set(), nowHot = new Set();
+  const first = w.tick & 1 ? 1 : -1;
+  for (let y = s.y2; y >= s.y1; y--) for (let k = 0; k <= s.x2 - s.x1; k++) {
+    const x = first > 0 ? s.x1 + k : s.x2 - k, i = y * W + x;
+    if (!sol[i] || mat[i] !== SNOW) continue;
+    let tx = -1, ty = y + 1;
+    if (free(x, y + 1)) tx = x;
+    else for (const d of [first, -first]) if (free(x + d, y + 1) && free(x + d, y)) { tx = x + d; break; }
+    if (tx < 0) {
+      // only snow that is on the move can hit a vätte
+      if (hot.has(i)) {
+        if (y + 1 < H && body.has((y + 1) * W + x)) bump(x, y + 1, 0);
+        else for (const d of [first, -first]) if (body.has((y + 1) * W + x + d) && !sol[y * W + x + d]) { bump(x + d, y + 1, d); break; }
+      }
+      continue;
+    }
+    sol[i] = 0; mat[i] = 0; moved++;
+    if (ty >= w.water || ty >= H) continue;               // into the water: it melts away
+    const j = ty * W + tx; sol[j] = 1; mat[j] = SNOW; nowHot.add(j);
+    if (ty > lo) lo = ty;
+    if (tx < minX) minX = tx; if (tx > maxX) maxX = tx;
+  }
+  s.age++; s.hot = nowHot;
+  if (moved) {
+    if (!s.moved) w.events.push({ t: 'avalanche', x: s.x, y: s.y });
+    s.moved += moved; s.quiet = 0;
+    s.y2 = Math.min(H - 1, Math.max(s.y2, lo + 2)); s.x1 = Math.max(0, Math.min(s.x1, minX - 2)); s.x2 = Math.min(W - 1, Math.max(s.x2, maxX + 2));
+    if (s.age % 4 === 0) w.mapVersion++;
+  } else s.quiet++;
+  if (s.quiet >= 3 || s.age > R.AVALANCHE_MAX_TICKS) { if (s.moved) w.mapVersion++; w.slide = null; }
+}
+
+/* ---------- Takåsarna: the underground (F-034) ---------- */
+// A vätte standing in a station rides to the next station in the way it faces.
+function stepStations(w) {
+  const st = w.map.stations;
+  if (!st) return;
+  for (const u of w.units) {
+    if (!u.alive || u.away) continue;
+    const ux = px(u.X), uy = px(u.Y);
+    const at = u.air ? -1 : st.findIndex((p) => Math.abs(ux - p.x) <= 4 && Math.abs(uy - p.y) <= 3);
+    if (at < 0) { if (!u.air) u.station = -1; continue; }
+    if (u.station === at) continue;
+    const to = (at + (u.face < 0 ? st.length - 1 : 1)) % st.length, p = st[to];
+    u.X = p.x * FP; u.Y = p.y * FP; u.VX = 0; u.VY = 0; u.station = to; u.rope = null;
+    w.events.push({ t: 'metro', unit: u.id, from: at, to, x: p.x, y: p.y });
+  }
+}
+
+/* ---------- Kubb (F-032) ---------- */
+// Kubbar and the king are loose pieces: they fall when the ground goes, and an
+// explosion near them knocks them over. They are not part of the terrain.
+function pieceFree(w, x, y, h, half) {
+  for (let r = y - h; r <= y - 2; r++) for (let dx = -half; dx <= half; dx++) if (solidAt(w, x + dx, r)) return false;
+  return !solidAt(w, x, y - 1) && !solidAt(w, x, y);
+}
+// A spot where a piece of height h stands, near (x, y): first lower, then higher.
+function restSpot(w, x, y, h, half) {
+  for (let d = 0; d <= 160; d++) for (const yy of d ? (d <= 40 ? [y + d, y - d] : [y + d]) : [y]) {
+    if (yy > h + 1 && yy < w.water && pieceFree(w, x, yy, h, half) && solidAt(w, x, yy + 1)) return yy;
+  }
+  return null;
+}
+function setupKubb(w) {
+  w.kubbs = [];
+  w.teams.forEach((tm, ti) => {
+    const side = ti === 0 ? 1 : -1;
+    const spots = w.map.spawns[ti].slice().sort((a, b) => (a[0] - b[0]) * side);
+    for (const [sx, sy] of spots) {
+      if (w.kubbs.filter((k) => k.team === ti).length >= R.KUBBS) break;
+      for (const off of [9, 14, -9, 4, 19, -14, 0, 24]) {
+        const x = sx + off * side, y = restSpot(w, x, sy, R.KUBB_H, 1);
+        if (y == null || w.kubbs.some((k) => Math.abs(px(k.X) - x) < 5 && Math.abs(px(k.Y) - y) < 10)) continue;
+        w.kubbs.push({ team: ti, X: x * FP, Y: y * FP, VY: 0, air: 0, down: 0 });
+        break;
+      }
+    }
+  });
+  // the king: on firm ground as near the middle as possible
+  for (let d = 0; d < W / 2 - 20 && !w.king; d += 3) for (const x of d ? [W / 2 + d, W / 2 - d] : [W / 2]) {
+    if (w.king) break;
+    for (let y = (w.map.roof || 0) + R.KING_H + 2; y < w.water - 1; y++) {
+      if (pieceFree(w, x, y, R.KING_H, 2) && solidAt(w, x, y + 1) && solidAt(w, x - 2, y + 1) && solidAt(w, x + 2, y + 1)) { w.king = { X: x * FP, Y: y * FP, VY: 0, air: 0, down: 0, king: 1, winner: null }; break; }
+    }
+  }
+}
+const pieces = (w) => (w.kubbs ? w.king ? [...w.kubbs, w.king] : w.kubbs : []);
+const standingKubbs = (w, ti) => (w.kubbs || []).filter((k) => k.team === ti && !k.down).length;
+function knock(w, k) {
+  if (k.down) return;
+  k.down = 1;
+  const x = px(k.X), y = px(k.Y);
+  if (!k.king) { w.events.push({ t: 'kubb', team: k.team, left: standingKubbs(w, k.team), x, y }); return; }
+  // The king: the team whose turn it is wins if the other team's kubbar are all down, else it loses.
+  const by = w.turn.team;
+  const ready = by >= 0 && w.teams.every((tm) => tm.index === by || standingKubbs(w, tm.index) === 0);
+  k.winner = by < 0 ? -1 : ready ? by : w.teams.length === 2 ? 1 - by : -1;
+  k.by = by; k.early = ready ? 0 : 1;
+  w.events.push({ t: 'king', by, early: !ready, winner: k.winner, x, y });
+}
+// Is (x, y) inside a standing kubb or the king?
+function hitPiece(w, x, y) {
+  for (const k of pieces(w)) {
+    if (k.down) continue;
+    const kx = px(k.X), ky = px(k.Y), half = k.king ? 2 : 1, h = k.king ? R.KING_H : R.KUBB_H;
+    if (Math.abs(kx - x) <= half && y <= ky && y >= ky - h) return true;
+  }
+  return false;
+}
+function blastPieces(w, x, y, r) {
+  for (const k of pieces(w)) {
+    if (k.down) continue;
+    const dx = px(k.X) - x, dy = px(k.Y) - (k.king ? 7 : 4) - y;
+    if (dx * dx + dy * dy <= (r + 3) * (r + 3)) knock(w, k);
+  }
+}
+function stepPieces(w) {
+  for (const k of pieces(w)) {
+    const x = px(k.X);
+    if (!k.air && !solidAt(w, x, px(k.Y) + 1) && !solidAt(w, x - 1, px(k.Y) + 1) && !solidAt(w, x + 1, px(k.Y) + 1)) k.air = 1;
+    if (!k.air) continue;
+    k.VY = Math.min(k.VY + R.GRAVITY, 6 * FP); k.Y += k.VY;
+    let y = px(k.Y);
+    if (solidAt(w, x, y + 1) || solidAt(w, x - 1, y + 1) || solidAt(w, x + 1, y + 1)) { while (y > 0 && solidAt(w, x, y)) y--; k.Y = y * FP; k.VY = 0; k.air = 0; }
+    if (y > w.water) { k.air = 0; k.gone = 1; w.events.push({ t: 'splash', x, y: w.water }); knock(w, k); }
+  }
+  if (w.kubbs) w.kubbs = w.kubbs.filter((k) => !k.gone);
 }
 
 /* ---------- bodies ---------- */
@@ -249,6 +407,8 @@ function explode(w, x, y, wp) {
     if (dx * dx + dy * dy < reach * reach) { const d = Math.max(1, isqrt(dx * dx + dy * dy)); c.VX += Math.trunc((dx * wp.force * (reach - d)) / (reach * d)); c.VY = -900; c.air = 1; c.hit = -1; }
   }
   for (const b of w.map.boulders) b.moving = 1;
+  blastPieces(w, x, y, r);
+  if (w.map.avalanche) startSlide(w, x, y, r);
   const reach = r + 12;
   for (const u of w.units) {
     if (!u.alive) continue;
@@ -564,7 +724,7 @@ function stepProjectile(w, p) {
     }
     if (p.kind === 'gurra' || p.kind === 'troll' || p.kind === 'bullar' || p.kind === 'ball' || p.kind === 'jas' || p.kind === 'tarta') {
       const hitUnit = w.units.some((u) => u.alive && !(u.id === p.owner && p.age < 12) && Math.abs(px(u.X) - ix) <= 3 && iy >= px(u.Y) - 10 && iy <= px(u.Y));
-      if (solidAt(w, ix, iy) || hitUnit) {
+      if (solidAt(w, ix, iy) || hitUnit || hitPiece(w, ix, iy)) {
         explode(w, ix, iy, wp);
         if (p.kind === 'bullar') for (let k = 0; k < 5; k++) w.spawn.push({ kind: 'ball', X: ix * FP, Y: (iy - 4) * FP, VX: randInt(w, 3001) - 1500, VY: -1500 - randInt(w, 1500), owner: -1, age: 0, fuse: -1, rest: false });
         return false;
@@ -593,6 +753,7 @@ const aliveIn = (w, ti) => w.units.filter((u) => u.alive && u.team === ti);
 
 function nextTurn(w) {
   const t = w.turn;
+  if (w.king && w.king.winner != null) return gameOver(w, w.king.winner >= 0 ? [w.teams[w.king.winner]] : []);
   const living = w.teams.filter((tm) => aliveIn(w, tm.index).length > 0);
   if (living.length <= 1 && t.phase !== 'start') return gameOver(w, living);
   // pick the next team with vättar left
@@ -658,7 +819,7 @@ function gameOver(w, living) {
 }
 
 const busy = (w) => w.projectiles.length > 0 || w.units.some((u) => u.alive && u.air) || w.stones.some((s) => s.air !== false)
-  || w.map.boulders.some((b) => b.moving) || (w.cart && (w.cart.VX !== 0 || w.cart.air)) || w.crates.some((c) => !c.rest);
+  || w.map.boulders.some((b) => b.moving) || (w.cart && (w.cart.VX !== 0 || w.cart.air)) || w.crates.some((c) => !c.rest) || pieces(w).some((k) => k.air) || !!w.slide;
 
 /* ---------- one step ---------- */
 // input: { walk: -1|0|1, jump: bool, weapon: index, aim: {angle, power}, fire: {angle, power} | true }
@@ -696,7 +857,10 @@ export function step(w, input = {}) {
   stepKnalle(w);
   for (const b of w.map.boulders) stepBoulder(w, b);
   stepCart(w);
+  stepPieces(w);
+  stepSlide(w);
   for (const o of w.units) stepUnit(w, o);
+  stepStations(w);
   // Projectiles made during the step (meatballs, the troll's stone) join after it.
   w.projectiles = w.projectiles.filter((p) => stepProjectile(w, p));
   if (w.spawn.length) { w.projectiles.push(...w.spawn); w.spawn = []; }
@@ -725,6 +889,7 @@ export function step(w, input = {}) {
 
 /* ---------- helpers for drawing, tests and online play ---------- */
 export const activeUnit = (w) => w.units.find((u) => u.id === w.turn.unit) || null;
+export const kubbsLeft = standingKubbs;
 export const teamHp = (w, ti) => w.units.filter((u) => u.team === ti && u.alive).reduce((a, u) => a + u.hp, 0);
 export { px };
 
@@ -741,8 +906,9 @@ export function fingerprint(w) {
   if (w.cart) { mix(w.cart.X); mix(w.cart.Y); mix(w.cart.VX); }
   for (const c of w.crates) { mix(c.X); mix(c.Y); mix(c.weapon + 2); }
   for (const f of w.fires) { mix(f.X); mix(f.turns); }
-  for (const u of w.units) { mix(u.away | 0); if (u.rope) { mix(u.rope.AX); mix(u.rope.AY); mix(u.rope.L); } }
+  for (const u of w.units) { mix(u.away | 0); mix((u.station ?? -1) + 2); if (u.rope) { mix(u.rope.AX); mix(u.rope.AY); mix(u.rope.L); } }
   for (const m of w.mines) { mix(m.X); mix(m.Y); mix(m.arm); }
+  for (const k of pieces(w)) { mix(k.X); mix(k.Y); mix(k.down); }
   if (w.knalle) { mix(w.knalle.X); mix(w.knalle.Y); mix(w.knalle.dir); }
   const s = w.map.solid;
   for (let i = 0; i < s.length; i += 7) mix(s[i] * (i + 1));

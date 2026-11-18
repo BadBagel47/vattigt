@@ -8,23 +8,22 @@ Prioritet: Hög, Medel, Låg.
 | ID | Prio | Status | Beskrivning |
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
-| F-032 | Medel | Pågår (2026-11-18, session Vättigt, main) | Spellägen ur designförslaget: Boet (skydda ert bo), Kubb (fäll motståndarens kubbar och sist kungen) och Stången (håll platsen vid midsommarstången). |
-| F-033 | Låg | Pågår (2026-11-18, session Vättigt, main) | Pratbubblor där lagen pratar dialekt (skånska, göteborgska, norrländska). |
-| F-034 | Låg | Pågår (2026-11-18, session Vättigt, main) | Fler banor ur designförslaget: Fjället, Slätten, Raukarna, Takåsarna, Älven, Villaområdet. |
+| F-035 | Medel | Förslag | Spellägena Boet (skydda ert bo, förstör motståndarens) och Stången (håll platsen vid midsommarstången flest rundor). |
+| F-036 | Låg | Förslag | Fler banor ur designförslaget: Slätten, Raukarna, Älven, Villaområdet. |
+| F-037 | Låg | Förslag | Valbara regler ur designförslaget: Lagom-zonen på kraftmätaren och Jantelagen (laget som leder får sämre lådor). |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
 
-Prioriterat för: att det som finns fungerar bra på riktiga telefoner innan mer läggs till.
+Prioriterat för: att det nya (Kubb, Fjället, Takåsarna, pratbubblorna) provas på riktiga telefoner innan mer läggs till.
 
-- **A** – stark modell, hög nivå – Spellägen
-  - F-032 – Boet, Kubb och Stången, så att matcherna kan vinnas på fler sätt än att vara sist kvar
-  - Fråga: Vilket läge först? Rekommendation: Kubb, eftersom det är mest svenskt och lättast att förstå.
-- **B** – standardmodell, medelnivå – Pratbubblor
-  - F-033 – Vättarna säger saker på dialekt när de skjuter, träffas och vinner
-- **C** – stark modell, hög nivå – Fler banor
-  - F-034 – Två eller tre banor till ur designförslaget
-  - Fråga: Vilka? Rekommendation: Fjället (snö som rasar) och Takåsarna (tak och tunnelbana).
+- **A** – stark modell, hög nivå – Fler spellägen
+  - F-035 – Boet och Stången, som Kubb ett val under Spelläge
+- **B** – stark modell, hög nivå – Fler banor
+  - F-036 – Två banor till
+  - Fråga: Vilka? Rekommendation: Raukarna (pelare som välter) och Slätten (vinden avgör, kvarnvingar slår tillbaka skott).
+- **C** – standardmodell, medelnivå – Valbara regler
+  - F-037 – Lagom-zonen och Jantelagen som val i eget spel och i lobbyn
 
 Användarens provspel går före allt detta.
 
@@ -34,6 +33,9 @@ Parkerat: D-012 (musik).
 
 | ID | Klart | Beskrivning |
 |---|---|---|
+| F-032 | 2026-11-18 | Spelläget Kubb: fäll motståndarens fem kubbar och sist kungen; fälls kungen för tidigt förlorar man. Val i eget spel och i lobbyn, datorn spelar det också. Boet och Stången flyttade till F-035. |
+| F-033 | 2026-11-18 | Pratbubblor på dialekt (göteborgska med ordvitsar, skånska, norrländska med bara "jo", eller tyst), valt per lag i lagbyggaren. |
+| F-034 | 2026-11-18 | Banorna Fjället (snö som rasar som laviner) och Takåsarna (koppartak, kanaler, tunnelbana mellan tre stationer). Övriga banor flyttade till F-036. |
 | D-001 | 2026-11-13 | Första designförslaget: stil, banor, arsenal, väsen, spelidéer (docs/DESIGN.md). |
 | F-029 | 2026-11-17 | Metspöt: kasta ut linan, svinga med pilarna, släpp med Hoppa; avslutar inte turen. |
 | F-030 | 2026-11-17 | Datormotståndare i tre nivåer (lätt, lagom, svår): "Spela mot datorn" på startsidan och Motståndare i eget spel. Bara på en telefon, inte online. |

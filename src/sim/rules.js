@@ -92,5 +92,17 @@ export const TEAMS = [
 
 // Settings for a match (eget spel). Everything that changes the match is here,
 // so every browser in an online room builds the same match from the same settings.
-export const DEFAULT_SETTINGS = { map: 'midsommar', night: true, units: UNITS_PER_TEAM, turn: 45, flood: FLOOD_ROUND, weapons: ['gurra', 'strom', 'dyn', 'bullar', 'korv', 'hast', 'alg', 'jas', 'tarta', 'platt', 'halm', 'biljett', 'hink', 'kraft', 'sno', 'rope'], crates: true };
+export const DEFAULT_SETTINGS = { map: 'midsommar', night: true, units: UNITS_PER_TEAM, turn: 45, flood: FLOOD_ROUND, weapons: ['gurra', 'strom', 'dyn', 'bullar', 'korv', 'hast', 'alg', 'jas', 'tarta', 'platt', 'halm', 'biljett', 'hink', 'kraft', 'sno', 'rope'], crates: true, mode: 'klassiskt' };
 export const MAX_UNITS = 5;
+
+// Game modes (F-032). Kubb: knock down the other team's five kubbar, then the king.
+// Knock the king down too early and you lose.
+export const MODES = ['klassiskt', 'kubb'];
+export const MODE_NAMES = { klassiskt: 'Klassiskt', kubb: 'Kubb' };
+export const KUBBS = 5;
+export const KUBB_H = 7;      // a kubb is 3 px wide and 8 px tall
+export const KING_H = 13;    // the king is 5 px wide and 14 px tall
+
+// Fjället (F-034): snow near a blast slides down steep slopes as an avalanche.
+export const AVALANCHE_DAMAGE = 12;
+export const AVALANCHE_MAX_TICKS = 900;

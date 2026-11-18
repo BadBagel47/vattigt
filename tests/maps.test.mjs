@@ -7,7 +7,7 @@ import * as R from '../src/sim/rules.js';
 
 const settle = (w, max = 3000) => { for (let i = 0; i < max && w.turn.phase !== 'aim' && w.turn.phase !== 'over'; i++) step(w); return w; };
 
-for (const map of ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras']) {
+for (const map of ['midsommar', 'kobbarna', 'trollskogen', 'gruvan', 'boras', 'fjallet', 'takasarna']) {
   test(`${map}: every vätte lands on the map and the first turn starts`, () => {
     for (const units of [1, 3, 5]) {
       const w = settle(newMatch(99, { settings: { map, units } }));
@@ -110,4 +110,64 @@ test('Borås: rain puts fire out, sinkholes open, crates every round, Knallen tr
     for (let i = 0; i < 30; i++) { step(w); if (w.events.some((e) => e.t === 'trade')) traded = true; }
     assert.ok(traded, 'Knallen traded');
   }
+});
+
+test('fjallet: a blast on the steep face sets off an avalanche that moves snow and hurts', () => {
+  const w = settle(newMatch(5, { settings: { map: 'fjallet' } }));
+  assert.ok(w.map.avalanche);
+  const snowBelow = (w) => { let n = 0; for (let y = 170; y < R.H; y++) for (let x = 170; x < 240; x++) if (w.map.solid[y * R.W + x] && w.map.mat[y * R.W + x] === 4) n++; return n; };
+  const before = snowBelow(w);
+  // a vätte of the other team waits at the foot of the face
+  const u = w.units.find((o) => o.id === w.turn.unit), other = w.units.find((o) => o.team !== u.team);
+  other.X = 182 * 1024; other.Y = 150 * 1024; other.air = true;
+  u.X = 150 * 1024; u.Y = 100 * 1024; u.air = true;
+  for (let i = 0; i < 60; i++) step(w);
+  step(w, { weapon: 2 }); step(w, { fire: true });
+  const evs = [];
+  for (let i = 0; i < 3000 && w.turn.phase !== 'aim' && w.turn.phase !== 'over'; i++) { step(w); evs.push(...w.events); }
+  assert.ok(evs.some((e) => e.t === 'avalanche'), 'an avalanche started');
+  assert.ok(snowBelow(w) > before, 'snow slid down the slope');
+  assert.equal(w.slide, null, 'and it stopped');
+});
+
+test('fjallet: avalanches are the same in every browser', () => {
+  const run = () => {
+    const w = settle(newMatch(8, { settings: { map: 'fjallet' } }));
+    const u = w.units.find((o) => o.id === w.turn.unit); u.X = 330 * 1024; u.Y = 100 * 1024; u.air = true;
+    for (let i = 0; i < 60; i++) step(w);
+    step(w, { weapon: 2 }); step(w, { fire: true });
+    return settle(w);
+  };
+  assert.equal(fingerprint(run()), fingerprint(run()));
+});
+
+test('takasarna: the underground takes a vätte to the next station the way it faces', () => {
+  const w = settle(newMatch(5, { settings: { map: 'takasarna' } }));
+  const st = w.map.stations;
+  assert.equal(st.length, 3);
+  for (const s of st) assert.ok(w.map.solid[(s.y + 1) * R.W + s.x], 'stations stand on the street');
+  const u = w.units.find((o) => o.id === w.turn.unit);
+  u.X = (st[0].x - 6) * 1024; u.Y = st[0].y * 1024; u.air = true;
+  for (let i = 0; i < 60; i++) step(w);
+  const evs = [];
+  for (let i = 0; i < 400; i++) { step(w, { walk: 1 }); evs.push(...w.events); if (evs.some((e) => e.t === 'metro')) break; }
+  const ride = evs.find((e) => e.t === 'metro');
+  assert.ok(ride, 'it rode');
+  assert.equal(ride.to, 1, 'facing right: the next station to the right');
+  assert.ok(Math.abs((u.X >> 10) - st[1].x) <= 4, 'it came out at that station');
+  // standing still at the arrival does not ride again
+  for (let i = 0; i < 60; i++) step(w, { walk: 0 });
+  assert.ok(Math.abs((u.X >> 10) - st[1].x) <= 4);
+  // facing left from the first station: round to the last one
+  const w2 = settle(newMatch(5, { settings: { map: 'takasarna' } }));
+  const v = w2.units.find((o) => o.id === w2.turn.unit);
+  v.X = st[0].x * 1024; v.Y = (st[0].y - 3) * 1024; v.face = -1; v.air = true; v.station = -1;
+  const e2 = [];
+  for (let i = 0; i < 60; i++) { step(w2); e2.push(...w2.events); }
+  assert.equal(e2.find((e) => e.t === 'metro')?.to, 2);
+});
+
+test('the new maps are allowed in the settings', () => {
+  assert.equal(matchSettings({ settings: { map: 'fjallet' } }).map, 'fjallet');
+  assert.equal(matchSettings({ settings: { map: 'takasarna' } }).map, 'takasarna');
 });

@@ -25,7 +25,7 @@ export function noise(x, y, s, seed) {
 }
 
 function blank(id, name, water) {
-  return { id, name, water, solid: new Uint8Array(W * H), mat: new Uint8Array(W * H), cave: new Uint8Array(W * H), burnt: new Uint8Array(W * H), surface: new Int16Array(W), lamps: [], troll: null, roof: 0, spawns: [[], []], boulders: [], cart: null, rain: 0, sinkholes: 0, crateEvery: 0, wrongGoods: 0, knalle: null, statue: null };
+  return { id, name, water, solid: new Uint8Array(W * H), mat: new Uint8Array(W * H), cave: new Uint8Array(W * H), burnt: new Uint8Array(W * H), surface: new Int16Array(W), lamps: [], troll: null, roof: 0, spawns: [[], []], boulders: [], cart: null, rain: 0, sinkholes: 0, crateEvery: 0, wrongGoods: 0, knalle: null, statue: null, avalanche: 0, stations: null };
 }
 const fill = (m, x, y, mat) => { if (x >= 0 && x < W && y >= 0 && y < H) { const i = y * W + x; m.solid[i] = 1; m.mat[i] = mat; } };
 function finish(m) {
@@ -164,8 +164,75 @@ function boras(seed) {
   return finish(m);
 }
 
-export const MAPS = { midsommar, kobbarna, trollskogen, gruvan, boras };
-export const MAP_NAMES = { midsommar: 'Midsommarängen', kobbarna: 'Kobbarna', trollskogen: 'Trollskogen', gruvan: 'Gruvan', boras: 'Borås' };
+/* ---------- Fjället (Lappland): two fells with steep snowy faces; the snow slides as avalanches ---------- */
+const FELL = [[0, 150], [40, 122], [80, 98], [112, 88], [140, 102], [176, 168], [206, 202], [240, 212], [274, 202], [304, 168], [340, 98], [372, 80], [404, 92], [440, 122], [480, 150]];
+function fjallet(seed) {
+  const m = blank('fjallet', 'Fjället', 246);
+  for (let x = 0; x < W; x++) {
+    let i = 0;
+    while (i < FELL.length - 2 && x >= FELL[i + 1][0]) i++;
+    const [x1, y1] = FELL[i], [x2, y2] = FELL[i + 1];
+    const t = Math.trunc(((x - x1) * 1024) / (x2 - x1)), e = Math.trunc((t * t * (3072 - 2 * t)) / 1048576);
+    const top = y1 + Math.trunc(((y2 - y1) * e) / 1024) + Math.trunc(((noise(x, 0, 10, seed) - 512) * 6) / 1024);
+    // snow lies thicker higher up; under it heath, then rock and gravel
+    const snow = top < 204 ? Math.min(12, 3 + Math.trunc((204 - top) / 11)) + Math.trunc((noise(x, 3, 7, seed) * 3) / 1024) : 1;
+    for (let y = top; y < H; y++) {
+      const d = y - top;
+      fill(m, x, y, d < snow ? SNOW : d < snow + 5 ? SOIL : noise(x, y, 14, seed) > 470 ? ROCK : SOIL);
+    }
+  }
+  m.avalanche = 1;
+  m.spawns = [[[30, 110], [60, 95], [95, 80], [125, 85], [200, 180], [150, 110]], [[450, 110], [420, 95], [390, 70], [355, 80], [280, 180], [330, 100]]];
+  return finish(m);
+}
+
+/* ---------- Takåsarna (Stockholm): copper roofs, chimneys, a church tower, canals between the blocks ---------- */
+// Three blocks of houses on stone quays with water between. In a narrow alley in each block is an
+// underground station: walk in and you come out at the next station (F-034).
+const STREET = 206;
+function takasarna(seed) {
+  const m = blank('takasarna', 'Takåsarna', 236);
+  const box = (x1, y1, x2, y2, mat) => { for (let y = y1; y <= y2; y++) for (let x = x1; x <= x2; x++) fill(m, x, y, mat); };
+  const blocks = [[4, 150], [176, 304], [330, 476]];
+  for (const [a, b] of blocks) box(a, STREET, b, H - 1, ROCK);
+  // the open places: an alley with a station in the outer blocks, the square in the middle one
+  const gaps = [[86, 100], [222, 262], [380, 394]];
+  m.stations = [{ x: 93, y: STREET - 1 }, { x: 256, y: STREET - 1 }, { x: 387, y: STREET - 1 }];
+  m.square = { x1: 222, x2: 262 };
+  m.houses = [];
+  for (const [a, b] of blocks) {
+    let x = a, k = 0;
+    while (x < b - 8) {
+      const gap = gaps.find(([g1, g2]) => x >= g1 - 2 && x < g2);
+      if (gap) { x = gap[1] + 1; continue; }
+      const next = gaps.find(([g1]) => g1 > x && g1 < x + 40);
+      let wdt = 22 + (hash32(x, 5, seed) % 13);
+      if (next) wdt = Math.min(wdt, next[0] - 1 - x);
+      if (x + wdt > b - 6) wdt = b - x;
+      const h = 46 + (hash32(x, 9, seed) % 40), y0 = STREET - h;
+      box(x, y0, x + wdt - 1, STREET - 1, SOIL);
+      // a copper roof: a low gable, two pixels thick
+      const half = wdt >> 1;
+      for (let i = 0; i < wdt; i++) { const rise = Math.trunc(Math.min(i, wdt - 1 - i) / 2); for (let j = 0; j <= rise + 1; j++) fill(m, x + i, y0 - j, WOOD); }
+      const cx = x + 4 + (hash32(x, 11, seed) % Math.max(1, wdt - 8)), crise = Math.trunc(Math.min(cx - x, x + wdt - 1 - cx) / 2);
+      if (wdt > 14) box(cx, y0 - crise - 8, cx + 2, y0 - crise, ROCK);
+      m.houses.push({ x1: x, x2: x + wdt - 1, top: y0, half, k: k++ });
+      x += wdt;
+    }
+  }
+  // the church tower beside the square: stone tower, copper spire
+  const tx = 206;
+  box(tx, 96, tx + 13, STREET - 1, ROCK);
+  for (let j = 0; j < 46; j++) { const hw = Math.trunc((j * 7) / 46); for (let i = -hw; i <= hw; i++) fill(m, tx + 6 + i, 96 - 46 + j, WOOD); }
+  m.tower = { x: tx, top: 96 };
+  finish(m);
+  // on the roofs, just above them (a fall from the sky would hurt)
+  m.spawns = [[20, 50, 120, 140, 190, 70], [460, 430, 350, 340, 290, 410]].map((xs) => xs.map((x) => [x, m.surface[x] - 1]));
+  return m;
+}
+
+export const MAPS = { midsommar, kobbarna, trollskogen, gruvan, boras, fjallet, takasarna };
+export const MAP_NAMES = { midsommar: 'Midsommarängen', kobbarna: 'Kobbarna', trollskogen: 'Trollskogen', gruvan: 'Gruvan', boras: 'Borås', fjallet: 'Fjället', takasarna: 'Takåsarna' };
 export function makeMap(seed, id = 'midsommar') { return (MAPS[id] || MAPS.midsommar)(seed); }
 
 export const isSolid = (map, x, y) => x >= 0 && x < W && y >= 0 && y < H && map.solid[y * W + x] === 1;

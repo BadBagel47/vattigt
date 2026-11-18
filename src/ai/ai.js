@@ -2,7 +2,7 @@
 // head (a quick copy of the projectile physics) and picks one that hurts the
 // other team most and itself least. The level decides how much it misses.
 // Only used on one phone, so it may use Math.random; online play has no computer players.
-import { W, H, FP, GRAVITY, WIND_ACCEL, WEAPONS } from '../sim/rules.js';
+import { W, H, FP, GRAVITY, WIND_ACCEL, WEAPONS, KUBB_H, KING_H } from '../sim/rules.js';
 import { sin, cos } from '../sim/trig.js';
 
 export const LEVELS = {
@@ -30,10 +30,13 @@ function flight(w, u, wp, angle, power) {
       if (y > w.water || x < -60 || x > W + 60) return null;
       if (isSolid(x, y)) return [x, y];
       if (t > 8) for (const o of w.units) if (o.alive && !o.away && Math.abs(px(o.X) - x) <= 3 && y >= px(o.Y) - 10 && y <= px(o.Y)) return [x, y];
+      for (const k of pieces(w)) if (!k.down && Math.abs(px(k.X) - x) <= (k.king ? 2 : 1) && y <= px(k.Y) && y >= px(k.Y) - (k.king ? KING_H : KUBB_H)) return [x, y];
     }
   }
   return null;
 }
+
+const pieces = (w) => (w.kubbs ? [...w.kubbs, ...(w.king ? [w.king] : [])] : []);
 
 // How good a blast at (x, y) is for the team: damage to the others minus twice the damage to its own.
 function score(w, team, x, y, wp) {
@@ -48,6 +51,18 @@ function score(w, team, x, y, wp) {
     if (px(o.Y) > w.water - 30) dmg += 8;                // near the water: the push may drown it
     s += o.team === team ? -2 * dmg : dmg;
   }
+  // Kubb: the other team's kubbar are worth a lot; the king only once they are all down.
+  if (w.kubbs) {
+    const theirs = w.kubbs.filter((k) => k.team !== team && !k.down).length;
+    for (const k of pieces(w)) {
+      if (k.down) continue;
+      const dx = px(k.X) - x, dy = px(k.Y) - (k.king ? 7 : 4) - y, d2 = dx * dx + dy * dy;
+      // keep well away from the king while it must stand: shots do not land exactly where planned
+      if (k.king && theirs > 0) { const safe = wp.radius + 30; if (d2 < safe * safe) s -= 400; continue; }
+      if (d2 > (wp.radius + 3) * (wp.radius + 3)) continue;
+      s += k.king ? 400 : k.team === team ? -45 : 45;
+    }
+  }
   return s;
 }
 
@@ -61,7 +76,7 @@ export function planTurn(w, level = 'lagom') {
   const near = enemies.find((o) => Math.abs(px(o.X) - px(u.X)) < 16 && Math.abs(px(o.Y) - px(u.Y)) < 12);
 
   // Right next to someone: dynamite, then walk away.
-  if (near && ammo[idx('dyn')] > 0 && level !== 'latt') {
+  if (near && ammo[idx('dyn')] > 0 && level !== 'latt' && score(w, team, px(u.X), px(u.Y) - 4, WEAPONS[idx('dyn')]) > 0) {
     const away = px(near.X) > px(u.X) ? -1 : 1;
     return [[L.think, { weapon: idx('dyn') }], [300, { fire: true }], [200, { walk: away }], [2200, { walk: 0 }]];
   }
@@ -84,14 +99,33 @@ export function planTurn(w, level = 'lagom') {
   for (const id of ['korv', 'jas']) {
     const i = idx(id);
     if (ammo[i] <= 0 || level === 'latt' || !w.settings.weapons.includes(id) || w.map.roof) continue;
-    for (const o of enemies) options.push({ weapon: i, tx: px(o.X), s: 18 + Math.random() * 8 });
+    for (const o of enemies) {
+      if (w.king && !w.king.down && w.kubbs.some((k) => k.team !== team && !k.down) && Math.abs(px(o.X) - px(w.king.X)) < 50) continue;
+      options.push({ weapon: i, tx: px(o.X), s: 18 + Math.random() * 8 });
+    }
   }
   options.sort((a, b) => b.s - a.s);
+  // Kubb: a shot that could knock the king over if it goes a little wrong is not worth it.
+  const king = w.king && !w.king.down && w.kubbs.some((k) => k.team !== team && !k.down) ? w.king : null;
+  if (king) {
+    const near = (hit, wp) => { if (!hit) return false; const dx = hit[0] - px(king.X), dy = hit[1] - px(king.Y) + 7, r = wp.radius + 6; return dx * dx + dy * dy < r * r; };
+    const ea = Math.max(2, L.angleErr), ep = Math.max(2, L.powerErr), safe = [];
+    for (const o of options) {
+      if (safe.length >= L.pickTop || o.angle == null) { if (o.angle == null) safe.push(o); if (safe.length >= L.pickTop) break; continue; }
+      const wp = WEAPONS[o.weapon];
+      let ok = true;
+      for (const [da, dp] of [[-ea, 0], [ea, 0], [0, -ep], [0, ep], [-ea, -ep], [ea, ep], [-ea, ep], [ea, -ep]]) if (near(flight(w, u, wp, o.angle + da, Math.max(15, Math.min(100, o.power + dp))), wp)) { ok = false; break; }
+      if (ok) safe.push(o);
+    }
+    options.length = 0; options.push(...safe);
+  }
   let pick = options[Math.floor(Math.random() * Math.min(L.pickTop, options.length))];
   if (!pick) {
     // Nothing reaches: shoot roughly towards the nearest enemy.
     const o = enemies.reduce((a, b) => (Math.abs(px(b.X) - px(u.X)) < Math.abs(px(a.X) - px(u.X)) ? b : a));
     pick = { weapon: idx('gurra'), angle: px(o.X) > px(u.X) ? 55 : 125, power: 70 };
+    // Kubb: rather waste the shot than risk the king. Throw it gently away from the king.
+    if (king) pick = { weapon: idx('gurra'), angle: px(king.X) > px(u.X) ? 160 : 20, power: 20 };
   }
   const plan = [[L.think, { weapon: pick.weapon }]];
   if (pick.tx != null) { plan.push([600, { fire: { tx: pick.tx, ty: 20 } }]); return plan; }

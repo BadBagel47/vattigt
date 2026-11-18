@@ -170,6 +170,7 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
     <div class="cright">
       <div class="opts">
         <div><span class="label" id="l-cmood">Stämning</span><div class="choices" role="group" aria-labelledby="l-cmood" id="moods"></div></div>
+        <div><span class="label" id="l-cmode">Spelläge</span><div class="choices" role="group" aria-labelledby="l-cmode" data-opt="mode"></div></div>
         <div><span class="label" id="l-copp">Motståndare</span><div class="choices" role="group" aria-labelledby="l-copp" data-opt="opponent"></div></div>
         <div><span class="label" id="l-cteams">Lagen</span><div class="inline" role="group" aria-labelledby="l-cteams"><select id="cTeam0" aria-label="Lag 1"></select><select id="cTeam1" aria-label="Lag 2"></select></div></div>
         <div><span class="label" id="l-cunits">Vättar per lag</span><div class="choices" role="group" aria-labelledby="l-cunits" data-opt="units"></div></div>
@@ -196,6 +197,7 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
       <input type="text" id="tName" maxlength="20" spellcheck="false">
       <span class="label" id="l-tcolor">Färg</span><div class="choices" role="group" aria-labelledby="l-tcolor" id="tColors"></div>
       <span class="label" id="l-that">Luva</span><div class="choices" role="group" aria-labelledby="l-that" id="tHats"></div>
+      <span class="label" id="l-tdial">Dialekt i pratbubblorna</span><div class="choices" role="group" aria-labelledby="l-tdial" id="tDialect"></div>
       <span class="label">Vättarna</span><div class="tnames" id="tNames"></div>
       <div class="choices"><button type="button" id="tShuffle">Slumpa namn</button><button type="button" id="tDelete">Ta bort laget</button></div>
       <p class="small">Lagen sparas i den här webbläsaren.</p>
@@ -244,6 +246,8 @@ select{font-family:var(--body);font-size:16px;color:var(--ink);background:var(--
       <div class="choices" role="group" aria-labelledby="l-netmood" id="netMoods"></div>
       <span class="label" id="l-netmap">Bana</span>
       <div class="choices" role="group" aria-labelledby="l-netmap" id="netMaps"></div>
+      <span class="label" id="l-netmode">Spelläge</span>
+      <div class="choices" role="group" aria-labelledby="l-netmode" id="netMode"></div>
       <span class="label" id="l-netteams">Lagen</span>
       <div class="inline" role="group" aria-labelledby="l-netteams"><select id="netTeam0" aria-label="Lag 1"></select><select id="netTeam1" aria-label="Lag 2"></select></div>
       <span class="label" id="l-netunits">Vättar per lag</span><div class="choices" role="group" aria-labelledby="l-netunits" id="netUnits"></div>

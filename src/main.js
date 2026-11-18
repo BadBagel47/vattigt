@@ -5,10 +5,11 @@
 import { createMatch } from './net/match.js';
 import { createOnline, TEAM_PLACES } from './net/online.js';
 import { activeUnit, newMatch, step } from './sim/world.js';
-import { W, H, TPS, WEAPONS, DEFAULT_SETTINGS, TEAMS, MAX_UNITS } from './sim/rules.js';
+import { W, H, TPS, WEAPONS, DEFAULT_SETTINGS, TEAMS, MAX_UNITS, MODES, MODE_NAMES } from './sim/rules.js';
 import { MAP_NAMES } from './sim/terrain.js';
 import { createRenderer, drawIcon, MOODS, TEAM_COLORS, HATS, hatRows, teamColor } from './render/render.js';
 import { VATTE } from './render/sprites.js';
+import { DIALECTS, DIALECT_KEYS, defaultDialect } from './render/speech.js';
 import { planTurn, LEVELS } from './ai/ai.js';
 import { createSound } from './audio/sound.js';
 import { shareLink, readShareLink, forgetShareKey, qrSvg, tabSession } from '../vendor/network-kit/client/index.js';
@@ -266,16 +267,16 @@ function resetView() { view.aim = null; drag = null; held.left = held.right = fa
 
 /* ---------- settings (eget spel) and saved teams (lagbyggaren) ---------- */
 const NIGHT_MOODS = new Set(['midsommar', 'vinter']);
-const custom = { opponent: 'spelare', crates: true, map: DEFAULT_SETTINGS.map, units: DEFAULT_SETTINGS.units, turn: DEFAULT_SETTINGS.turn, flood: DEFAULT_SETTINGS.flood, weapons: new Set(DEFAULT_SETTINGS.weapons), team0: 0, team1: 1 };
+const custom = { opponent: 'spelare', mode: 'klassiskt', crates: true, map: DEFAULT_SETTINGS.map, units: DEFAULT_SETTINGS.units, turn: DEFAULT_SETTINGS.turn, flood: DEFAULT_SETTINGS.flood, weapons: new Set(DEFAULT_SETTINGS.weapons), team0: 0, team1: 1 };
 const TEAM_KEY = 'vattigt-teams';
-const defaultTeams = () => TEAMS.map((t) => ({ name: t.name, color: t.color, hat: t.hat, units: t.units.map((n) => n.charAt(0) + n.slice(1).toLowerCase()) }));
+const defaultTeams = () => TEAMS.map((t, i) => ({ name: t.name, color: t.color, hat: t.hat, dialect: defaultDialect(i), units: t.units.map((n) => n.charAt(0) + n.slice(1).toLowerCase()) }));
 let savedTeams = (() => { try { const v = JSON.parse(localStorage.getItem(TEAM_KEY) || 'null'); if (Array.isArray(v) && v.length >= 2) return v; } catch (e) { /* storage off */ } return defaultTeams(); })();
 function saveTeams() { try { localStorage.setItem(TEAM_KEY, JSON.stringify(savedTeams)); } catch (e) { /* storage off: teams last until the page closes */ } }
 function matchOpts() {
   const pick = (i) => savedTeams[i] || savedTeams[0];
   return {
-    settings: { map: custom.map, night: NIGHT_MOODS.has(moodName), units: custom.units, turn: custom.turn, flood: custom.flood, weapons: [...custom.weapons], crates: custom.crates },
-    teams: [pick(custom.team0), pick(custom.team1)].map((t) => ({ name: t.name, color: t.color, hat: t.hat, units: t.units }))
+    settings: { map: custom.map, night: NIGHT_MOODS.has(moodName), units: custom.units, turn: custom.turn, flood: custom.flood, weapons: [...custom.weapons], crates: custom.crates, mode: custom.mode },
+    teams: [pick(custom.team0), pick(custom.team1)].map((t, i) => ({ name: t.name, color: t.color, hat: t.hat, units: t.units, dialect: t.dialect || defaultDialect(i) }))
   };
 }
 
@@ -288,6 +289,11 @@ function newLocalGame() {
   window.__vattigt = { match: local };
   paused = false; show(null); layout();
 }
+// Kubb: how the king fell.
+function kingNote(w) {
+  const by = w.teams[w.king.by] ? w.teams[w.king.by].name : 'Någon';
+  return w.king.early ? `${by} fällde kungen för tidigt.` : `${by} fällde alla kubbar och sedan kungen.`;
+}
 function showOver() {
   clearTimeout(overTimer);
   overTimer = setTimeout(() => {
@@ -295,7 +301,8 @@ function showOver() {
     if (!w || w.turn.phase !== 'over') return;
     $('overText').textContent = w.winner >= 0 ? `${w.teams[w.winner].name} vinner!` : 'Oavgjort!';
     const left = w.units.filter((u) => u.alive).map((u) => u.name.charAt(0) + u.name.slice(1).toLowerCase());
-    let sub = w.winner >= 0 ? `Kvar på ängen: ${left.join(', ')}. ${w.turn.round} rundor.` : 'Ingen vätte står kvar.';
+    let sub = w.winner >= 0 ? `Kvar på ängen: ${left.join(', ')}. ${w.turn.round} ${w.turn.round === 1 ? 'runda' : 'rundor'}.` : 'Ingen vätte står kvar.';
+    if (w.king && w.king.winner != null) sub = `${kingNote(w)} ${w.turn.round} ${w.turn.round === 1 ? 'runda' : 'rundor'}.`;
     const canStart = mode === 'local' || online?.isHost() || online?.room?.isOwner;
     if (mode === 'online' && !canStart) {
       const owner = online.room?.player(online.room.room?.ownerId);
@@ -343,7 +350,7 @@ Object.entries(MOODS).forEach(([key, m]) => {
 /* ---------- eget spel ---------- */
 const preview = createRenderer($('cScene'), $('cGlow'));
 let previewWorld = null;
-function rebuildPreview() { previewWorld = newMatch(7, { settings: { map: custom.map, units: custom.units } }); for (let i = 0; i < 160; i++) step(previewWorld); preview.reset(); preview.setMood(moodName); }
+function rebuildPreview() { previewWorld = newMatch(7, { settings: { map: custom.map, units: custom.units, mode: custom.mode } }); for (let i = 0; i < 160; i++) step(previewWorld); preview.reset(); preview.setMood(moodName); }
 function choiceRow(el, values, get, set, label = String) {
   el.innerHTML = '';
   for (const v of values) {
@@ -356,6 +363,7 @@ function choiceRow(el, values, get, set, label = String) {
 function setupCustom() {
   choiceRow($('cMaps'), Object.keys(MAP_NAMES), (v) => custom.map === v, (v) => { custom.map = v; rebuildPreview(); }, (v) => MAP_NAMES[v]);
   const row = (k) => document.querySelector(`[data-opt=${k}]`);
+  choiceRow(row('mode'), MODES, (v) => custom.mode === v, (v) => { custom.mode = v; rebuildPreview(); }, (v) => MODE_NAMES[v]);
   choiceRow(row('units'), [1, 2, 3, 4, MAX_UNITS], (v) => custom.units === v, (v) => { custom.units = v; rebuildPreview(); });
   choiceRow(row('turn'), [30, 45, 60, 90], (v) => custom.turn === v, (v) => { custom.turn = v; }, (v) => v + ' s');
   choiceRow(row('flood'), [0, 6, 8, 12], (v) => custom.flood === v, (v) => { custom.flood = v; }, (v) => (v ? 'Runda ' + v : 'Av'));
@@ -372,8 +380,9 @@ function setupCustom() {
   customNote();
 }
 function customNote() {
-  const notes = { boras: 'Det regnar alltid, så eld slocknar. Slukhål öppnar sig mellan rundorna, lådorna kommer varje runda men innehåller ibland fel vara, och Knallen byter vapen med den som går fram till honom.', kobbarna: 'Granit tål mer än jord och bryggan är av trä.', trollskogen: 'Flyttblocken är hårda. Trollet vaknar om det träffas på natten (Midsommarnatt, Vinternatt).', gruvan: 'Mörkt under jord. Lyktorna går att skjuta sönder.', midsommar: '' };
+  const notes = { boras: 'Det regnar alltid, så eld slocknar. Slukhål öppnar sig mellan rundorna, lådorna kommer varje runda men innehåller ibland fel vara, och Knallen byter vapen med den som går fram till honom.', kobbarna: 'Granit tål mer än jord och bryggan är av trä.', trollskogen: 'Flyttblocken är hårda. Trollet vaknar om det träffas på natten (Midsommarnatt, Vinternatt).', gruvan: 'Mörkt under jord. Lyktorna går att skjuta sönder.', fjallet: 'Snön ligger löst på de branta sluttningarna. En smäll i närheten sätter fart på en lavin.', takasarna: 'Koppartak och kanaler. Gå in vid T-skylten så åker du tunnelbana till nästa station, åt det håll du tittar.', midsommar: '' };
   let n = notes[custom.map] || '';
+  if (custom.mode === 'kubb') n = 'Kubb: fäll motståndarens fem kubbar, sedan kungen i mitten. Fäller ni kungen för tidigt förlorar ni. ' + n;
   if (custom.team0 === custom.team1) n += ' Välj två olika lag.';
   $('cNote').textContent = n.trim();
   $('cStart').disabled = custom.team0 === custom.team1;
@@ -394,6 +403,8 @@ function teamsScreen() {
   TEAM_COLORS.forEach((c, i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.setAttribute('aria-label', c.name); b.title = c.name; b.setAttribute('aria-pressed', String(t.color === i)); const sp = document.createElement('span'); sp.style.background = c.css; b.append(sp); b.addEventListener('click', () => { t.color = i; saveTeams(); teamsScreen(); }); $('tColors').append(b); });
   $('tHats').innerHTML = '';
   for (const [k, name] of Object.entries(HATS)) { const b = document.createElement('button'); b.type = 'button'; b.textContent = name; b.setAttribute('aria-pressed', String(t.hat === k)); b.addEventListener('click', () => { t.hat = k; saveTeams(); teamsScreen(); }); $('tHats').append(b); }
+  $('tDialect').innerHTML = '';
+  for (const k of DIALECT_KEYS) { const b = document.createElement('button'); b.type = 'button'; b.textContent = DIALECTS[k].name; b.setAttribute('aria-pressed', String((t.dialect || defaultDialect(curTeam)) === k)); b.addEventListener('click', () => { t.dialect = k; saveTeams(); teamsScreen(); }); $('tDialect').append(b); }
   $('tNames').innerHTML = '';
   for (let i = 0; i < MAX_UNITS; i++) { const inp = document.createElement('input'); inp.type = 'text'; inp.maxLength = 10; inp.value = t.units[i] || ''; inp.setAttribute('aria-label', `Vätte ${i + 1}`); inp.addEventListener('input', () => { t.units[i] = inp.value.trim(); saveTeams(); }); $('tNames').append(inp); }
   $('tDelete').disabled = savedTeams.length <= 2;
@@ -518,7 +529,7 @@ function updateLobby(rm) {
   const curMap = rm.data?.map || 'midsommar';
   if (lead) netSetup();
   const st = rm.data?.settings || {}, tms = rm.data?.teams;
-  $('lobbyMap').textContent = `Bana: ${MAP_NAMES[curMap]}. ${st.units || 3} vättar per lag, ${st.turn || 45} sekunder per tur.`;
+  $('lobbyMap').textContent = `Bana: ${MAP_NAMES[curMap]}.${st.mode === 'kubb' ? ' Spelläge: Kubb.' : ''} ${st.units || 3} vättar per lag, ${st.turn || 45} sekunder per tur.`;
   document.querySelectorAll('.team').forEach((el, i) => { const t = tms && tms[i]; const h = el.querySelector('h3'); h.textContent = t ? t.name : TEAMS[i].name; h.style.color = TEAM_COLORS[t ? t.color : i].css; });
   const ready = TEAM_PLACES.every((pl) => (rm.places?.[pl] || []).length > 0);
   $('startNet').hidden = !lead;
@@ -533,12 +544,13 @@ let netBuilt = false;
 function pushSetup() {
   if (!online) return;
   const o = matchOpts();
-  online.setSetup({ units: o.settings.units, turn: o.settings.turn, flood: o.settings.flood, weapons: o.settings.weapons, crates: o.settings.crates }, o.teams);
+  online.setSetup({ units: o.settings.units, turn: o.settings.turn, flood: o.settings.flood, weapons: o.settings.weapons, crates: o.settings.crates, mode: o.settings.mode }, o.teams);
 }
 function netSetup() {
   if (netBuilt) return;
   netBuilt = true;
   choiceRow($('netMaps'), Object.keys(MAP_NAMES), (v) => custom.map === v, (v) => { custom.map = v; online.setMap(v); }, (v) => MAP_NAMES[v]);
+  choiceRow($('netMode'), MODES, (v) => custom.mode === v, (v) => { custom.mode = v; pushSetup(); }, (v) => MODE_NAMES[v]);
   choiceRow($('netUnits'), [1, 2, 3, 4, MAX_UNITS], (v) => custom.units === v, (v) => { custom.units = v; pushSetup(); });
   choiceRow($('netTurn'), [30, 45, 60, 90], (v) => custom.turn === v, (v) => { custom.turn = v; pushSetup(); }, (v) => v + ' s');
   choiceRow($('netFlood'), [0, 6, 8, 12], (v) => custom.flood === v, (v) => { custom.flood = v; pushSetup(); }, (v) => (v ? 'Runda ' + v : 'Av'));

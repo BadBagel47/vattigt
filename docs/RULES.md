@@ -74,8 +74,19 @@ Så fungerar den första spelbara versionen. Siffrorna är startvärden som ska 
 - **Kobbarna:** granitkobbar med mycket vatten emellan, en brygga och sjöbodens golv av trä.
 - **Trollskogen:** jord med hårda flyttblock och en stenmur. Ett flyttblock som tappar marken under sig faller, och rullar åt det håll där det saknar stöd. Den som står i vägen tar 30 skada. Dimman i sänkorna döljer motståndarlagets vättar medan en tur pågår. Det största blocket är ett troll. På natten (stämningarna Midsommarnatt och Vinternatt) vaknar trollet om en smäll når det, och kastar en sten mot den vars tur det är (skada upp till 40), högst en gång per tur.
 - **Borås:** parkeringshus, ån med en bro, betongklossar och en bronsstaty. Det regnar alltid, så eld slocknar direkt. Mellan rundorna öppnar sig ibland ett slukhål. En låda kommer varje runda, men ett postpaket kan innehålla fel vara. Knallen vandrar omkring och byter: den vars tur det är får ett vapen av honom och lämnar ett annat, en gång per lag och runda.
+- **Fjället:** två fjäll med branta sidor, berg under ett lager snö (tjockare högre upp) och ljung. En smäll sätter fart på snön runt omkring: snö som har fritt under sig faller, och snö på en sluttning brantare än 45 grader glider ner, tills allt ligger still. En vätte som träffas av snö i rörelse tar 12 skada en gång per lavin och knuffas undan. Snö som når vattnet smälter bort. Turen går inte vidare förrän lavinen stannat.
+- **Takåsarna:** tre kvarter på kajer av sten, med kanaler emellan. Husen är av puts, taken av koppar (går sönder lätt som trä), skorstenarna och kyrktornet av tegel (hårt som berg). I en gränd i varje ytterkvarter och på torget i mitten finns en tunnelbanestation (blå T-skylt). En vätte som står still vid en station åker till nästa station åt det håll den tittar, och från den sista runt till den första. Den åker inte igen förrän den har lämnat stationen.
 - **Gruvan:** orter under jord. Gruvvagnen rullar längs gången när en smäll knuffar den, och den som träffas av den i fart tar 25 skada. Det är mörkt utom där lyktorna och vättarnas pannlampor lyser. En smäll som når en lykta släcker den för resten av matchen.
+
+## Spellägen
+
+- **Klassiskt:** sista laget med vättar kvar vinner.
+- **Kubb:** varje lag har fem kubbar på sin sida och kungen står nära mitten. En smäll som når en kubb eller kungen (inom smällens radie plus 3 pixlar), eller en direktträff, fäller den, och en pjäs som faller i vattnet räknas också som fälld. Fäller ett lag kungen när alla motståndarens kubbar ligger, vinner det. Fälls kungen innan dess vinner motståndarlaget. Det lag vars tur det är räknas som det som fällde kungen. Ett lag utan vättar förlorar som vanligt.
+
+## Pratbubblor
+
+Varje lag pratar en dialekt, vald i lagbyggaren: göteborgska (med ordvitsar), skånska, norrländska (bara "jo") eller tyst. Vättarna säger något ibland när de skjuter, när de träffas, när turen börjar och när laget vinner. Bubblorna påverkar inte matchen.
 
 ## Inte med än
 
-Resten av vapnen ur designförslaget, spellägen (Boet, Kubb, Stången) och fler banor.
+Resten av vapnen ur designförslaget, spellägena Boet och Stången och fler banor.
