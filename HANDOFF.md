@@ -57,6 +57,7 @@ Vättigt är ett turbaserat artillerispel i samma genre som klassiska Worms, med
 - 2026-11-18: Nästa banor efter Fjället och Takåsarna: Raukarna och Slätten (F-036).
 - 2026-11-18: Rumskoderna får 6 tecken (network-kit v0.8.0 standard) i stället för 4 (svar på Q9).
 - 2026-11-18: Kontrollerna (Q11, D-047): Handkontroll (kors till vänster för gå och sikta; stor rund Skjut som hålls in för styrka och Hoppa till höger; meny och ljud som små ikoner), med den smala vapenknappen från förslag 2 och styrkemätaren under vapenknappen. Bild i docs/controls/index.html.
+- 2026-11-18: Inga anonyma mätningar av anslutningen tills vidare (Q10, rekommendationen godkänd).
 - 2026-11-16: Musiken är chiptune som möter svensk folkmusik. Agenten komponerar och producerar allt (ljudet skapas i webbläsaren, inga riktiga instrument); användaren lyssnar och styr.
 - 2026-11-17: Mobil först: spelet byggs för pekskärm och liggande läge; tangentbord och mus kommer sedan.
 - 2026-11-17: Spelet är på svenska.

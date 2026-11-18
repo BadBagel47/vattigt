@@ -8,10 +8,10 @@ Prioritet: Hög, Medel, Låg.
 | ID | Prio | Status | Beskrivning |
 |---|---|---|---|
 | D-003 | Hög | Väntar på användaren | Välj bland förslagen i docs/DESIGN.md: namn på vapen, banor, väsen, spellägen. Svara på de öppna frågorna i HANDOFF.md. |
-| D-047 | Hög | Förslag | Nya kontroller enligt användarens val (Q11, 2026-11-18): Handkontroll med kors till vänster (◀ ▶ gå, ▲ ▼ sikta), stor rund Skjut som hålls in för styrka och Hoppa till höger, meny och ljud som små ikoner, den smala vapenknappen från förslag 2 och styrkemätaren under vapenknappen. Bild i docs/controls/index.html. |
-| B-048 | Hög | Förslag | När vätten vänds med ◀ eller ▶ under siktningen följer inte siktet med: siktlinjen och Skjut pekar kvar åt det gamla hållet tills man trycker ▲ eller ▼ eller drar i bilden. Siktet ska spegla sig till den nya sidan. |
-| F-041 | Låg | Förslag | Fler banor ur designförslaget: Älven och Villaområdet (flyttat från F-036). |
-| F-043 | Låg | Förslag | Koppla Vättigt till adminsidan via en servicebindning: Nya spelare av/på, tidsstyrning, nödstopp, dagsbudget, spellänkar, och meddelanden till spelarna (watchNotices). Eventuellt frivilliga anonyma mätningar av anslutningen med en synlig upplysning. Kräver att network-kit-admin finns på samma Cloudflare-konto. |
+| D-047 | Hög | Pågår (2026-11-18, session Vättigt, main) | Nya kontroller enligt användarens val (Q11, 2026-11-18): Handkontroll med kors till vänster (◀ ▶ gå, ▲ ▼ sikta), stor rund Skjut som hålls in för styrka och Hoppa till höger, meny och ljud som små ikoner, den smala vapenknappen från förslag 2 och styrkemätaren under vapenknappen. Bild i docs/controls/index.html. |
+| B-048 | Hög | Pågår (2026-11-18, session Vättigt, main) | När vätten vänds med ◀ eller ▶ under siktningen följer inte siktet med: siktlinjen och Skjut pekar kvar åt det gamla hållet tills man trycker ▲ eller ▼ eller drar i bilden. Siktet ska spegla sig till den nya sidan. |
+| F-041 | Låg | Pågår (2026-11-18, session Vättigt, main) | Fler banor ur designförslaget: Älven och Villaområdet (flyttat från F-036). |
+| F-043 | Låg | Pågår (2026-11-18, session Vättigt, main) | Koppla Vättigt till adminsidan via en servicebindning: Nya spelare av/på, tidsstyrning, nödstopp, dagsbudget, spellänkar, och meddelanden till spelarna (watchNotices). Eventuellt frivilliga anonyma mätningar av anslutningen med en synlig upplysning. Kräver att network-kit-admin finns på samma Cloudflare-konto. |
 | D-012 | Medel | Parkerad | Musik: chiptune möter svensk folkmusik. Utkast 1 av Midsommarpolskan (docs/music/index.html) används tills vidare; användaren är inte helt såld. Tas upp igen när spelet är spelbart. Idéer: låt per bana, musik i lager som följer läget, korta slingor per lag och händelse. |
 
 ## Proposed runs
